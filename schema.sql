@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   full_name TEXT,
   email TEXT UNIQUE,
-  profile_pic TEXT,
+  profile_picture TEXT,
   phone TEXT,
   karma_points INTEGER DEFAULT 0,
   created_at TIMESTAMP DEFAULT now()
@@ -80,9 +80,6 @@ INSERT INTO item_categories (name) VALUES
 ON CONFLICT DO NOTHING;
 
 
-
-
-
 -- RLS (Row Level Security) policies
 -- Enable Row-Level Security (RLS)
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
@@ -149,3 +146,61 @@ ON tips FOR SELECT USING (
 -- Insert tips only if you're the sender
 CREATE POLICY "Users can insert tips they send"
 ON tips FOR INSERT WITH CHECK (auth.uid() = sender_id);
+
+
+-- IMAGES RLS 
+-- INSERT: allow user to upload into their folder (user_id/filename)
+CREATE POLICY "Allow user to upload item images"
+ON storage.objects FOR INSERT
+TO authenticated
+WITH CHECK (
+  bucket_id = 'item-images'
+  AND auth.uid()::text = split_part(name, '/', 1)
+);
+
+-- SELECT: allow user to read their own item images
+CREATE POLICY "Allow user to read their item images"
+ON storage.objects FOR SELECT
+TO authenticated
+USING (
+  bucket_id = 'item-images'
+  AND auth.uid()::text = split_part(name, '/', 1)
+);
+
+-- DELETE: allow user to delete their own item images
+CREATE POLICY "Allow user to delete their item images"
+ON storage.objects FOR DELETE
+TO authenticated
+USING (
+  bucket_id = 'item-images'
+  AND auth.uid()::text = split_part(name, '/', 1)
+);
+
+
+-- Enable RLS for PROFILE pictures images
+-- INSERT
+CREATE POLICY "Allow user to upload profile picture"
+ON storage.objects FOR INSERT
+TO authenticated
+WITH CHECK (
+  bucket_id = 'profile-pictures'
+  AND auth.uid()::text = split_part(name, '/', 1)
+);
+
+-- SELECT
+CREATE POLICY "Allow user to read their profile picture"
+ON storage.objects FOR SELECT
+TO authenticated
+USING (
+  bucket_id = 'profile-pictures'
+  AND auth.uid()::text = split_part(name, '/', 1)
+);
+
+-- DELETE
+CREATE POLICY "Allow user to delete their profile picture"
+ON storage.objects FOR DELETE
+TO authenticated
+USING (
+  bucket_id = 'profile-pictures'
+  AND auth.uid()::text = split_part(name, '/', 1)
+);
