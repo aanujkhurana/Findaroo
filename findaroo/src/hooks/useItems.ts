@@ -28,9 +28,9 @@ export const useItems = (filters: ItemFilters = {}) => {
         .from('items')
         .select(`
           *,
-          user:users(id, full_name, profile_picture)
+          user:users(id, full_name, profile_pic)
         `)
-        .eq('is_resolved', false)
+        .eq('resolved', false)
         .order('created_at', { ascending: false });
 
       // Apply filters
@@ -70,7 +70,7 @@ export const useItems = (filters: ItemFilters = {}) => {
         .insert([itemData])
         .select(`
           *,
-          user:users(id, full_name, profile_picture)
+          user:users(id, full_name, profile_pic)
         `)
         .single();
 
@@ -95,7 +95,7 @@ export const useItems = (filters: ItemFilters = {}) => {
         .eq('id', id)
         .select(`
           *,
-          user:users(id, full_name, profile_picture)
+          user:users(id, full_name, profile_pic)
         `)
         .single();
 
@@ -140,7 +140,7 @@ export const useItems = (filters: ItemFilters = {}) => {
     try {
       const { error } = await supabase
         .from('items')
-        .update({ is_resolved: true })
+        .update({ resolved: true })
         .eq('id', id);
 
       if (error) throw error;

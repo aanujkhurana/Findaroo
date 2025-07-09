@@ -98,9 +98,9 @@ export const ItemCard: React.FC<ItemCardProps> = ({ item, onPress }) => {
       {/* Footer */}
       <View style={styles.footer}>
         <View style={styles.userContainer}>
-          {item.user?.avatar_url ? (
+          {item.user?.profile_pic ? (
             <Image
-              source={{ uri: getImageUrl(item.user.avatar_url, 'profile-pics') }}
+              source={{ uri: getImageUrl(item.user.profile_pic, 'profile-pics') }}
               style={styles.avatar}
             />
           ) : (

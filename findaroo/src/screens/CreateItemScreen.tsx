@@ -105,10 +105,10 @@ export const CreateItemScreen: React.FC<CreateItemScreenProps> = ({ navigation }
       title: title.trim(),
       description: description.trim(),
       category: category!,
-      status: 'lost', // Default to lost for simplicity
+      status: 'lost' as 'lost', // Default to lost for simplicity
       location: location!,
       image_url: imagePath,
-      is_resolved: false,
+      resolved: false,
       user_id: user?.id || '',
     };
 

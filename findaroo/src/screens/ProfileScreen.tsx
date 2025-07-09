@@ -13,7 +13,7 @@ export const ProfileScreen: React.FC = () => {
   const [editing, setEditing] = useState(false);
   const [fullName, setFullName] = useState(user?.full_name || '');
   const [phone, setPhone] = useState(user?.phone || '');
-  const [avatarUrl, setAvatarUrl] = useState(user?.profile_picture ?? '');
+  const [avatarUrl, setAvatarUrl] = useState(user?.profile_pic ?? '');
   const [loading, setLoading] = useState(false);
 
   const handleEditToggle = () => {
@@ -46,17 +46,17 @@ export const ProfileScreen: React.FC = () => {
 
     setLoading(true);
 
-    let avatarPath = user.profile_picture;
+    let avatarPath = user.profile_pic;
 
     // If avatar has changed, upload new file
-    if (avatarUrl && avatarUrl !== user.profile_picture) {
+    if (avatarUrl && avatarUrl !== user.profile_pic) {
       avatarPath = await uploadImage(avatarUrl, `avatars/${user.id}.jpg`, 'profile-pics');
     }
 
     const { error } = await updateProfile({
       full_name: fullName.trim(),
       phone: phone.trim(),
-      profile_picture: avatarPath,
+      profile_pic: avatarPath,
     });
 
     if (error) {

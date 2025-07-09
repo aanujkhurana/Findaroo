@@ -2,8 +2,7 @@ export interface User {
   id: string;
   email: string;
   full_name: string;
-  profile_picture?: string;
-  avatar_url?: string;
+  profile_pic?: string;
   karma?: number;
   phone?: string;
   created_at: string;
@@ -25,7 +24,7 @@ export interface Item {
   user_id: string;
   created_at: string;
   updated_at: string;
-  is_resolved: boolean;
+  resolved: boolean;
   reward_amount?: number;
   user?: User;
 }
