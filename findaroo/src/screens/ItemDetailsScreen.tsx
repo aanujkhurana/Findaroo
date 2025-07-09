@@ -38,7 +38,7 @@ export const ItemDetailsScreen: React.FC<ItemDetailsScreenProps> = ({ navigation
         .from('items')
         .select(`
           *,
-          user:users(id, full_name, avatar_url)
+          user:users(id, full_name, profile_picture)
         `)
         .eq('id', itemId)
         .single();
@@ -210,9 +210,9 @@ export const ItemDetailsScreen: React.FC<ItemDetailsScreenProps> = ({ navigation
           <View className="mb-6 p-4 bg-gray-50 rounded-lg">
             <Text className="text-lg font-medium text-gray-900 mb-3">Posted by</Text>
             <View className="flex-row items-center">
-              {item.user?.avatar_url ? (
+              {item.user?.profile_picture ? (
                 <Image
-                  source={{ uri: getImageUrl(item.user.avatar_url, 'profile-pics') }}
+                  source={{ uri: getImageUrl(item.user.profile_picture, 'profile-pics') }}
                   className="w-12 h-12 rounded-full mr-3"
                 />
               ) : (

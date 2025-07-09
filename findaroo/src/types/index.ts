@@ -3,6 +3,7 @@ export interface User {
   email: string;
   full_name: string;
   profile_picture?: string;
+  avatar_url?: string;
   karma?: number;
   phone?: string;
   created_at: string;

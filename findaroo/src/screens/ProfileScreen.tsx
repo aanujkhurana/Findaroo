@@ -13,7 +13,7 @@ export const ProfileScreen: React.FC = () => {
   const [editing, setEditing] = useState(false);
   const [fullName, setFullName] = useState(user?.full_name || '');
   const [phone, setPhone] = useState(user?.phone || '');
-  const [avatarUrl, setAvatarUrl] = useState(user?.avatar_url || '');
+  const [avatarUrl, setAvatarUrl] = useState(user?.profile_picture ?? '');
   const [loading, setLoading] = useState(false);
 
   const handleEditToggle = () => {
@@ -46,17 +46,17 @@ export const ProfileScreen: React.FC = () => {
 
     setLoading(true);
 
-    let avatarPath = user.avatar_url;
+    let avatarPath = user.profile_picture;
 
     // If avatar has changed, upload new file
-    if (avatarUrl && avatarUrl !== user.avatar_url) {
+    if (avatarUrl && avatarUrl !== user.profile_picture) {
       avatarPath = await uploadImage(avatarUrl, `avatars/${user.id}.jpg`, 'profile-pics');
     }
 
     const { error } = await updateProfile({
       full_name: fullName.trim(),
       phone: phone.trim(),
-      avatar_url: avatarPath,
+      profile_picture: avatarPath,
     });
 
     if (error) {
@@ -117,7 +117,7 @@ export const ProfileScreen: React.FC = () => {
             label="Email"
             value={user?.email || ''}
             placeholder="Enter your email"
-            disabled
+            editable={false}
           />
 
           <Input
@@ -133,7 +133,7 @@ export const ProfileScreen: React.FC = () => {
             <Input
               label="Karma Points"
               value={user.karma.toString()}
-              disabled
+              editable={false}
             />
           )}
         </View>
@@ -145,7 +145,7 @@ export const ProfileScreen: React.FC = () => {
               title="Save Changes"
               onPress={handleProfileUpdate}
               loading={loading}
-              disabled={fullName.length < 2 || (phone && phone.length < 10)}
+              disabled={!!(fullName.length < 2 || (phone && phone.length < 10))}
             />
           ) : (
             <Button title="Edit Profile" onPress={handleEditToggle} />

@@ -19,6 +19,7 @@ export const useItems = (filters: ItemFilters = {}) => {
   }, [filters]);
 
   const fetchItems = async () => {
+    
     try {
       setLoading(true);
       setError(null);
