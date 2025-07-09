@@ -31,8 +31,8 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
         .from('messages')
         .select(`
           *,
-          sender:users!sender_id(id, full_name, avatar_url),
-          recipient:users!recipient_id(id, full_name, avatar_url)
+          sender:users!sender_id(id, full_name, profile_picture),
+          recipient:users!recipient_id(id, full_name, profile_picture)
         `)
         .eq('item_id', itemId)
         .or(`and(sender_id.eq.${otherUserId},recipient_id.eq.${currentUser.data.user.id}),and(sender_id.eq.${currentUser.data.user.id},recipient_id.eq.${otherUserId})`)
@@ -61,8 +61,8 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
         .from('messages')
         .select(`
           *,
-          sender:users!sender_id(id, full_name, avatar_url),
-          recipient:users!recipient_id(id, full_name, avatar_url),
+          sender:users!sender_id(id, full_name, profile_picture),
+          recipient:users!recipient_id(id, full_name, profile_picture),
           item:items(id, title, status, image_url)
         `)
         .or(`sender_id.eq.${currentUser.data.user.id},recipient_id.eq.${currentUser.data.user.id}`)
@@ -130,8 +130,8 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
             .from('messages')
             .select(`
               *,
-              sender:users!sender_id(id, full_name, avatar_url),
-              recipient:users!recipient_id(id, full_name, avatar_url)
+              sender:users!sender_id(id, full_name, profile_picture),
+              recipient:users!recipient_id(id, full_name, profile_picture)
             `)
             .eq('id', payload.new.id)
             .single();
@@ -167,8 +167,8 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
         ])
         .select(`
           *,
-          sender:users!sender_id(id, full_name, avatar_url),
-          recipient:users!recipient_id(id, full_name, avatar_url)
+          sender:users!sender_id(id, full_name, profile_picture),
+          recipient:users!recipient_id(id, full_name, profile_picture)
         `)
         .single();
 

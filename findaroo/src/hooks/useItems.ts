@@ -27,7 +27,7 @@ export const useItems = (filters: ItemFilters = {}) => {
         .from('items')
         .select(`
           *,
-          user:users(id, full_name, avatar_url)
+          user:users(id, full_name, profile_picture)
         `)
         .eq('is_resolved', false)
         .order('created_at', { ascending: false });
@@ -69,7 +69,7 @@ export const useItems = (filters: ItemFilters = {}) => {
         .insert([itemData])
         .select(`
           *,
-          user:users(id, full_name, avatar_url)
+          user:users(id, full_name, profile_picture)
         `)
         .single();
 
@@ -94,7 +94,7 @@ export const useItems = (filters: ItemFilters = {}) => {
         .eq('id', id)
         .select(`
           *,
-          user:users(id, full_name, avatar_url)
+          user:users(id, full_name, profile_picture)
         `)
         .single();
 
