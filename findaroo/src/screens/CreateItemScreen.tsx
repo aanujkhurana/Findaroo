@@ -109,7 +109,7 @@ export const CreateItemScreen: React.FC<CreateItemScreenProps> = ({ navigation }
     setLoading(true);
 
     // Upload image
-    const imagePath = await uploadImage(imageUri!, `items/${title}_${Date.now()}.jpg`);
+    const imagePath = await uploadImage(imageUri!, `${user.id}/${title}_${Date.now()}.jpg`);
 
     if (!imagePath) {
       setLoading(false);
