@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, ScrollView, Alert, Image, Platform, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Input } from '../components/Input';
@@ -36,7 +36,8 @@ export const CreateItemScreen: React.FC<CreateItemScreenProps> = ({ navigation }
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ title?: string; category?: string; image?: string; }>();
 
-  const { createItem } = useItems();
+  const filters = useMemo(() => ({}), []);
+  const { createItem } = useItems(filters);
   const { user } = useAuth();
 
   const validateForm = () => {

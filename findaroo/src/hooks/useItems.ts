@@ -15,11 +15,12 @@ export const useItems = (filters: ItemFilters = {}) => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    console.log('[useItems] Filters changed:', filters);
     fetchItems();
   }, [filters]);
 
   const fetchItems = async () => {
-    
+    console.log('[useItems] Fetching items with filters:', filters);
     try {
       setLoading(true);
       setError(null);
@@ -51,15 +52,17 @@ export const useItems = (filters: ItemFilters = {}) => {
       }
 
       const { data, error } = await query;
+      console.log('[useItems] Supabase response:', { data, error });
 
       if (error) throw error;
 
       setItems(data || []);
     } catch (err: any) {
       setError(err.message);
-      console.error('Error fetching items:', err);
+      console.error('[useItems] Error fetching items:', err);
     } finally {
       setLoading(false);
+      console.log('[useItems] Fetch complete. Loading set to false.');
     }
   };
 

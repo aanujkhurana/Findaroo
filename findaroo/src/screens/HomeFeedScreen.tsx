@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { View, Text, FlatList, RefreshControl, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useItems } from '../hooks/useItems';
@@ -31,11 +31,13 @@ export const HomeFeedScreen: React.FC<HomeFeedScreenProps> = ({ navigation }) =>
   const [search, setSearch] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
-  const { items, loading, error, refetch } = useItems({
+  const filters = useMemo(() => ({
     status,
     category,
     search: search.trim() || undefined,
-  });
+  }), [status, category, search]);
+
+  const { items, loading, error, refetch } = useItems(filters);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
