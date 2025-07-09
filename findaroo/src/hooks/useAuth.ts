@@ -22,13 +22,13 @@ export const useAuth = () => {
 
         // Get current session from Supabase
         const { data: { session }, error } = await supabase.auth.getSession();
+        console.log('Supabase session:', session);
         
-        if (!error && session) {
+        if (!error && session && session.user) {
           setSession(session);
           await AsyncStorage.setItem('sb-session', JSON.stringify(session));
-          
-          // Fetch user profile
-          await fetchUserProfile(session.user.id);
+          // Fetch user profile, pass session.user
+          await fetchUserProfile(session.user.id, session.user);
         }
       } catch (error) {
         console.error('Error getting session:', error);
@@ -43,10 +43,11 @@ export const useAuth = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       setLoading(false);
+      console.log('Auth state change session:', session);
       
-      if (session) {
+      if (session && session.user) {
         await AsyncStorage.setItem('sb-session', JSON.stringify(session));
-        await fetchUserProfile(session.user.id);
+        await fetchUserProfile(session.user.id, session.user);
       } else {
         await AsyncStorage.removeItem('sb-session');
         setUser(null);
@@ -56,26 +57,8 @@ export const useAuth = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const fetchUserProfile = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (!error && data) {
-        setUser(data);
-      } else if (error && error.code === 'PGRST116') {
-        // User profile doesn't exist, this might happen if profile creation failed during signup
-        console.log('User profile not found, might need to create it');
-      }
-    } catch (error) {
-      console.error('Error fetching user profile:', error);
-    }
-  };
-
-  const createUserProfile = async (userId: string, email: string, fullName: string) => {
+  // Move createUserProfile above fetchUserProfile for correct type inference
+  const createUserProfile = async (userId: string, email: string, fullName: string): Promise<{ data: any; error: any }> => {
     try {
       const { data, error } = await supabase
         .from('users')
@@ -100,6 +83,42 @@ export const useAuth = () => {
     } catch (error: any) {
       console.error('Error creating user profile:', error);
       return { data: null, error };
+    }
+  };
+
+  // Accept sessionUser as a parameter
+  const fetchUserProfile = async (userId: string, sessionUser?: any) => {
+    try {
+      console.log('Fetching user profile for userId:', userId);
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      console.log('fetchUserProfile result:', { data, error });
+
+      if (!error && data) {
+        setUser(data);
+        console.log('setUser called with:', data);
+      } else if (error && error.code === 'PGRST116') {
+        // User profile doesn't exist, create it
+        console.log('User profile not found, creating it...');
+        // Use sessionUser passed as argument
+        if (sessionUser && sessionUser.email) {
+          const email = sessionUser.email;
+          const fullName = sessionUser.user_metadata?.full_name || '';
+          const newProfile = await createUserProfile(userId, email, fullName);
+          if (newProfile.data) {
+            setUser(newProfile.data);
+            console.log('setUser called with (created):', newProfile.data);
+          }
+        } else {
+          console.warn('Cannot create user profile: session user or email missing');
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
     }
   };
 

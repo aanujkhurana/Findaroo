@@ -40,6 +40,14 @@ export const CreateItemScreen: React.FC<CreateItemScreenProps> = ({ navigation }
   const { createItem } = useItems(filters);
   const { user } = useAuth();
 
+  if (!user) {
+    return (
+      <SafeAreaView className="flex-1 justify-center items-center">
+        <Text>Loading your profile...</Text>
+      </SafeAreaView>
+    );
+  }
+
   const validateForm = () => {
     const newErrors: { title?: string; category?: string; image?: string; } = {};
 
@@ -91,6 +99,13 @@ export const CreateItemScreen: React.FC<CreateItemScreenProps> = ({ navigation }
   const handleSubmit = async () => {
     if (!validateForm()) return;
 
+    console.log('Auth user:', user);
+    if (!user?.id) {
+      Alert.alert('You must be logged in to create an item.');
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
 
     // Upload image
@@ -110,7 +125,7 @@ export const CreateItemScreen: React.FC<CreateItemScreenProps> = ({ navigation }
       location: location!,
       image_url: imagePath,
       resolved: false,
-      user_id: user?.id || '',
+      user_id: user.id,
     };
 
     // Create item
@@ -198,6 +213,7 @@ export const CreateItemScreen: React.FC<CreateItemScreenProps> = ({ navigation }
             title="Submit"
             onPress={handleSubmit}
             loading={loading}
+            disabled={!user?.id || loading}
           />
         </View>
       </ScrollView>
