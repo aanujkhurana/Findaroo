@@ -18,6 +18,8 @@ import { CreateItemScreen } from '../screens/CreateItemScreen';
 import { ItemDetailsScreen } from '../screens/ItemDetailsScreen';
 import { ChatScreen } from '../screens/ChatScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
+import { CreateLostItemScreen } from '../screens/CreateLostItemScreen';
+import { CreateFoundItemScreen } from '../screens/CreateFoundItemScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -118,6 +120,24 @@ const MainStack = () => (
       options={{
         title: 'Chat',
         headerBackTitle: 'Back',
+      }}
+    />
+    <Stack.Screen 
+      name="CreateLostItem" 
+      component={CreateLostItemScreen}
+      options={{
+        title: 'Report Lost Item',
+        headerBackTitle: 'Back',
+        headerShown: false,
+      }}
+    />
+    <Stack.Screen 
+      name="CreateFoundItem" 
+      component={CreateFoundItemScreen}
+      options={{
+        title: 'Report Found Item',
+        headerBackTitle: 'Back',
+        headerShown: false,
       }}
     />
   </Stack.Navigator>
