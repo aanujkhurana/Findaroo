@@ -13,7 +13,7 @@ export const ProfileScreen: React.FC = () => {
   const [editing, setEditing] = useState(false);
   const [fullName, setFullName] = useState(user?.full_name || '');
   const [phone, setPhone] = useState(user?.phone || '');
-  const [avatarUrl, setAvatarUrl] = useState(user?.profile_pic ?? '');
+  const [avatarUrl, setAvatarUrl] = useState<string | undefined>(user?.profile_pic || undefined);
   const [loading, setLoading] = useState(false);
 
   const handleEditToggle = () => {
@@ -92,7 +92,7 @@ export const ProfileScreen: React.FC = () => {
                 className="w-[120px] h-[120px] rounded-full mb-2"
               />
             ) : (
-              <View className="w-[120px] h-[120px] rounded-full bg-blue-500 mb-2 justify-center items-center">
+              <View className="w-[120px] h-[120px] rounded-full bg-indigo-600 mb-2 justify-center items-center">
                 <Text className="text-white text-2xl font-bold">
                   {user?.full_name.charAt(0).toUpperCase()}
                 </Text>
