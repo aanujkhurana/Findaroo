@@ -10,6 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // Auth Screens
 import { LoginScreen } from '../screens/LoginScreen';
 import { SignupScreen } from '../screens/SignupScreen';
+import { SplashScreen } from '../screens/SplashScreen';
 
 // Main Screens
 import { HomeFeedScreen } from '../screens/HomeFeedScreen';
@@ -125,20 +126,26 @@ const MainStack = () => (
 export const AppNavigator: React.FC = () => {
   const { session, loading } = useAuth();
   const [hasSkippedAuth, setHasSkippedAuth] = useState(false);
+  const [hasSeenOnboarding, setHasSeenOnboarding] = useState(true); // Default to true to avoid flash
   const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
-    checkSkipStatus();
+    checkInitialStatus();
   }, []);
 
-  const checkSkipStatus = async () => {
+  const checkInitialStatus = async () => {
     try {
+      // Check if user has skipped auth
       const skipStatus = await AsyncStorage.getItem('hasSkippedAuth');
       if (skipStatus === 'true') {
         setHasSkippedAuth(true);
       }
+      
+      // Check if user has seen onboarding
+      const onboardingStatus = await AsyncStorage.getItem('hasSeenOnboarding');
+      setHasSeenOnboarding(onboardingStatus === 'true');
     } catch (error) {
-      console.error('Error checking skip status:', error);
+      console.error('Error checking initial status:', error);
     } finally {
       setIsInitializing(false);
     }
@@ -168,10 +175,22 @@ export const AppNavigator: React.FC = () => {
 
   // Show main app if user is authenticated OR has skipped authentication
   const shouldShowMainApp = session || hasSkippedAuth;
+  
+  // Handle onboarding completion
+  const handleOnboardingComplete = async () => {
+    try {
+      await AsyncStorage.setItem('hasSeenOnboarding', 'true');
+      setHasSeenOnboarding(true);
+    } catch (error) {
+      console.error('Error saving onboarding status:', error);
+    }
+  };
 
   return (
     <NavigationContainer>
-      {shouldShowMainApp ? (
+      {!hasSeenOnboarding ? (
+        <SplashScreen navigation={null} onComplete={handleOnboardingComplete} />
+      ) : shouldShowMainApp ? (
         <MainStack />
       ) : (
         <AuthStackWithSkip onSkipAuth={handleSkipAuth} />

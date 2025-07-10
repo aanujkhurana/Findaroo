@@ -125,10 +125,10 @@ export const ItemCard: React.FC<ItemCardProps> = ({ item, onPress }) => {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#ffffff',
-    borderRadius: 16,
+    borderRadius: 24,
     marginHorizontal: 16,
     marginBottom: 16,
-    borderColor: '#e5e7eb',
+    borderColor: '#E5E7EB',
     borderWidth: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -172,10 +172,10 @@ const styles = StyleSheet.create({
     borderRadius: 9999,
   },
   statusLost: {
-    backgroundColor: '#fee2e2',
+    backgroundColor: '#FEE2E2',
   },
   statusFound: {
-    backgroundColor: '#d1fae5',
+    backgroundColor: '#D1FAE5',
   },
   statusText: {
     fontSize: 12,
@@ -183,10 +183,10 @@ const styles = StyleSheet.create({
     textTransform: 'capitalize',
   },
   statusTextLost: {
-    color: '#dc2626',
+    color: '#EF4444',
   },
   statusTextFound: {
-    color: '#047857',
+    color: '#10B981',
   },
   imageContainer: {
     paddingHorizontal: 16,
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: 192,
-    borderRadius: 16,
+    borderRadius: 20,
   },
   descriptionContainer: {
     paddingHorizontal: 16,
@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
   reward: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#047857',
+    color: '#10B981',
   },
   footer: {
     borderTopWidth: 1,

@@ -207,27 +207,27 @@ export const HomeFeedScreen: React.FC<HomeFeedScreenProps> = ({ navigation }) =>
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#F9FAFB',
   },
   errorContainer: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#F9FAFB',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
   },
   errorText: {
-    color: '#dc2626',
+    color: '#EF4444',
     textAlign: 'center',
     marginBottom: 16,
     fontSize: 16,
   },
   header: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: '#E5E7EB',
   },
   headerTitle: {
     fontSize: 24,
@@ -236,10 +236,10 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#6b7280',
+    color: '#6B7280',
   },
   searchContainer: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
@@ -247,11 +247,11 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
   filterSection: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: '#E5E7EB',
   },
   filterLabel: {
     fontSize: 14,
@@ -270,20 +270,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   filterButtonInactive: {
-    backgroundColor: '#ffffff',
-    borderColor: '#d1d5db',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E5E7EB',
   },
   lostButtonActive: {
-    backgroundColor: '#ef4444',
-    borderColor: '#ef4444',
+    backgroundColor: '#EF4444',
+    borderColor: '#EF4444',
   },
   foundButtonActive: {
-    backgroundColor: '#22c55e',
-    borderColor: '#22c55e',
+    backgroundColor: '#10B981',
+    borderColor: '#10B981',
   },
   clearButton: {
-    backgroundColor: '#f3f4f6',
-    borderColor: '#d1d5db',
+    backgroundColor: '#F3F4F6',
+    borderColor: '#E5E7EB',
   },
   filterButtonText: {
     fontSize: 14,
@@ -313,12 +313,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   categoryButtonInactive: {
-    backgroundColor: '#ffffff',
-    borderColor: '#d1d5db',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E5E7EB',
   },
   categoryButtonActive: {
-    backgroundColor: '#2563eb',
-    borderColor: '#2563eb',
+    backgroundColor: '#4F46E5',
+    borderColor: '#4F46E5',
   },
   categoryIcon: {
     fontSize: 14,
@@ -356,7 +356,7 @@ const styles = StyleSheet.create({
   },
   emptyStateMessage: {
     fontSize: 16,
-    color: '#6b7280',
+    color: '#6B7280',
     textAlign: 'center',
   },
   fab: {
@@ -365,7 +365,7 @@ const styles = StyleSheet.create({
     right: 24,
     width: 56,
     height: 56,
-    backgroundColor: '#2563eb',
+    backgroundColor: '#4F46E5',
     borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',

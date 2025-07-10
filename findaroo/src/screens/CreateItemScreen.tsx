@@ -148,7 +148,7 @@ export const CreateItemScreen: React.FC<CreateItemScreenProps> = ({ navigation }
         {/* Header */}
         <View className="mt-8 mb-6">
           <Text className="text-2xl font-bold text-gray-900">Create Item</Text>
-          <Text className="text-gray-600">Report a lost or found item</Text>
+          <Text className="text-gray-500">Report a lost or found item</Text>
         </View>
 
         {/* Form */}
@@ -178,7 +178,7 @@ export const CreateItemScreen: React.FC<CreateItemScreenProps> = ({ navigation }
                 key={cat.value}
                 onPress={() => setCategory(cat.value)}
                 className={`px-3 py-2 rounded-full border flex-row items-center mx-1 ${
-                  category === cat.value ? 'bg-blue-500 border-blue-500' : 'bg-white border-gray-300'
+                  category === cat.value ? 'bg-indigo-600 border-indigo-600' : 'bg-white border-gray-300'
                 }`}
               >
                 <Text className={`text-sm font-medium ${
@@ -187,7 +187,7 @@ export const CreateItemScreen: React.FC<CreateItemScreenProps> = ({ navigation }
               </TouchableOpacity>
             ))}
           </ScrollView>
-          {errors?.category && <Text className="text-sm text-red-600">{errors.category}</Text>}
+          {errors?.category && <Text className="text-sm text-red-500">{errors.category}</Text>}
 
           {/* Image Upload */}
           <Button
@@ -196,8 +196,8 @@ export const CreateItemScreen: React.FC<CreateItemScreenProps> = ({ navigation }
             className="mb-4"
             variant={imageUri ? "secondary" : "primary"}
           />
-          {imageUri && <Image source={{ uri: imageUri }} className="w-full h-40 mb-4 rounded-lg" />}
-          {errors?.image && <Text className="text-sm text-red-600">{errors.image}</Text>}
+          {imageUri && <Image source={{ uri: imageUri }} className="w-full h-40 mb-4 rounded-xl" />}
+          {errors?.image && <Text className="text-sm text-red-500">{errors.image}</Text>}
 
           {/* Location */}
           <Button

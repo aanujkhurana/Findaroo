@@ -84,7 +84,7 @@ export const ItemDetailsScreen: React.FC<ItemDetailsScreenProps> = ({ navigation
             try {
               const { error } = await supabase
                 .from('items')
-                .update({ is_resolved: true })
+                .update({ resolved: true })
                 .eq('id', item.id);
 
               if (error) throw error;
@@ -118,7 +118,7 @@ export const ItemDetailsScreen: React.FC<ItemDetailsScreenProps> = ({ navigation
   };
 
   const getStatusColor = (status: string) => {
-    return status === 'lost' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800';
+    return status === 'lost' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-emerald-600';
   };
 
   const formatDate = (dateString: string) => {
@@ -150,7 +150,7 @@ export const ItemDetailsScreen: React.FC<ItemDetailsScreenProps> = ({ navigation
   const isOwnItem = user?.id === item.user_id;
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-gray-50">
       <ScrollView className="flex-1">
         {/* Image */}
         {item.image_url && (
@@ -161,7 +161,7 @@ export const ItemDetailsScreen: React.FC<ItemDetailsScreenProps> = ({ navigation
           />
         )}
 
-        <View className="p-6">
+        <View className="p-6 bg-white rounded-t-3xl -mt-4">
           {/* Header */}
           <View className="mb-6">
             <View className="flex-row justify-between items-start mb-3">
@@ -181,8 +181,8 @@ export const ItemDetailsScreen: React.FC<ItemDetailsScreenProps> = ({ navigation
 
             {/* Reward */}
             {item.reward_amount && item.reward_amount > 0 && (
-              <View className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
-                <Text className="text-green-800 font-medium text-center">
+              <View className="bg-green-50 border border-green-200 rounded-xl p-3 mb-4">
+                <Text className="text-emerald-600 font-medium text-center">
                   💰 Reward: ${item.reward_amount}
                 </Text>
               </View>
@@ -207,7 +207,7 @@ export const ItemDetailsScreen: React.FC<ItemDetailsScreenProps> = ({ navigation
           )}
 
           {/* User Info */}
-          <View className="mb-6 p-4 bg-gray-50 rounded-lg">
+          <View className="mb-6 p-4 bg-gray-50 rounded-xl">
             <Text className="text-lg font-medium text-gray-900 mb-3">Posted by</Text>
             <View className="flex-row items-center">
               {item.user?.profile_pic ? (
@@ -216,8 +216,8 @@ export const ItemDetailsScreen: React.FC<ItemDetailsScreenProps> = ({ navigation
                   className="w-12 h-12 rounded-full mr-3"
                 />
               ) : (
-                <View className="w-12 h-12 rounded-full bg-gray-300 mr-3 justify-center items-center">
-                  <Text className="text-lg text-gray-600">
+                <View className="w-12 h-12 rounded-full bg-indigo-600 mr-3 justify-center items-center">
+                  <Text className="text-lg text-white">
                     {item.user?.full_name?.charAt(0).toUpperCase()}
                   </Text>
                 </View>
@@ -250,7 +250,7 @@ export const ItemDetailsScreen: React.FC<ItemDetailsScreenProps> = ({ navigation
               />
             )}
             
-            {isOwnItem && !item.is_resolved && (
+            {isOwnItem && !item.resolved && (
               <Button
                 title="Mark as Resolved"
                 onPress={handleMarkResolved}

@@ -197,7 +197,7 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, onSkipAu
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#F9FAFB',
   },
   keyboardView: {
     flex: 1,
@@ -220,19 +220,19 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    color: '#6b7280',
+    color: '#6B7280',
     textAlign: 'center',
   },
   logo: {
     width: 80,
     height: 80,
-    backgroundColor: '#2563eb',
+    backgroundColor: '#4F46E5',
     borderRadius: 40,
     alignSelf: 'center',
     marginBottom: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#2563eb',
+    shadowColor: '#4F46E5',
     shadowOffset: {
       width: 0,
       height: 4,
@@ -254,12 +254,12 @@ const styles = StyleSheet.create({
   },
   termsText: {
     fontSize: 14,
-    color: '#6b7280',
+    color: '#6B7280',
     textAlign: 'center',
     marginBottom: 24,
   },
   linkText: {
-    color: '#2563eb',
+    color: '#4F46E5',
   },
   footer: {
     flexDirection: 'row',
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   footerText: {
-    color: '#6b7280',
+    color: '#6B7280',
     fontSize: 16,
     marginRight: 8,
   },
@@ -281,7 +281,7 @@ const styles = StyleSheet.create({
   },
   skipText: {
     fontSize: 12,
-    color: '#6b7280',
+    color: '#6B7280',
     textAlign: 'center',
   },
 });

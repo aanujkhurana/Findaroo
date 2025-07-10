@@ -60,14 +60,14 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#374151',
+    color: '#6B7280',
     marginBottom: 8,
     lineHeight: 20,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 12,
+    borderColor: '#E5E7EB',
+    borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
@@ -84,8 +84,8 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   inputFocused: {
-    borderColor: '#2563eb',
-    shadowColor: '#2563eb',
+    borderColor: '#4F46E5',
+    shadowColor: '#4F46E5',
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,

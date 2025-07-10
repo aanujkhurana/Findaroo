@@ -96,14 +96,14 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
           <View
             className={`max-w-[80%] px-4 py-3 rounded-2xl ${
               isOwnMessage
-                ? 'bg-blue-500 rounded-br-md'
+                ? 'bg-indigo-600 rounded-br-md'
                 : 'bg-gray-100 rounded-bl-md'
             }`}
           >
             <Text className={`text-base ${isOwnMessage ? 'text-white' : 'text-gray-900'}`}>
               {item.content}
             </Text>
-            <Text className={`text-xs mt-1 ${isOwnMessage ? 'text-blue-100' : 'text-gray-500'}`}>
+            <Text className={`text-xs mt-1 ${isOwnMessage ? 'text-indigo-200' : 'text-gray-500'}`}>
               {formatTime(item.created_at)}
             </Text>
           </View>
@@ -127,7 +127,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-gray-50">
       <KeyboardAvoidingView 
         className="flex-1" 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -156,7 +156,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
         />
 
         {/* Message Input */}
-        <View className="border-t border-gray-200 p-4">
+        <View className="border-t border-gray-200 p-4 bg-white">
           <View className="flex-row items-end space-x-3">
             <TextInput
               className="flex-1 border border-gray-300 rounded-2xl px-4 py-3 max-h-24"
@@ -170,7 +170,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
               onPress={handleSendMessage}
               disabled={!newMessage.trim() || sending}
               className={`w-12 h-12 rounded-full items-center justify-center ${
-                newMessage.trim() && !sending ? 'bg-blue-500' : 'bg-gray-300'
+                newMessage.trim() && !sending ? 'bg-indigo-600' : 'bg-gray-300'
               }`}
             >
               <Text className="text-white text-lg font-medium">

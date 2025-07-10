@@ -111,7 +111,7 @@ export const Button: React.FC<ButtonProps> = ({
 
 const styles = StyleSheet.create({
   button: {
-    borderRadius: 12,
+    borderRadius: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
   
   // Variant styles
   primaryButton: {
-    backgroundColor: '#2563eb',
+    backgroundColor: '#4F46E5',
   },
   secondaryButton: {
     backgroundColor: '#6b7280',
@@ -135,10 +135,10 @@ const styles = StyleSheet.create({
   outlineButton: {
     backgroundColor: 'transparent',
     borderWidth: 2,
-    borderColor: '#2563eb',
+    borderColor: '#4F46E5',
   },
   dangerButton: {
-    backgroundColor: '#dc2626',
+    backgroundColor: '#ef4444',
   },
   
   // Size styles
@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
     color: '#ffffff',
   },
   outlineText: {
-    color: '#2563eb',
+    color: '#4F46E5',
   },
   
   // Text size styles

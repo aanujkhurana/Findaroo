@@ -150,7 +150,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onSkipAuth
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#F9FAFB',
   },
   keyboardView: {
     flex: 1,
@@ -173,19 +173,19 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    color: '#6b7280',
+    color: '#6B7280',
     textAlign: 'center',
   },
   logo: {
     width: 96,
     height: 96,
-    backgroundColor: '#2563eb',
+    backgroundColor: '#4F46E5',
     borderRadius: 48,
     alignSelf: 'center',
     marginBottom: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#2563eb',
+    shadowColor: '#4F46E5',
     shadowOffset: {
       width: 0,
       height: 4,
