@@ -5,13 +5,23 @@ import Slider from '@react-native-community/slider';
 import { useAuth } from '../hooks/useAuth';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-export const ProfileScreen: React.FC = () => {
+export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
+  const { signOut } = useAuth();
   // Static data for demo
   const avatarUrl = undefined;
   const [pushNotifications, setPushNotifications] = useState(true);
   const [emailUpdates, setEmailUpdates] = useState(false);
   const [autoAccept, setAutoAccept] = useState(true);
   const [radius, setRadius] = useState(15);
+
+  const handleSignOut = async () => {
+    const { error } = await signOut();
+    if (error) {
+      Alert.alert('Sign Out Failed', error.message);
+    } else if (navigation) {
+      navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -190,7 +200,7 @@ export const ProfileScreen: React.FC = () => {
       </ScrollView>
       {/* Sign Out Button */}
       <View style={styles.signOutContainer}>
-        <TouchableOpacity style={styles.signOutButton}>
+        <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
           <Text style={styles.signOutText}>Sign Out</Text>
         </TouchableOpacity>
       </View>
