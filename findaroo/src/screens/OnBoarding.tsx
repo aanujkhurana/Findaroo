@@ -1,38 +1,85 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Image } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { OnboardingIllustration } from '../components/OnboardingIllustration';
 
-export const OnBoarding = ({ navigation }: any) => {
+const onboardingData = [
+  {
+    title: "G'day! Welcome to\nFindaroo",
+    subtitle: "Australia's friendly lost & found community that helps mates find their missing stuff",
+    imageType: 'welcome', // changed from 'custom' to 'welcome' for type safety
+    image: require('../../assets/onboarding1.png'),
+  },
+  {
+    title: 'Report Lost or Found Items',
+    subtitle: "Easily report lost items or items you've found to help others in your community.",
+    imageType: 'report',
+  },
+  {
+    title: 'Connect and Recover',
+    subtitle: 'Connect with finders or owners through our secure chat system to arrange returns.',
+    imageType: 'connect',
+  },
+];
+
+export const OnBoarding = ({ navigation, onComplete }: any) => {
+  const [currentPage, setCurrentPage] = useState(0);
+  const totalPages = onboardingData.length;
+
+  const handleNext = () => {
+    if (currentPage < totalPages - 1) {
+      setCurrentPage(currentPage + 1);
+    } else if (onComplete) {
+      onComplete();
+    }
+  };
+
+  const handlePrev = () => {
+    if (currentPage > 0) setCurrentPage(currentPage - 1);
+  };
+
+  const handleSkip = () => {
+    if (onComplete) onComplete();
+  };
+
+  const step = onboardingData[currentPage];
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         {/* Top Icon and Skip */}
         <View style={styles.topRow}>
-          <View style={styles.iconCircle}>
-            <Feather name="search" size={40} color="#fff" />
-          </View>
-          <TouchableOpacity style={styles.skipBtn}>
+          {currentPage === 0 ? (
+            <View style={styles.iconCircle}>
+              <Feather name="search" size={40} color="#fff" />
+            </View>
+          ) : <View style={{ width: 96 }} />}
+          <TouchableOpacity style={styles.skipBtn} onPress={handleSkip}>
             <Text style={styles.skipText}>Skip</Text>
           </TouchableOpacity>
         </View>
-        {/* Welcome Text */}
-        <Text style={styles.title}>G'day! Welcome to{"\n"}<Text style={{ color: '#111' }}>Findaroo</Text></Text>
-        <Text style={styles.subtitle}>Australia's friendly lost & found community that helps mates find their missing stuff</Text>
-        {/* Main Image */}
-        <Image source={require('../../assets/onboarding1.png')} style={styles.image} resizeMode="cover" />
+        {/* Title & Subtitle */}
+        <Text style={styles.title}>{step.title}</Text>
+        <Text style={styles.subtitle}>{step.subtitle}</Text>
+        {/* Illustration or Image */}
+        {currentPage === 0 ? (
+          <Image source={step.image} style={styles.image} resizeMode="cover" />
+        ) : (
+          <OnboardingIllustration type={step.imageType as 'report' | 'connect' | 'welcome'} width={280} height={200} />
+        )}
         {/* Progress Dots */}
         <View style={styles.dotsRow}>
-          <View style={[styles.dot, styles.dotActive]} />
-          <View style={styles.dot} />
-          <View style={styles.dot} />
+          {onboardingData.map((_, idx) => (
+            <View key={idx} style={[styles.dot, currentPage === idx && styles.dotActive]} />
+          ))}
         </View>
         {/* Navigation Buttons */}
         <View style={styles.bottomRow}>
-          <TouchableOpacity style={styles.prevBtn}>
-            <Text style={styles.prevText}>Previous</Text>
+          <TouchableOpacity style={styles.prevBtn} onPress={handlePrev} disabled={currentPage === 0}>
+            <Text style={[styles.prevText, currentPage === 0 && { color: '#e5e7eb' }]}>Previous</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.nextBtn}>
-            <Text style={styles.nextText}>Next</Text>
+          <TouchableOpacity style={styles.nextBtn} onPress={handleNext}>
+            <Text style={styles.nextText}>{currentPage === totalPages - 1 ? 'Get Started' : 'Next'}</Text>
           </TouchableOpacity>
         </View>
       </View>
