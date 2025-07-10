@@ -1,277 +1,182 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, Image, Alert, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { supabase } from '../services/supabaseClient';
-import { Item } from '../types';
-import { Loading } from '../components/Loading';
-import { Button } from '../components/Button';
-import { getImageUrl } from '../utils/uploadImage';
-import { useAuth } from '../hooks/useAuth';
+import React, { useState } from 'react';
+import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
+import { MaterialIcons, Feather } from '@expo/vector-icons';
 
-interface ItemDetailsScreenProps {
-  navigation: any;
-  route: {
-    params: {
-      itemId: string;
-    };
+const mockImages = [
+  require('../../assets/icon.png'),
+  require('../../assets/adaptive-icon.png'),
+  require('../../assets/favicon.png'),
+];
+
+export const ItemDetailsScreen = ({ navigation }: any) => {
+  // Mock data for demo
+  const [selectedImage, setSelectedImage] = useState(0);
+  const item = {
+    title: 'Black Leather Wallet',
+    description:
+      "Lost my black leather wallet near Central Station. It's a bi-fold wallet with my driver's license, credit cards, and about $80 cash. Has a small tear on the back corner. Really need it back as it has all my important cards!",
+    category: 'Wallet',
+    reward: 50,
+    status: 'Lost Item',
+    statusColor: '#f87171',
+    lastSeen: {
+      location: 'Central Station, Sydney',
+      details: 'Platform 4, near the coffee shop',
+      date: 'Monday, Dec 4, 2023',
+      time: 'Around 8:30 AM',
+      map: require('../../assets/splash-icon.png'),
+    },
+    owner: {
+      name: 'Mike Johnson',
+      avatar: require('../../assets/icon.png'),
+      rating: 4.8,
+      memberSince: 2022,
+    },
+    similar: [
+      {
+        image: require('../../assets/icon.png'),
+        title: 'Brown Wallet',
+        location: 'Found at Town Hall',
+      },
+      {
+        image: require('../../assets/adaptive-icon.png'),
+        title: 'Black Wallet',
+        location: 'Found at Museum Station',
+      },
+    ],
   };
-}
-
-export const ItemDetailsScreen: React.FC<ItemDetailsScreenProps> = ({ navigation, route }) => {
-  const { itemId } = route.params;
-  const [item, setItem] = useState<Item | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  
-  const { user } = useAuth();
-
-  useEffect(() => {
-    fetchItem();
-  }, [itemId]);
-
-  const fetchItem = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const { data, error } = await supabase
-        .from('items')
-        .select(`
-          *,
-          user:users(id, full_name, profile_pic)
-        `)
-        .eq('id', itemId)
-        .single();
-
-      if (error) throw error;
-
-      setItem(data);
-    } catch (err: any) {
-      setError(err.message);
-      console.error('Error fetching item:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleContact = () => {
-    if (!user || !item) return;
-    
-    if (user.id === item.user_id) {
-      Alert.alert('Info', 'This is your own item');
-      return;
-    }
-
-    navigation.navigate('Chat', {
-      itemId: item.id,
-      otherUserId: item.user_id,
-      otherUserName: item.user?.full_name,
-    });
-  };
-
-  const handleMarkResolved = async () => {
-    if (!item || !user || user.id !== item.user_id) return;
-
-    Alert.alert(
-      'Mark as Resolved',
-      'Are you sure you want to mark this item as resolved? This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Yes, Mark Resolved',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const { error } = await supabase
-                .from('items')
-                .update({ resolved: true })
-                .eq('id', item.id);
-
-              if (error) throw error;
-
-              Alert.alert('Success', 'Item marked as resolved!', [
-                { text: 'OK', onPress: () => navigation.goBack() }
-              ]);
-            } catch (error: any) {
-              Alert.alert('Error', error.message);
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  const getCategoryIcon = (category: string) => {
-    const icons: { [key: string]: string } = {
-      electronics: '📱',
-      clothing: '👕',
-      accessories: '👜',
-      documents: '📄',
-      keys: '🔑',
-      bags: '🎒',
-      pets: '🐕',
-      jewelry: '💍',
-      sports: '⚽',
-      other: '📦',
-    };
-    return icons[category] || '📦';
-  };
-
-  const getStatusColor = (status: string) => {
-    return status === 'lost' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-emerald-600';
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-AU', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
-  if (loading) {
-    return <Loading message="Loading item details..." />;
-  }
-
-  if (error || !item) {
-    return (
-      <SafeAreaView className="flex-1 bg-gray-50 justify-center items-center">
-        <Text className="text-red-600 text-center mb-4">
-          {error || 'Item not found'}
-        </Text>
-        <Button title="Go Back" onPress={() => navigation.goBack()} />
-      </SafeAreaView>
-    );
-  }
-
-  const isOwnItem = user?.id === item.user_id;
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
-      <ScrollView className="flex-1">
-        {/* Image */}
-        {item.image_url && (
-          <Image
-            source={{ uri: getImageUrl(item.image_url) }}
-            className="w-full h-64"
-            resizeMode="cover"
-          />
-        )}
-
-        <View className="p-6 bg-white rounded-t-3xl -mt-4">
-          {/* Header */}
-          <View className="mb-6">
-            <View className="flex-row justify-between items-start mb-3">
-              <View className="flex-1 mr-4">
-                <Text className="text-2xl font-bold text-gray-900 mb-2">
-                  {item.title}
-                </Text>
-                <View className="flex-row items-center mb-2">
-                  <Text className="text-3xl mr-2">{getCategoryIcon(item.category)}</Text>
-                  <Text className="text-gray-600 capitalize text-lg">{item.category}</Text>
-                </View>
-              </View>
-              <View className={`px-4 py-2 rounded-full ${getStatusColor(item.status)}`}>
-                <Text className="text-sm font-medium capitalize">{item.status}</Text>
-              </View>
-            </View>
-
-            {/* Reward */}
-            {item.reward_amount && item.reward_amount > 0 && (
-              <View className="bg-green-50 border border-green-200 rounded-xl p-3 mb-4">
-                <Text className="text-emerald-600 font-medium text-center">
-                  💰 Reward: ${item.reward_amount}
-                </Text>
-              </View>
-            )}
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Feather name="arrow-left" size={24} color="#222" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Item Details</Text>
+          <TouchableOpacity>
+            <Feather name="share-2" size={22} color="#222" />
+          </TouchableOpacity>
+        </View>
+        {/* Status Badge */}
+        <View style={styles.statusRow}>
+          <View style={[styles.statusBadge, { backgroundColor: '#fee2e2' }] }>
+            <MaterialIcons name="error-outline" size={16} color={item.statusColor} style={{ marginRight: 4 }} />
+            <Text style={[styles.statusText, { color: item.statusColor }]}>{item.status}</Text>
           </View>
-
-          {/* Description */}
-          <View className="mb-6">
-            <Text className="text-lg font-medium text-gray-900 mb-2">Description</Text>
-            <Text className="text-gray-700 leading-6">{item.description}</Text>
-          </View>
-
-          {/* Location */}
-          {item.location?.address && (
-            <View className="mb-6">
-              <Text className="text-lg font-medium text-gray-900 mb-2">Location</Text>
-              <View className="flex-row items-center">
-                <Text className="text-xl mr-2">📍</Text>
-                <Text className="text-gray-700 flex-1">{item.location.address}</Text>
-              </View>
-            </View>
-          )}
-
-          {/* User Info */}
-          <View className="mb-6 p-4 bg-gray-50 rounded-xl">
-            <Text className="text-lg font-medium text-gray-900 mb-3">Posted by</Text>
-            <View className="flex-row items-center">
-              {item.user?.profile_pic ? (
-                <Image
-                  source={{ uri: getImageUrl(item.user.profile_pic, 'profile-pics') }}
-                  className="w-12 h-12 rounded-full mr-3"
-                />
-              ) : (
-                <View className="w-12 h-12 rounded-full bg-indigo-600 mr-3 justify-center items-center">
-                  <Text className="text-lg text-white">
-                    {item.user?.full_name?.charAt(0).toUpperCase()}
-                  </Text>
-                </View>
-              )}
-              <View className="flex-1">
-                <Text className="text-lg font-medium text-gray-900">
-                  {item.user?.full_name}
-                </Text>
-                <Text className="text-gray-600">
-                  Community member
-                </Text>
-              </View>
+          <Text style={styles.statusTime}>2 days ago</Text>
+        </View>
+        {/* Image Gallery */}
+        <View style={styles.imageGallery}>
+          <Image source={mockImages[selectedImage]} style={styles.mainImage} resizeMode="cover" />
+          <View style={styles.imageCount}><Text style={styles.imageCountText}>{selectedImage + 1} / {mockImages.length}</Text></View>
+        </View>
+        <View style={styles.thumbnailRow}>
+          {mockImages.map((img, idx) => (
+            <TouchableOpacity key={idx} onPress={() => setSelectedImage(idx)}>
+              <Image source={img} style={[styles.thumbnail, selectedImage === idx && styles.thumbnailSelected]} />
+            </TouchableOpacity>
+          ))}
+        </View>
+        {/* Item Details Card */}
+        <View style={styles.card}>
+          <Text style={styles.itemTitle}>{item.title}</Text>
+          <Text style={styles.sectionLabel}>Description</Text>
+          <Text style={styles.itemDesc}>{item.description}</Text>
+          <View style={styles.itemMetaRow}>
+            <View style={styles.metaBox}><MaterialIcons name="category" size={18} color="#fbbf24" /><Text style={styles.metaText}>Wallet</Text></View>
+            <View style={styles.metaBox}>
+              <MaterialIcons name="attach-money" size={18} color="#22c55e" />
+              <Text style={[styles.metaText, { color: '#22c55e', fontWeight: 'bold' }]}>{'$'}50</Text>
             </View>
           </View>
-
-          {/* Date */}
-          <View className="mb-6">
-            <Text className="text-sm text-gray-500">
-              Posted on {formatDate(item.created_at)}
-            </Text>
+        </View>
+        {/* Last Seen Card */}
+        <View style={styles.card}>
+          <Text style={styles.sectionLabel}>Last Seen</Text>
+          <View style={styles.lastSeenRow}><MaterialIcons name="location-pin" size={20} color="#ef4444" /><View><Text style={styles.lastSeenLoc}>{item.lastSeen.location}</Text><Text style={styles.lastSeenDetails}>{item.lastSeen.details}</Text></View></View>
+          <View style={styles.lastSeenRow}><MaterialIcons name="calendar-today" size={18} color="#38bdf8" /><Text style={styles.lastSeenDate}>{item.lastSeen.date}</Text></View>
+          <Text style={styles.lastSeenTime}>{item.lastSeen.time}</Text>
+          <Image source={item.lastSeen.map} style={styles.mapImage} resizeMode="cover" />
+        </View>
+        {/* Contact Owner Card */}
+        <View style={styles.card}>
+          <Text style={styles.sectionLabel}>Contact Owner</Text>
+          <View style={styles.ownerRow}>
+            <Image source={item.owner.avatar} style={styles.ownerAvatar} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.ownerName}>{item.owner.name}</Text>
+              <Text style={styles.ownerSince}>Member since {item.owner.memberSince}</Text>
+            </View>
+            <View style={styles.ownerRating}><MaterialIcons name="star" size={16} color="#fbbf24" /><Text style={styles.ownerRatingText}>{item.owner.rating}</Text></View>
           </View>
-
-          {/* Action Buttons */}
-          <View className="space-y-3">
-            {!isOwnItem && (
-              <Button
-                title={`Contact ${item.user?.full_name?.split(' ')[0]}`}
-                onPress={handleContact}
-                className="mb-3"
-              />
-            )}
-            
-            {isOwnItem && !item.resolved && (
-              <Button
-                title="Mark as Resolved"
-                onPress={handleMarkResolved}
-                variant="secondary"
-                className="mb-3"
-              />
-            )}
-
-            {isOwnItem && (
-              <Button
-                title="Edit Item"
-                onPress={() => {
-                  // TODO: Navigate to edit screen
-                  Alert.alert('Coming Soon', 'Edit functionality will be added soon.');
-                }}
-                variant="outline"
-              />
-            )}
+          <View style={styles.ownerActions}>
+            <TouchableOpacity style={styles.messageBtn}><MaterialIcons name="message" size={18} color="#38bdf8" /><Text style={styles.messageBtnText}>Message</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.callBtn}><MaterialIcons name="call" size={18} color="#22c55e" /><Text style={styles.callBtnText}>Call</Text></TouchableOpacity>
           </View>
+        </View>
+        {/* Similar Items Card */}
+        <View style={styles.card}>
+          <Text style={styles.sectionLabel}>Similar Items Found</Text>
+          {item.similar.map((sim, idx) => (
+            <TouchableOpacity key={idx} style={styles.similarRow}>
+              <Image source={sim.image} style={styles.similarImg} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.similarTitle}>{sim.title}</Text>
+                <Text style={styles.similarLoc}>{sim.location}</Text>
+              </View>
+              <MaterialIcons name="chevron-right" size={22} color="#bbb" />
+            </TouchableOpacity>
+          ))}
         </View>
       </ScrollView>
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: '#f6faff' },
+  scrollContent: { padding: 16, paddingBottom: 32 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+  headerTitle: { fontWeight: 'bold', fontSize: 18, color: '#222' },
+  statusRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
+  statusBadge: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },
+  statusText: { fontWeight: 'bold', fontSize: 13 },
+  statusTime: { color: '#888', fontSize: 13 },
+  imageGallery: { position: 'relative', alignItems: 'center', marginBottom: 8 },
+  mainImage: { width: '100%', height: 200, borderRadius: 16 },
+  imageCount: { position: 'absolute', top: 10, right: 18, backgroundColor: '#222', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 2 },
+  imageCountText: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
+  thumbnailRow: { flexDirection: 'row', justifyContent: 'center', marginBottom: 14, marginTop: 4 },
+  thumbnail: { width: 44, height: 44, borderRadius: 8, marginHorizontal: 4, borderWidth: 2, borderColor: 'transparent' },
+  thumbnailSelected: { borderColor: '#38bdf8' },
+  card: { backgroundColor: '#fff', borderRadius: 18, padding: 18, marginBottom: 16, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
+  itemTitle: { fontWeight: 'bold', fontSize: 18, color: '#222', marginBottom: 6 },
+  sectionLabel: { color: '#6b7280', fontWeight: 'bold', fontSize: 14, marginBottom: 4 },
+  itemDesc: { color: '#222', fontSize: 15, marginBottom: 10 },
+  itemMetaRow: { flexDirection: 'row', marginTop: 8 },
+  metaBox: { flexDirection: 'row', alignItems: 'center', marginRight: 18 },
+  metaText: { color: '#222', fontSize: 14, marginLeft: 4 },
+  lastSeenRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
+  lastSeenLoc: { color: '#222', fontWeight: 'bold', fontSize: 15 },
+  lastSeenDetails: { color: '#888', fontSize: 13 },
+  lastSeenDate: { color: '#222', fontWeight: 'bold', fontSize: 14, marginLeft: 4 },
+  lastSeenTime: { color: '#888', fontSize: 13, marginBottom: 8, marginLeft: 24 },
+  mapImage: { width: '100%', height: 80, borderRadius: 10, marginTop: 6 },
+  ownerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  ownerAvatar: { width: 44, height: 44, borderRadius: 22, marginRight: 10 },
+  ownerName: { color: '#222', fontWeight: 'bold', fontSize: 15 },
+  ownerSince: { color: '#888', fontSize: 13 },
+  ownerRating: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fef9c3', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2 },
+  ownerRatingText: { color: '#fbbf24', fontWeight: 'bold', fontSize: 14, marginLeft: 3 },
+  ownerActions: { flexDirection: 'row', marginTop: 6 },
+  messageBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#e0f2fe', borderRadius: 10, paddingVertical: 8, paddingHorizontal: 18, marginRight: 10 },
+  messageBtnText: { color: '#38bdf8', fontWeight: 'bold', fontSize: 15, marginLeft: 6 },
+  callBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#d1fae5', borderRadius: 10, paddingVertical: 8, paddingHorizontal: 18 },
+  callBtnText: { color: '#22c55e', fontWeight: 'bold', fontSize: 15, marginLeft: 6 },
+  similarRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8 },
+  similarImg: { width: 44, height: 44, borderRadius: 8, marginRight: 10 },
+  similarTitle: { color: '#222', fontWeight: 'bold', fontSize: 15 },
+  similarLoc: { color: '#888', fontSize: 13 },
+});
