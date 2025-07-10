@@ -106,6 +106,11 @@ findaroo/
 - **GPS location** capture and address display
 - **Rich text description** input
 
+### Onboarding Splash Screen
+- **First-time user experience** with interactive walkthrough
+- **Custom illustrations** for each onboarding step
+- **Skip option** for returning users
+
 ### Item Details
 - **Full item information** display
 - **High-resolution image** viewing
@@ -173,7 +178,7 @@ CREATE TABLE items (
     location JSONB NOT NULL,
     image_url TEXT,
     user_id UUID REFERENCES users(id) NOT NULL,
-    is_resolved BOOLEAN DEFAULT FALSE,
+    resolved BOOLEAN DEFAULT FALSE,
     reward_amount DECIMAL(10,2),
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
