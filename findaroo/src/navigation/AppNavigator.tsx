@@ -10,7 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // Auth Screens
 import { LoginScreen } from '../screens/LoginScreen';
 import { SignupScreen } from '../screens/SignupScreen';
-import { SplashScreen } from '../screens/SplashScreen';
+import { OnBoarding } from '../screens/OnBoarding';
 
 // Main Screens
 import { HomeFeedScreen } from '../screens/HomeFeedScreen';
@@ -209,7 +209,7 @@ export const AppNavigator: React.FC = () => {
   return (
     <NavigationContainer>
       {!hasSeenOnboarding ? (
-        <SplashScreen navigation={null} onComplete={handleOnboardingComplete} />
+        <OnBoarding navigation={null} onComplete={handleOnboardingComplete} />
       ) : shouldShowMainApp ? (
         <MainStack />
       ) : (
