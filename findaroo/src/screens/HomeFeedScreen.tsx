@@ -205,7 +205,7 @@ export const HomeFeedScreen = ({ navigation }: any) => {
         data={filteredItems}
         keyExtractor={item => item.id}
         renderItem={({ item }) => (
-          <View style={styles.itemCard}>
+          <TouchableOpacity style={styles.itemCard} activeOpacity={0.85} onPress={() => navigation.navigate('ItemDetails', { itemId: item.id })}>
             {item.image ? (
               <Image source={{ uri: item.image }} style={styles.itemImage} />
             ) : (
@@ -264,7 +264,7 @@ export const HomeFeedScreen = ({ navigation }: any) => {
                 <Text style={styles.itemDesc} numberOfLines={2}>{item.description}</Text>
               )}
             </View>
-          </View>
+          </TouchableOpacity>
         )}
         contentContainerStyle={{ paddingBottom: 80, paddingTop: 8 }}
         refreshing={refreshing}
