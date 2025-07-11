@@ -92,16 +92,6 @@ const MainTabs = () => (
       }}
     />
     <Tab.Screen 
-      name="Messages" 
-      component={ChatScreen}
-      options={{
-        tabBarLabel: 'Messages',
-        tabBarIcon: ({ focused }) => (
-          <Ionicons name="chatbubble-ellipses" size={28} color={focused ? '#4F46E5' : '#9CA3AF'} />
-        ),
-      }}
-    />
-    <Tab.Screen 
       name="Profile" 
       component={ProfileScreen}
       options={{

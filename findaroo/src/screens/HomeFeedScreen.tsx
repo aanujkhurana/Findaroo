@@ -204,13 +204,13 @@ export const HomeFeedScreen: React.FC<HomeFeedScreenProps> = ({ navigation }) =>
           />
         ))}
       </ScrollView>
-      {/* Floating Action Button - Redesigned */}
+      {/* Floating Action Button - Messages FAB for Home screen */}
       <TouchableOpacity
-        onPress={() => navigation.navigate('CreateItem')}
+        onPress={() => navigation.navigate('Messages')}
         style={styles.fabNew}
         activeOpacity={0.85}
       >
-        <MaterialIcons name="add" size={32} color="#fff" />
+        <MaterialIcons name="chat" size={32} color="#fff" />
       </TouchableOpacity>
     </SafeAreaView>
   );
