@@ -24,7 +24,7 @@ export const LoginScreen = ({ navigation }: any) => {
     if (error) {
       Alert.alert('Login Failed', error.message);
     } else {
-      navigation.reset({ index: 0, routes: [{ name: 'HomeFeed' }] });
+      navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
     }
   };
 

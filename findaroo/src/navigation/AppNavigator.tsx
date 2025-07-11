@@ -6,6 +6,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useAuth } from '../hooks/useAuth';
 import { Loading } from '../components/Loading';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 
 // Auth Screens
 import { LoginScreen } from '../screens/LoginScreen';
@@ -50,38 +51,53 @@ const MainTabs = () => (
     screenOptions={{
       headerShown: false,
       tabBarStyle: {
-        backgroundColor: 'white',
-        borderTopWidth: 1,
-        borderTopColor: '#e5e7eb',
-        paddingBottom: 8,
+        backgroundColor: '#fff',
+        borderTopWidth: 0,
+        elevation: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        height: 72,
+        paddingBottom: 12,
         paddingTop: 8,
-        height: 60,
       },
       tabBarLabelStyle: {
-        fontSize: 12,
-        fontWeight: '500',
+        fontSize: 13,
+        fontWeight: '600',
+        marginTop: 2,
       },
-      tabBarActiveTintColor: '#2563eb',
-      tabBarInactiveTintColor: '#6b7280',
+      tabBarActiveTintColor: '#4F46E5',
+      tabBarInactiveTintColor: '#9CA3AF',
     }}
   >
     <Tab.Screen 
       name="Home" 
       component={HomeFeedScreen}
       options={{
-        tabBarLabel: 'Home',
+        tabBarLabel: 'Map',
         tabBarIcon: ({ focused }) => (
-          <Text style={{ fontSize: 20 }}>{focused ? '🏠' : '🏡'}</Text>
+          <MaterialIcons name="map" size={28} color={focused ? '#4F46E5' : '#9CA3AF'} />
         ),
       }}
     />
     <Tab.Screen 
-      name="Create" 
+      name="My Items" 
       component={CreateItemScreen}
       options={{
-        tabBarLabel: 'Post Item',
+        tabBarLabel: 'My Items',
         tabBarIcon: ({ focused }) => (
-          <Text style={{ fontSize: 20 }}>{focused ? '➕' : '✚'}</Text>
+          <MaterialIcons name="inventory" size={28} color={focused ? '#4F46E5' : '#9CA3AF'} />
+        ),
+      }}
+    />
+    <Tab.Screen 
+      name="Messages" 
+      component={ChatScreen}
+      options={{
+        tabBarLabel: 'Messages',
+        tabBarIcon: ({ focused }) => (
+          <Ionicons name="chatbubble-ellipses" size={28} color={focused ? '#4F46E5' : '#9CA3AF'} />
         ),
       }}
     />
@@ -91,7 +107,7 @@ const MainTabs = () => (
       options={{
         tabBarLabel: 'Profile',
         tabBarIcon: ({ focused }) => (
-          <Text style={{ fontSize: 20 }}>{focused ? '👤' : '👥'}</Text>
+          <MaterialIcons name="person" size={28} color={focused ? '#4F46E5' : '#9CA3AF'} />
         ),
       }}
     />
