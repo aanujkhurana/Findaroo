@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { View, Text, FlatList, RefreshControl, ScrollView, TouchableOpacity, StyleSheet, Image, TextInput, Modal } from 'react-native';
+import { View, Text, FlatList, RefreshControl, ScrollView, TouchableOpacity, StyleSheet, Image, TextInput, Modal, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useItems } from '../hooks/useItems';
 import { ItemCard } from '../components/ItemCard';
@@ -51,7 +51,7 @@ export const HomeFeedScreen = ({ navigation }: any) => {
   const [status, setStatus] = useState<'lost' | 'found' | undefined>(undefined);
   const [search, setSearch] = useState('');
   const [refreshing, setRefreshing] = useState(false);
-  const [mapModalVisible, setMapModalVisible] = useState(false);
+  const [mapExpanded, setMapExpanded] = useState(false);
   const [category, setCategory] = useState();
 
   const filters = useMemo(() => ({
@@ -123,18 +123,18 @@ export const HomeFeedScreen = ({ navigation }: any) => {
         ))}
       </ScrollView>
 
-      {/* Map Preview Row */}
-      <TouchableOpacity onPress={() => setMapModalVisible(true)} activeOpacity={0.85}>
-        <View style={styles.mapPreviewRow}>
+      {/* Map Preview Row (expandable) */}
+      <TouchableOpacity onPress={() => setMapExpanded((prev) => !prev)} activeOpacity={0.85}>
+        <View style={[styles.mapPreviewRow, mapExpanded && styles.mapExpandedRow]}>
           <MapView
-            style={styles.mapPreview}
+            style={mapExpanded ? styles.mapExpanded : styles.mapPreview}
             initialRegion={{
               latitude: -33.8688,
               longitude: 151.2093,
               latitudeDelta: 0.02,
               longitudeDelta: 0.02,
             }}
-            pointerEvents="none"
+            pointerEvents={mapExpanded ? 'auto' : 'none'}
           >
             {filteredItems.map((item) => {
               const coords = parsePointString(item.location);
@@ -146,59 +146,17 @@ export const HomeFeedScreen = ({ navigation }: any) => {
                   description={item.description}
                 >
                   <View style={[styles.markerCircle, item.status === 'lost' ? styles.markerLost : styles.markerFound]}>
-                    <MaterialIcons name={item.status === 'lost' ? 'report-problem' : 'check-circle'} size={16} color={'#fff'} />
+                    <MaterialIcons name={item.status === 'lost' ? 'report-problem' : 'check-circle'} size={mapExpanded ? 20 : 16} color={'#fff'} />
                   </View>
                 </Marker>
               ) : null;
             })}
           </MapView>
-          <TouchableOpacity style={styles.mapExpandBtn} onPress={() => setMapModalVisible(true)}>
-            <Feather name="maximize-2" size={18} color={COLORS.primary} />
+          <TouchableOpacity style={styles.mapExpandBtn} onPress={() => setMapExpanded((prev) => !prev)}>
+            <Feather name={mapExpanded ? 'minimize-2' : 'maximize-2'} size={18} color={COLORS.primary} />
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
-
-      {/* Map Modal */}
-      <Modal
-        visible={mapModalVisible}
-        animationType="slide"
-        transparent={false}
-        onRequestClose={() => setMapModalVisible(false)}
-      >
-        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.background }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', padding: 12 }}>
-            <TouchableOpacity onPress={() => setMapModalVisible(false)}>
-              <MaterialIcons name="close" size={28} color={COLORS.text} />
-            </TouchableOpacity>
-            <Text style={{ fontWeight: 'bold', fontSize: 18, marginLeft: 12 }}>Map View</Text>
-          </View>
-          <MapView
-            style={{ flex: 1 }}
-            initialRegion={{
-              latitude: -33.8688,
-              longitude: 151.2093,
-              latitudeDelta: 0.02,
-              longitudeDelta: 0.02,
-            }}
-          >
-            {filteredItems.map((item) => {
-              const coords = parsePointString(item.location);
-              return coords ? (
-                <Marker
-                  key={item.id}
-                  coordinate={coords}
-                  title={item.title}
-                  description={item.description}
-                >
-                  <View style={[styles.markerCircle, item.status === 'lost' ? styles.markerLost : styles.markerFound]}>
-                    <MaterialIcons name={item.status === 'lost' ? 'report-problem' : 'check-circle'} size={20} color={'#fff'} />
-                  </View>
-                </Marker>
-              ) : null;
-            })}
-          </MapView>
-        </SafeAreaView>
-      </Modal>
 
       {/* Items List - Minimal Card Design */}
       <FlatList
@@ -374,6 +332,15 @@ const styles = StyleSheet.create({
   mapPreview: {
     ...StyleSheet.absoluteFillObject,
     borderRadius: 14,
+    height: 70,
+  },
+  mapExpanded: {
+    width: '100%',
+    height: Dimensions.get('window').height * 0.5, // Half the screen height
+    borderRadius: 14,
+  },
+  mapExpandedRow: {
+    height: Dimensions.get('window').height * 0.5, // Half the screen height
   },
   mapExpandBtn: {
     position: 'absolute',
