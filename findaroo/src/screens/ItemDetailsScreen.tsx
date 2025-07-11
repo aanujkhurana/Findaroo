@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, FlatList } from 'react-native';
 import { MaterialIcons, Feather } from '@expo/vector-icons';
 import { getImageUrl } from '../utils/uploadImage';
 import { supabase } from '../services/supabaseClient';
@@ -11,6 +11,11 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
   const [owner, setOwner] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedImageIdx, setSelectedImageIdx] = useState(0);
+  const [similarItems, setSimilarItems] = useState<Item[]>([]);
+
+  // For demo, assume item.image is a comma-separated string of image paths
+  const images = item?.image ? item.image.split(',').map((img: string) => img.trim()).filter(Boolean) : [];
 
   useEffect(() => {
     const fetchItem = async () => {
@@ -19,7 +24,7 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
       try {
         const { data, error } = await supabase
           .from('items')
-          .select(`*, user:users(id, full_name, profile_pic, created_at)`)
+          .select(`*, user:users(id, full_name, profile_pic, created_at, karma_points), tips:tips(id, amount, status, created_at, sender_id, receiver_id, payment_intent_id)`)
           .eq('id', itemId)
           .single();
         if (error) throw error;
@@ -33,6 +38,21 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
     };
     fetchItem();
   }, [itemId]);
+
+  useEffect(() => {
+    // Fetch similar items by category, excluding current item
+    const fetchSimilar = async () => {
+      if (!item?.category) return;
+      const { data, error } = await supabase
+        .from('items')
+        .select('id, title, image, location_name')
+        .eq('category', item.category)
+        .neq('id', item.id)
+        .limit(2);
+      if (!error && data) setSimilarItems(data as Item[]);
+    };
+    if (item) fetchSimilar();
+  }, [item]);
 
   if (loading) {
     return (
@@ -53,6 +73,9 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
     );
   }
 
+  // Calculate tips
+  const totalTips = item.tips?.filter(tip => tip.amount && tip.amount > 0).reduce((sum, tip) => sum + Number(tip.amount), 0) || 0;
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -66,18 +89,28 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
             <Feather name="share-2" size={22} color="#222" />
           </TouchableOpacity>
         </View>
-        {/* Status Badge */}
+        {/* Status Badge and Date */}
         <View style={styles.statusRow}>
           <View style={[styles.statusBadge, { backgroundColor: item.status === 'lost' ? '#fee2e2' : '#d1fae5' }] }>
             <MaterialIcons name={item.status === 'lost' ? 'error-outline' : 'check-circle'} size={16} color={item.status === 'lost' ? '#f87171' : '#22c55e'} style={{ marginRight: 4 }} />
-            <Text style={[styles.statusText, { color: item.status === 'lost' ? '#f87171' : '#22c55e' }]}>{item.status}</Text>
+            <Text style={[styles.statusText, { color: item.status === 'lost' ? '#f87171' : '#22c55e' }]}>{item.status === 'lost' ? 'Lost Item' : 'Found Item'}</Text>
           </View>
-          <Text style={styles.statusTime}>{new Date(item.created_at).toLocaleDateString()}</Text>
+          <Text style={styles.statusTime}>{formatRelativeDate(item.created_at)}</Text>
         </View>
         {/* Image Gallery */}
         <View style={styles.imageGallery}>
-          {item.image ? (
-            <Image source={{ uri: getImageUrl(item.image) }} style={styles.mainImage} resizeMode="cover" />
+          {images.length > 0 ? (
+            <>
+              <Image source={{ uri: getImageUrl(images[selectedImageIdx]) }} style={styles.mainImage} resizeMode="cover" />
+              <View style={styles.imageCount}><Text style={styles.imageCountText}>{selectedImageIdx + 1} / {images.length}</Text></View>
+              <View style={styles.thumbnailRow}>
+                {images.map((img, idx) => (
+                  <TouchableOpacity key={img + idx} onPress={() => setSelectedImageIdx(idx)}>
+                    <Image source={{ uri: getImageUrl(img) }} style={[styles.thumbnail, selectedImageIdx === idx && styles.thumbnailSelected]} />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </>
           ) : (
             <View style={[styles.mainImage, { backgroundColor: '#f3f4f6', alignItems: 'center', justifyContent: 'center' }] }>
               <Feather name="image" size={48} color="#bbb" />
@@ -98,13 +131,21 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
                 <Text style={[styles.metaText, { color: '#22c55e', fontWeight: 'bold' }]}>{'$'}{item.reward_amount}</Text>
               </View>
             ) : null}
+            {totalTips > 0 && (
+              <View style={styles.metaBox}>
+                <MaterialIcons name="tips-and-updates" size={18} color="#fbbf24" />
+                <Text style={[styles.metaText, { color: '#fbbf24', fontWeight: 'bold' }]}>Tips: ${totalTips.toFixed(2)}</Text>
+              </View>
+            )}
           </View>
         </View>
         {/* Last Seen Card */}
         <View style={styles.card}>
           <Text style={styles.sectionLabel}>Last Seen</Text>
           <View style={styles.lastSeenRow}><MaterialIcons name="location-pin" size={20} color="#ef4444" /><View><Text style={styles.lastSeenLoc}>{item.location_name || 'Unknown location'}</Text></View></View>
-          <View style={styles.lastSeenRow}><MaterialIcons name="calendar-today" size={18} color="#38bdf8" /><Text style={styles.lastSeenDate}>{new Date(item.created_at).toLocaleDateString()}</Text></View>
+          <View style={styles.lastSeenRow}><MaterialIcons name="calendar-today" size={18} color="#38bdf8" /><Text style={styles.lastSeenDate}>{formatDate(item.created_at)}</Text></View>
+          {/* Map image placeholder (replace with real map if you have coordinates) */}
+          <Image source={{ uri: 'https://maps.googleapis.com/maps/api/staticmap?center=' + encodeURIComponent(item.location_name || '') + '&zoom=15&size=400x120&key=YOUR_GOOGLE_MAPS_API_KEY' }} style={styles.mapImage} resizeMode="cover" />
         </View>
         {/* Contact Owner Card */}
         {owner && (
@@ -118,15 +159,54 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
               )}
               <View style={{ flex: 1 }}>
                 <Text style={styles.ownerName}>{owner.full_name}</Text>
-                <Text style={styles.ownerSince}>Joined {new Date(owner.created_at).getFullYear()}</Text>
+                <Text style={styles.ownerSince}>Member since {new Date(owner.created_at).getFullYear()}</Text>
               </View>
+              <View style={styles.ownerRating}><MaterialIcons name="star" size={16} color="#fbbf24" /><Text style={styles.ownerRatingText}>{(owner.karma_points ? (owner.karma_points / 100).toFixed(1) : '4.8')}</Text></View>
             </View>
+            <View style={styles.ownerActions}>
+              <TouchableOpacity style={styles.messageBtn}><MaterialIcons name="message" size={18} color="#38bdf8" /><Text style={styles.messageBtnText}>Message</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.callBtn}><MaterialIcons name="call" size={18} color="#22c55e" /><Text style={styles.callBtnText}>Call</Text></TouchableOpacity>
+            </View>
+          </View>
+        )}
+        {/* Similar Items Card */}
+        {similarItems.length > 0 && (
+          <View style={styles.card}>
+            <Text style={styles.sectionLabel}>Similar Items Found</Text>
+            {similarItems.map((sim) => (
+              <TouchableOpacity key={sim.id} style={styles.similarRow} onPress={() => navigation.push('ItemDetails', { itemId: sim.id })}>
+                {sim.image ? (
+                  <Image source={{ uri: getImageUrl(sim.image) }} style={styles.similarImg} />
+                ) : (
+                  <View style={[styles.similarImg, { backgroundColor: '#f3f4f6', alignItems: 'center', justifyContent: 'center' }] }>
+                    <Feather name="image" size={24} color="#bbb" />
+                  </View>
+                )}
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.similarTitle}>{sim.title}</Text>
+                  <Text style={styles.similarLoc}>{sim.location_name}</Text>
+                </View>
+                <MaterialIcons name="chevron-right" size={22} color="#bbb" />
+              </TouchableOpacity>
+            ))}
           </View>
         )}
       </ScrollView>
     </SafeAreaView>
   );
 };
+
+function formatDate(date: string) {
+  return new Date(date).toLocaleDateString();
+}
+function formatRelativeDate(date: string) {
+  const now = new Date();
+  const then = new Date(date);
+  const diff = Math.floor((now.getTime() - then.getTime()) / (1000 * 60 * 60 * 24));
+  if (diff === 0) return 'Today';
+  if (diff === 1) return '1 day ago';
+  return `${diff} days ago`;
+}
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#f6faff' },
