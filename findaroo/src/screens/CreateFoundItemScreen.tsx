@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, TextInput, Scro
 import { Feather, MaterialIcons, FontAwesome, FontAwesome5 } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
+import { uploadImage, getImageUrl } from '../utils/uploadImage';
 import { useCreateItem } from '../hooks/useCreateItem';
 import { useAuth } from '../hooks/useAuth';
 import { Category, LocationCoords } from '../types';
@@ -100,26 +101,40 @@ export const CreateFoundItemScreen = ({ navigation }: any) => {
     }
   };
 
-  const pickImage = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
-    });
-    if (!result.canceled) {
-      setImagePreview(result.assets[0].uri);
-      updateFormData('image', result.assets[0].uri);
+  const handlePickImage = async () => {
+    if (!user) return;
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        const uri = asset.uri;
+        const filename = asset.fileName || uri.split('/').pop() || `photo.jpg`;
+        const path = await uploadImage(uri, filename, user.id, 'item-images');
+        console.log('[ImageUpload] uploadImage returned:', path);
+        if (path) {
+          updateFormData('image', path);
+        } else {
+          Alert.alert('Upload failed', 'Could not upload image. Please try again.');
+          console.error('[ImageUpload] Upload failed: path is null');
+        }
+      }
+    } catch (err: any) {
+      Alert.alert('Upload error', err.message || 'Unknown error');
+      console.error('[ImageUpload] Error:', err);
     }
   };
 
   const handleSubmit = async () => {
-    if (!formData.category || !formData.title.trim() || !formData.location) {
-      Alert.alert('Error', 'Please fill in all required fields');
-      return;
-    }
     if (!user) {
       Alert.alert('Error', 'You must be logged in to post an item');
+      return;
+    }
+    if (!formData.title.trim() || !formData.category || !formData.location) {
+      Alert.alert('Error', 'Please fill in all required fields');
       return;
     }
     try {
@@ -139,21 +154,57 @@ export const CreateFoundItemScreen = ({ navigation }: any) => {
       const newItem = await createItem(itemData);
       if (newItem) {
         Alert.alert(
-          'Thanks for helping the community!',
-          'Your post is now live.',
+          'Success!',
+          'Your found item has been posted. We\'ll notify you when someone claims it.',
           [{ text: 'OK', onPress: () => navigation.navigate('HomeFeed') }]
         );
       } else {
         Alert.alert('Error', 'Failed to post item. Please try again.');
+        console.error('[FormSubmit] createItem returned null');
       }
-    } catch (error) {
-      Alert.alert('Error', 'Something went wrong. Please try again.');
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Something went wrong. Please try again.');
+      console.error('[FormSubmit] Error:', error);
     }
   };
 
   // Step 1
   const renderStep1 = () => (
     <View style={styles.stepContainer}>
+      {/* Title */}
+      <View style={styles.inputGroup}>
+        <Text style={styles.inputLabel}>What did you find? *</Text>
+        <TextInput
+          style={styles.textInput}
+          placeholder="e.g., Found Black Wallet"
+          value={formData.title}
+          onChangeText={(text) => updateFormData('title', text)}
+          maxLength={100}
+        />
+        <Text style={styles.characterCount}>{formData.title.length}/100</Text>
+      </View>
+
+      {/* Image Upload */}
+      <View style={styles.inputGroup}>
+        <Text style={styles.inputLabel}>Add a Photo (Optional)</Text>
+        <TouchableOpacity style={styles.uploadButton} onPress={handlePickImage}>
+          <Feather name="camera" size={24} color="#6b7280" />
+          <Text style={styles.uploadButtonText}>Take Photo or Choose from Gallery</Text>
+        </TouchableOpacity>
+        {formData.image && (
+          <View style={{ alignItems: 'center', marginTop: 12 }}>
+            <Image source={{ uri: getImageUrl(formData.image, 'item-images') }} style={{ width: 120, height: 120, borderRadius: 12 }} />
+            {/* Debug info */}
+            <View style={{ marginTop: 8, backgroundColor: '#f3f4f6', padding: 6, borderRadius: 6 }}>
+              <Text style={{ fontSize: 12, color: '#888' }}>Path: {formData.image}</Text>
+              <Text style={{ fontSize: 12, color: '#888' }}>URL: {getImageUrl(formData.image, 'item-images')}</Text>
+            </View>
+          </View>
+        )}
+        <Text style={styles.tipText}>📷 A photo (even from a distance) helps the owner confirm</Text>
+      </View>
+
+      {/* Categories */}
       <View style={styles.inputGroup}>
         <Text style={styles.inputLabel}>Category *</Text>
         <View style={styles.categoryGrid}>
@@ -176,31 +227,6 @@ export const CreateFoundItemScreen = ({ navigation }: any) => {
             </TouchableOpacity>
           ))}
         </View>
-      </View>
-      <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>Title *</Text>
-        <TextInput
-          style={styles.textInput}
-          placeholder="e.g., Found black phone"
-          value={formData.title}
-          onChangeText={text => updateFormData('title', text)}
-          maxLength={100}
-        />
-        <Text style={styles.characterCount}>{formData.title.length}/100</Text>
-      </View>
-      <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>Description (optional)</Text>
-        <TextInput
-          style={[styles.textInput, styles.textArea]}
-          placeholder="Describe what you can see (brand, color, stickers, etc.)"
-          value={formData.description}
-          onChangeText={text => updateFormData('description', text)}
-          multiline
-          numberOfLines={4}
-          maxLength={500}
-        />
-        <Text style={styles.characterCount}>{formData.description.length}/500</Text>
-        <Text style={styles.tipText}>💡 Tip: Don’t open the item – just describe what’s visible or unique.</Text>
       </View>
     </View>
   );
@@ -231,18 +257,18 @@ export const CreateFoundItemScreen = ({ navigation }: any) => {
         </TouchableOpacity>
       </View>
       <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>Add a Photo (optional)</Text>
-        <TouchableOpacity style={styles.uploadButton} onPress={pickImage}>
-          {imagePreview ? (
-            <Image source={{ uri: imagePreview }} style={styles.uploadedImage} />
-          ) : (
-            <>
-              <Feather name="camera" size={24} color="#6b7280" />
-              <Text style={styles.uploadButtonText}>Take Photo or Choose from Gallery</Text>
-            </>
-          )}
-        </TouchableOpacity>
-        <Text style={styles.tipText}>📷 A photo (even from a distance) helps the owner confirm</Text>
+        <Text style={styles.inputLabel}>Description</Text>
+        <TextInput
+          style={[styles.textInput, styles.textArea]}
+          placeholder="Add details like brand, color, unique features, contents..."
+          value={formData.description}
+          onChangeText={(text) => updateFormData('description', text)}
+          multiline
+          numberOfLines={4}
+          maxLength={500}
+        />
+        <Text style={styles.characterCount}>{formData.description.length}/500</Text>
+        <Text style={styles.tipText}>💡 Tip: Be specific about identifiable features or contents</Text>
       </View>
     </View>
   );

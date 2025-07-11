@@ -10,13 +10,16 @@ import {
   Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  Image
 } from 'react-native';
 import { MaterialIcons, Feather, FontAwesome5 } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useCreateItem } from '../hooks/useCreateItem';
 import { useAuth } from '../hooks/useAuth';
 import { Category, LocationCoords } from '../types';
+import * as ImagePicker from 'expo-image-picker';
+import { uploadImage, getImageUrl } from '../utils/uploadImage';
 
 const CATEGORIES: { key: Category; label: string; icon: React.ReactNode }[] = [
   { key: 'electronics', label: 'Electronics', icon: <Feather name="smartphone" size={24} color="#6b7280" /> },
@@ -149,9 +152,38 @@ export const CreateLostItemScreen = ({ navigation }: any) => {
         );
       } else {
         Alert.alert('Error', 'Failed to post item. Please try again.');
+        console.error('[FormSubmit] createItem returned null');
       }
-    } catch (error) {
-      Alert.alert('Error', 'Something went wrong. Please try again.');
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Something went wrong. Please try again.');
+      console.error('[FormSubmit] Error:', error);
+    }
+  };
+
+  const handlePickImage = async () => {
+    if (!user) return;
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        const uri = asset.uri;
+        const filename = asset.fileName || uri.split('/').pop() || `photo.jpg`;
+        const path = await uploadImage(uri, filename, user.id, 'item-images');
+        console.log('[ImageUpload] uploadImage returned:', path);
+        if (path) {
+          updateFormData('image', path);
+        } else {
+          Alert.alert('Upload failed', 'Could not upload image. Please try again.');
+          console.error('[ImageUpload] Upload failed: path is null');
+        }
+      }
+    } catch (err: any) {
+      Alert.alert('Upload error', err.message || 'Unknown error');
+      console.error('[ImageUpload] Error:', err);
     }
   };
 
@@ -248,10 +280,20 @@ export const CreateLostItemScreen = ({ navigation }: any) => {
 
       <View style={styles.inputGroup}>
         <Text style={styles.inputLabel}>Add a Photo (Optional)</Text>
-        <TouchableOpacity style={styles.uploadButton}>
+        <TouchableOpacity style={styles.uploadButton} onPress={handlePickImage}>
           <Feather name="camera" size={24} color="#6b7280" />
           <Text style={styles.uploadButtonText}>Take Photo or Choose from Gallery</Text>
         </TouchableOpacity>
+        {formData.image && (
+          <View style={{ alignItems: 'center', marginTop: 12 }}>
+            <Image source={{ uri: getImageUrl(formData.image, 'item-images') }} style={{ width: 120, height: 120, borderRadius: 12 }} />
+            {/* Debug info */}
+            <View style={{ marginTop: 8, backgroundColor: '#f3f4f6', padding: 6, borderRadius: 6 }}>
+              <Text style={{ fontSize: 12, color: '#888' }}>Path: {formData.image}</Text>
+              <Text style={{ fontSize: 12, color: '#888' }}>URL: {getImageUrl(formData.image, 'item-images')}</Text>
+            </View>
+          </View>
+        )}
         <Text style={styles.tipText}>📸 Photos boost return rates by 2x — even stock images help!</Text>
       </View>
     </View>
