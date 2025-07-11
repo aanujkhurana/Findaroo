@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { View, Text, FlatList, RefreshControl, ScrollView, TouchableOpacity, StyleSheet, Image, TextInput } from 'react-native';
+import { View, Text, FlatList, RefreshControl, ScrollView, TouchableOpacity, StyleSheet, Image, TextInput, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useItems } from '../hooks/useItems';
 import { ItemCard } from '../components/ItemCard';
@@ -27,11 +27,25 @@ const CATEGORIES: { value: Category; label: string; icon: React.ReactNode }[] = 
   { value: 'other', label: 'Other', icon: <MaterialIcons name="category" size={18} color="#6366F1" /> },
 ];
 
+function parsePointString(pointStr: string | undefined): { latitude: number; longitude: number } | null {
+  if (!pointStr || typeof pointStr !== 'string') return null;
+  // Accepts 'POINT(lon lat)' or 'SRID=4326;POINT(lon lat)'
+  const match = pointStr.match(/POINT\((-?\d+\.\d+) (-?\d+\.\d+)\)/);
+  if (match) {
+    return {
+      longitude: parseFloat(match[1]),
+      latitude: parseFloat(match[2]),
+    };
+  }
+  return null;
+}
+
 export const HomeFeedScreen: React.FC<HomeFeedScreenProps> = ({ navigation }) => {
   const [status, setStatus] = useState<'lost' | 'found' | undefined>(undefined);
   const [category, setCategory] = useState<Category | undefined>(undefined);
   const [search, setSearch] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const [mapModalVisible, setMapModalVisible] = useState(false);
 
   const filters = useMemo(() => ({
     status,
@@ -78,7 +92,13 @@ export const HomeFeedScreen: React.FC<HomeFeedScreenProps> = ({ navigation }) =>
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContentV2} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContentV2}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
         {/* Header - Redesigned v2 */}
         <View style={styles.headerRowV2}>
           <View style={styles.headerLeftV2}>
@@ -152,48 +172,82 @@ export const HomeFeedScreen: React.FC<HomeFeedScreenProps> = ({ navigation }) =>
           ))}
         </ScrollView>
 
-        {/* Map Section - Redesigned v2 */}
-        <View style={styles.mapContainerV2}>
-          <MapView
-            style={styles.mapV2}
-            initialRegion={{
-              latitude: -33.8688,
-              longitude: 151.2093,
-              latitudeDelta: 0.02,
-              longitudeDelta: 0.02,
-            }}
-          >
-            {items.filter(item => !category || item.category === category).map((item) =>
-              item.location && item.location.latitude && item.location.longitude ? (
-                <Marker
-                  key={item.id}
-                  coordinate={{
-                    latitude: item.location.latitude,
-                    longitude: item.location.longitude,
-                  }}
-                  title={item.title}
-                  description={item.description}
-                >
-                  <View style={[styles.markerCircle, item.status === 'lost' ? styles.markerLost : styles.markerFound]}>
-                    <MaterialIcons name={item.status === 'lost' ? 'report-problem' : 'check-circle'} size={22} color={'#fff'} />
-                  </View>
-                </Marker>
-              ) : null
-            )}
-          </MapView>
-          {/* Floating Map Buttons - Redesigned v2 */}
-          <View style={styles.mapButtonsContainerV2}>
-            <TouchableOpacity style={styles.mapBtnV2}>
-              <MaterialIcons name="my-location" size={22} color="#6366F1" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.mapBtnV2}>
-              <MaterialIcons name="filter-list" size={22} color="#6366F1" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.mapBtnPlusV2} onPress={() => navigation.navigate('CreateItem')}>
-              <MaterialIcons name="add" size={32} color="#fff" />
-            </TouchableOpacity>
+        {/* Map Preview Row */}
+        <TouchableOpacity onPress={() => setMapModalVisible(true)} activeOpacity={0.85}>
+          <View style={styles.mapPreviewRow}>
+            <MapView
+              style={styles.mapPreview}
+              initialRegion={{
+                latitude: -33.8688,
+                longitude: 151.2093,
+                latitudeDelta: 0.02,
+                longitudeDelta: 0.02,
+              }}
+              pointerEvents="none"
+            >
+              {items.filter(item => !category || item.category === category).map((item) => {
+                const coords = parsePointString(item.location);
+                return coords ? (
+                  <Marker
+                    key={item.id}
+                    coordinate={coords}
+                    title={item.title}
+                    description={item.description}
+                  >
+                    <View style={[styles.markerCircle, item.status === 'lost' ? styles.markerLost : styles.markerFound]}>
+                      <MaterialIcons name={item.status === 'lost' ? 'report-problem' : 'check-circle'} size={18} color={'#fff'} />
+                    </View>
+                  </Marker>
+                ) : null;
+              })}
+            </MapView>
+            <View style={styles.mapPreviewOverlay}>
+              <Text style={styles.mapPreviewText}>Tap to expand map</Text>
+            </View>
           </View>
-        </View>
+        </TouchableOpacity>
+
+        {/* Map Modal */}
+        <Modal
+          visible={mapModalVisible}
+          animationType="slide"
+          transparent={false}
+          onRequestClose={() => setMapModalVisible(false)}
+        >
+          <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', padding: 12 }}>
+              <TouchableOpacity onPress={() => setMapModalVisible(false)}>
+                <MaterialIcons name="close" size={28} color="#222" />
+              </TouchableOpacity>
+              <Text style={{ fontWeight: 'bold', fontSize: 18, marginLeft: 12 }}>Map View</Text>
+            </View>
+            <MapView
+              style={{ flex: 1 }}
+              initialRegion={{
+                latitude: -33.8688,
+                longitude: 151.2093,
+                latitudeDelta: 0.02,
+                longitudeDelta: 0.02,
+              }}
+            >
+              {items.filter(item => !category || item.category === category).map((item) => {
+                const coords = parsePointString(item.location);
+                return coords ? (
+                  <Marker
+                    key={item.id}
+                    coordinate={coords}
+                    title={item.title}
+                    description={item.description}
+                  >
+                    <View style={[styles.markerCircle, item.status === 'lost' ? styles.markerLost : styles.markerFound]}>
+                      <MaterialIcons name={item.status === 'lost' ? 'report-problem' : 'check-circle'} size={22} color={'#fff'} />
+                    </View>
+                  </Marker>
+                ) : null;
+              })}
+            </MapView>
+          </SafeAreaView>
+        </Modal>
 
         {/* Items List - filtered by category */}
         {items.filter(item => !category || item.category === category).map((item) => (
@@ -825,5 +879,33 @@ const styles = StyleSheet.create({
   },
   categoryBtnTextInactiveV2: {
     color: '#374151',
+  },
+  mapPreviewRow: {
+    height: 80,
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginHorizontal: 12,
+    marginBottom: 16,
+    backgroundColor: '#e0e7ef',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  mapPreview: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 12,
+  },
+  mapPreviewOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  mapPreviewText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+    textShadowColor: '#000',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
 });
