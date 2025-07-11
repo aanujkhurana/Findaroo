@@ -1,50 +1,57 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator } from 'react-native';
 import { MaterialIcons, Feather } from '@expo/vector-icons';
+import { getImageUrl } from '../utils/uploadImage';
+import { supabase } from '../services/supabaseClient';
+import { Item, User } from '../types';
 
-const mockImages = [
-  require('../../assets/icon.png'),
-  require('../../assets/adaptive-icon.png'),
-  require('../../assets/favicon.png'),
-];
+export const ItemDetailsScreen = ({ navigation, route }: any) => {
+  const { itemId } = route.params;
+  const [item, setItem] = useState<Item | null>(null);
+  const [owner, setOwner] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-export const ItemDetailsScreen = ({ navigation }: any) => {
-  // Mock data for demo
-  const [selectedImage, setSelectedImage] = useState(0);
-  const item = {
-    title: 'Black Leather Wallet',
-    description:
-      "Lost my black leather wallet near Central Station. It's a bi-fold wallet with my driver's license, credit cards, and about $80 cash. Has a small tear on the back corner. Really need it back as it has all my important cards!",
-    category: 'Wallet',
-    reward: 50,
-    status: 'Lost Item',
-    statusColor: '#f87171',
-    lastSeen: {
-      location: 'Central Station, Sydney',
-      details: 'Platform 4, near the coffee shop',
-      date: 'Monday, Dec 4, 2023',
-      time: 'Around 8:30 AM',
-      map: require('../../assets/splash-icon.png'),
-    },
-    owner: {
-      name: 'Mike Johnson',
-      avatar: require('../../assets/icon.png'),
-      rating: 4.8,
-      memberSince: 2022,
-    },
-    similar: [
-      {
-        image: require('../../assets/icon.png'),
-        title: 'Brown Wallet',
-        location: 'Found at Town Hall',
-      },
-      {
-        image: require('../../assets/adaptive-icon.png'),
-        title: 'Black Wallet',
-        location: 'Found at Museum Station',
-      },
-    ],
-  };
+  useEffect(() => {
+    const fetchItem = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const { data, error } = await supabase
+          .from('items')
+          .select(`*, user:users(id, full_name, profile_pic, created_at)`)
+          .eq('id', itemId)
+          .single();
+        if (error) throw error;
+        setItem(data);
+        setOwner(data.user || null);
+      } catch (err: any) {
+        setError(err.message || 'Failed to load item');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchItem();
+  }, [itemId]);
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <ActivityIndicator size="large" color="#2563eb" style={{ marginTop: 40 }} />
+        <Text style={{ textAlign: 'center', marginTop: 16 }}>Loading item details...</Text>
+      </SafeAreaView>
+    );
+  }
+  if (error || !item) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <Text style={{ color: '#ef4444', textAlign: 'center', marginTop: 40 }}>Error: {error || 'Item not found.'}</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginTop: 24, alignSelf: 'center' }}>
+          <Text style={{ color: '#2563eb', fontWeight: 'bold' }}>Go Back</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -61,23 +68,22 @@ export const ItemDetailsScreen = ({ navigation }: any) => {
         </View>
         {/* Status Badge */}
         <View style={styles.statusRow}>
-          <View style={[styles.statusBadge, { backgroundColor: '#fee2e2' }] }>
-            <MaterialIcons name="error-outline" size={16} color={item.statusColor} style={{ marginRight: 4 }} />
-            <Text style={[styles.statusText, { color: item.statusColor }]}>{item.status}</Text>
+          <View style={[styles.statusBadge, { backgroundColor: item.status === 'lost' ? '#fee2e2' : '#d1fae5' }] }>
+            <MaterialIcons name={item.status === 'lost' ? 'error-outline' : 'check-circle'} size={16} color={item.status === 'lost' ? '#f87171' : '#22c55e'} style={{ marginRight: 4 }} />
+            <Text style={[styles.statusText, { color: item.status === 'lost' ? '#f87171' : '#22c55e' }]}>{item.status}</Text>
           </View>
-          <Text style={styles.statusTime}>2 days ago</Text>
+          <Text style={styles.statusTime}>{new Date(item.created_at).toLocaleDateString()}</Text>
         </View>
         {/* Image Gallery */}
         <View style={styles.imageGallery}>
-          <Image source={mockImages[selectedImage]} style={styles.mainImage} resizeMode="cover" />
-          <View style={styles.imageCount}><Text style={styles.imageCountText}>{selectedImage + 1} / {mockImages.length}</Text></View>
-        </View>
-        <View style={styles.thumbnailRow}>
-          {mockImages.map((img, idx) => (
-            <TouchableOpacity key={idx} onPress={() => setSelectedImage(idx)}>
-              <Image source={img} style={[styles.thumbnail, selectedImage === idx && styles.thumbnailSelected]} />
-            </TouchableOpacity>
-          ))}
+          {item.image ? (
+            <Image source={{ uri: getImageUrl(item.image) }} style={styles.mainImage} resizeMode="cover" />
+          ) : (
+            <View style={[styles.mainImage, { backgroundColor: '#f3f4f6', alignItems: 'center', justifyContent: 'center' }] }>
+              <Feather name="image" size={48} color="#bbb" />
+              <Text style={{ color: '#bbb', marginTop: 8 }}>No image</Text>
+            </View>
+          )}
         </View>
         {/* Item Details Card */}
         <View style={styles.card}>
@@ -85,51 +91,38 @@ export const ItemDetailsScreen = ({ navigation }: any) => {
           <Text style={styles.sectionLabel}>Description</Text>
           <Text style={styles.itemDesc}>{item.description}</Text>
           <View style={styles.itemMetaRow}>
-            <View style={styles.metaBox}><MaterialIcons name="category" size={18} color="#fbbf24" /><Text style={styles.metaText}>Wallet</Text></View>
-            <View style={styles.metaBox}>
-              <MaterialIcons name="attach-money" size={18} color="#22c55e" />
-              <Text style={[styles.metaText, { color: '#22c55e', fontWeight: 'bold' }]}>{'$'}50</Text>
-            </View>
+            <View style={styles.metaBox}><MaterialIcons name="category" size={18} color="#fbbf24" /><Text style={styles.metaText}>{item.category}</Text></View>
+            {item.reward_amount ? (
+              <View style={styles.metaBox}>
+                <MaterialIcons name="attach-money" size={18} color="#22c55e" />
+                <Text style={[styles.metaText, { color: '#22c55e', fontWeight: 'bold' }]}>{'$'}{item.reward_amount}</Text>
+              </View>
+            ) : null}
           </View>
         </View>
         {/* Last Seen Card */}
         <View style={styles.card}>
           <Text style={styles.sectionLabel}>Last Seen</Text>
-          <View style={styles.lastSeenRow}><MaterialIcons name="location-pin" size={20} color="#ef4444" /><View><Text style={styles.lastSeenLoc}>{item.lastSeen.location}</Text><Text style={styles.lastSeenDetails}>{item.lastSeen.details}</Text></View></View>
-          <View style={styles.lastSeenRow}><MaterialIcons name="calendar-today" size={18} color="#38bdf8" /><Text style={styles.lastSeenDate}>{item.lastSeen.date}</Text></View>
-          <Text style={styles.lastSeenTime}>{item.lastSeen.time}</Text>
-          <Image source={item.lastSeen.map} style={styles.mapImage} resizeMode="cover" />
+          <View style={styles.lastSeenRow}><MaterialIcons name="location-pin" size={20} color="#ef4444" /><View><Text style={styles.lastSeenLoc}>{item.location_name || 'Unknown location'}</Text></View></View>
+          <View style={styles.lastSeenRow}><MaterialIcons name="calendar-today" size={18} color="#38bdf8" /><Text style={styles.lastSeenDate}>{new Date(item.created_at).toLocaleDateString()}</Text></View>
         </View>
         {/* Contact Owner Card */}
-        <View style={styles.card}>
-          <Text style={styles.sectionLabel}>Contact Owner</Text>
-          <View style={styles.ownerRow}>
-            <Image source={item.owner.avatar} style={styles.ownerAvatar} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.ownerName}>{item.owner.name}</Text>
-              <Text style={styles.ownerSince}>Member since {item.owner.memberSince}</Text>
-            </View>
-            <View style={styles.ownerRating}><MaterialIcons name="star" size={16} color="#fbbf24" /><Text style={styles.ownerRatingText}>{item.owner.rating}</Text></View>
-          </View>
-          <View style={styles.ownerActions}>
-            <TouchableOpacity style={styles.messageBtn}><MaterialIcons name="message" size={18} color="#38bdf8" /><Text style={styles.messageBtnText}>Message</Text></TouchableOpacity>
-            <TouchableOpacity style={styles.callBtn}><MaterialIcons name="call" size={18} color="#22c55e" /><Text style={styles.callBtnText}>Call</Text></TouchableOpacity>
-          </View>
-        </View>
-        {/* Similar Items Card */}
-        <View style={styles.card}>
-          <Text style={styles.sectionLabel}>Similar Items Found</Text>
-          {item.similar.map((sim, idx) => (
-            <TouchableOpacity key={idx} style={styles.similarRow}>
-              <Image source={sim.image} style={styles.similarImg} />
+        {owner && (
+          <View style={styles.card}>
+            <Text style={styles.sectionLabel}>Contact Owner</Text>
+            <View style={styles.ownerRow}>
+              {owner.profile_pic ? (
+                <Image source={{ uri: getImageUrl(owner.profile_pic, 'profile-pics') }} style={styles.ownerAvatar} />
+              ) : (
+                <View style={styles.ownerAvatar}><Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 18 }}>{owner.full_name?.charAt(0).toUpperCase()}</Text></View>
+              )}
               <View style={{ flex: 1 }}>
-                <Text style={styles.similarTitle}>{sim.title}</Text>
-                <Text style={styles.similarLoc}>{sim.location}</Text>
+                <Text style={styles.ownerName}>{owner.full_name}</Text>
+                <Text style={styles.ownerSince}>Joined {new Date(owner.created_at).getFullYear()}</Text>
               </View>
-              <MaterialIcons name="chevron-right" size={22} color="#bbb" />
-            </TouchableOpacity>
-          ))}
-        </View>
+            </View>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
