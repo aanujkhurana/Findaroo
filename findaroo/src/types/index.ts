@@ -3,10 +3,21 @@ export interface User {
   email: string;
   full_name: string;
   profile_pic?: string;
-  karma?: number;
+  karma_points?: number;
   phone?: string;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
+}
+
+export interface Tip {
+  id: string;
+  item_id: string;
+  sender_id: string;
+  receiver_id: string;
+  amount: number;
+  status: 'pending' | 'paid' | 'failed';
+  payment_intent_id?: string;
+  created_at: string;
 }
 
 export interface Item {
@@ -14,7 +25,7 @@ export interface Item {
   title: string;
   description: string;
   category: string;
-  status: 'lost' | 'found';
+  status: 'lost' | 'found' | 'returned';
   location?: string; // PostGIS geometry string
   location_name?: string; // Human-readable location name
   image?: string; // Changed from image_url to match database schema
@@ -24,6 +35,7 @@ export interface Item {
   resolved: boolean;
   reward_amount?: number;
   user?: User;
+  tips?: Tip[];
 }
 
 export interface Message {

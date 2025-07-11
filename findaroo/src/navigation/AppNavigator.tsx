@@ -7,6 +7,7 @@ import { useAuth } from '../hooks/useAuth';
 import { Loading } from '../components/Loading';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
+import ActivityScreen from '../screens/ActivityScreen';
 
 // Auth Screens
 import { LoginScreen } from '../screens/LoginScreen';
@@ -101,6 +102,16 @@ const MainTabs = () => (
         ),
       }}
     />
+    <Tab.Screen 
+      name="Activity" 
+      component={ActivityScreen}
+      options={{
+        tabBarLabel: 'Activity',
+        tabBarIcon: ({ focused }) => (
+          <MaterialIcons name="notifications" size={28} color={focused ? '#4F46E5' : '#9CA3AF'} />
+        ),
+      }}
+    />
   </Tab.Navigator>
 );
 
@@ -118,6 +129,7 @@ const MainStack = () => (
       options={{
         title: 'Item Details',
         headerBackTitle: 'Back',
+        headerShown: false,
       }}
     />
     <Stack.Screen 
