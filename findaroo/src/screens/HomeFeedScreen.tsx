@@ -7,6 +7,7 @@ import { Loading } from '../components/Loading';
 import { Category } from '../types';
 import { MaterialIcons, Ionicons, Feather } from '@expo/vector-icons';
 import MapView, { Marker } from 'react-native-maps';
+import { Modal as RNModal } from 'react-native';
 
 // Minimal color palette
 const COLORS = {
@@ -24,6 +25,20 @@ const CATEGORIES = [
   { value: 'lost', label: 'Lost', icon: <Feather name="alert-circle" size={16} color={COLORS.primary} /> },
   { value: 'found', label: 'Found', icon: <Feather name="check-circle" size={16} color={COLORS.primary} /> },
   // Add more categories as needed
+];
+
+const CATEGORY_OPTIONS: { value: Category | undefined; label: string }[] = [
+  { value: undefined, label: 'All Categories' },
+  { value: 'electronics', label: 'Electronics' },
+  { value: 'clothing', label: 'Clothing' },
+  { value: 'accessories', label: 'Accessories' },
+  { value: 'documents', label: 'Documents' },
+  { value: 'keys', label: 'Keys' },
+  { value: 'bags', label: 'Bags' },
+  { value: 'pets', label: 'Pets' },
+  { value: 'jewelry', label: 'Jewelry' },
+  { value: 'sports', label: 'Sports' },
+  { value: 'other', label: 'Other' },
 ];
 
 function parsePointString(pointStr: string | undefined) {
@@ -52,13 +67,15 @@ export const HomeFeedScreen = ({ navigation }: any) => {
   const [search, setSearch] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [mapExpanded, setMapExpanded] = useState(false);
-  const [category, setCategory] = useState();
+  // Change category state to array
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoryModalVisible, setCategoryModalVisible] = useState(false);
 
   const filters = useMemo(() => ({
     status,
-    category,
+    categories,
     search: search.trim() || undefined,
-  }), [status, category, search]);
+  }), [status, categories, search]);
 
   const { items, loading, error, refetch } = useItems(filters);
 
@@ -68,8 +85,11 @@ export const HomeFeedScreen = ({ navigation }: any) => {
     setRefreshing(false);
   }, [refetch]);
 
-  // Minimal filtered items
-  const filteredItems = items;
+  // Update filtering logic for items
+  const filteredItems = useMemo(() => {
+    if (!categories.length) return items;
+    return items.filter(item => categories.includes(item.category as Category));
+  }, [items, categories]);
 
   if (loading && !refreshing) {
     return <Loading message="Loading items..." />;
@@ -109,8 +129,8 @@ export const HomeFeedScreen = ({ navigation }: any) => {
         />
       </View>
 
-      {/* Pill Filter Bar */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterBar}>
+      {/* Pill Filter Bar (no scroll, 3 pills + filter icon) */}
+      <View style={styles.filterBarNoScroll}>
         {CATEGORIES.map((cat) => (
           <TouchableOpacity
             key={cat.label}
@@ -121,7 +141,47 @@ export const HomeFeedScreen = ({ navigation }: any) => {
             <Text style={[styles.filterPillText, (status === cat.value || (!status && cat.value === undefined)) && styles.filterPillTextActive]}>{cat.label}</Text>
           </TouchableOpacity>
         ))}
-      </ScrollView>
+        <View style={{ flex: 1 }} />
+        <TouchableOpacity style={styles.filterIconBtnSmall} onPress={() => setCategoryModalVisible(true)}>
+          <Feather name="filter" size={16} color={COLORS.primary} />
+        </TouchableOpacity>
+      </View>
+      {/* Category Filter Modal */}
+      <RNModal
+        visible={categoryModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setCategoryModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Select Categories</Text>
+            {CATEGORY_OPTIONS.filter(opt => opt.value !== undefined).map(opt => {
+              const selected = categories.includes(opt.value as Category);
+              return (
+                <TouchableOpacity
+                  key={opt.label}
+                  style={[styles.modalOption, selected && styles.modalOptionSelected]}
+                  onPress={() => {
+                    setCategories(prev =>
+                      selected
+                        ? prev.filter(c => c !== opt.value)
+                        : [...prev, opt.value as Category]
+                    );
+                  }}
+                >
+                  <Text style={[styles.modalOptionText, selected && styles.modalOptionTextSelected]}>
+                    {selected ? '✓ ' : ''}{opt.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+            <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setCategoryModalVisible(false)}>
+              <Text style={styles.modalCloseText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </RNModal>
 
       {/* Map Preview Row (expandable) */}
       <TouchableOpacity onPress={() => setMapExpanded((prev) => !prev)} activeOpacity={0.85}>
@@ -293,6 +353,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     marginBottom: 20,
   },
+  filterBarNoScroll: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 40,
+    paddingHorizontal: 12,
+    marginBottom: 20,
+  },
   filterPill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -317,6 +384,27 @@ const styles = StyleSheet.create({
   },
   filterPillTextActive: {
     color: '#fff',
+  },
+  filterIconBtn: {
+    marginLeft: 8,
+    backgroundColor: COLORS.card,
+    borderRadius: 999,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  filterIconBtnSmall: {
+    marginLeft: 8,
+    backgroundColor: COLORS.card,
+    borderRadius: 999,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+    alignSelf: 'flex-end',
   },
   mapPreviewRow: {
     height: 70,
@@ -446,5 +534,53 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     fontSize: 13,
     marginTop: 2,
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 24,
+    width: '80%',
+    alignItems: 'stretch',
+    elevation: 4,
+  },
+  modalTitle: {
+    fontWeight: 'bold',
+    fontSize: 18,
+    marginBottom: 16,
+    color: COLORS.primary,
+    textAlign: 'center',
+  },
+  modalOption: {
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    marginBottom: 4,
+  },
+  modalOptionSelected: {
+    backgroundColor: COLORS.primary,
+  },
+  modalOptionText: {
+    fontSize: 16,
+    color: COLORS.text,
+    textAlign: 'center',
+  },
+  modalOptionTextSelected: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  modalCloseBtn: {
+    marginTop: 12,
+    alignItems: 'center',
+  },
+  modalCloseText: {
+    color: COLORS.muted,
+    fontSize: 16,
   },
 });
