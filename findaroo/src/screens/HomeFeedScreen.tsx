@@ -206,8 +206,28 @@ export const HomeFeedScreen = ({ navigation }: any) => {
         keyExtractor={item => item.id}
         renderItem={({ item }) => (
           <View style={styles.itemCard}>
-            {item.image && (
+            {item.image ? (
               <Image source={{ uri: item.image }} style={styles.itemImage} />
+            ) : (
+              <View style={[styles.itemImage, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f3f4f6' }] }>
+                <Text style={{ fontSize: 28 }}>
+                  {(() => {
+                    const icons: Record<string, string> = {
+                      electronics: '📱',
+                      clothing: '👕',
+                      accessories: '👜',
+                      documents: '📄',
+                      keys: '🔑',
+                      bags: '🎒',
+                      pets: '🐕',
+                      jewelry: '💍',
+                      sports: '⚽',
+                      other: '📦',
+                    };
+                    return icons[item.category as string] || '📦';
+                  })()}
+                </Text>
+              </View>
             )}
             <View style={styles.itemInfo}>
               <View style={styles.itemHeaderRow}>
@@ -217,12 +237,32 @@ export const HomeFeedScreen = ({ navigation }: any) => {
                 </View>
               </View>
               <Text style={styles.itemCategory}>{item.category}</Text>
-              <Text style={styles.itemLocation} numberOfLines={1}>{
-                isLocationObject(item.location)
-                  ? item.location.address
-                  : 'Location'
-              }</Text>
+              {/* Show tips for lost items if any */}
+              {item.status === 'lost' && Array.isArray(item.tips) && item.tips.length > 0 ? (() => {
+                const totalTips = item.tips
+                  .filter(tip => tip.amount && tip.amount > 0)
+                  .reduce((sum, tip) => sum + Number(tip.amount), 0);
+                if (totalTips > 0) {
+                  return (
+                    <Text style={styles.tipsText}>Tips: ${totalTips.toFixed(2)}</Text>
+                  );
+                }
+                return null;
+              })() : null}
+              {/* Show reward if any */}
+              {item.reward_amount && item.reward_amount > 0 && (
+                <Text style={styles.rewardText}>Reward: ${item.reward_amount.toFixed(2)}</Text>
+              )}
+              {/* Show location name if available */}
+              {item.location_name && (
+                <Text style={styles.locationNameText} numberOfLines={1}>📍 {item.location_name}</Text>
+              )}
+              {/* Show created date */}
               <Text style={styles.itemDate}>{new Date(item.created_at).toLocaleDateString()}</Text>
+              {/* Show description, truncated */}
+              {item.description && (
+                <Text style={styles.itemDesc} numberOfLines={2}>{item.description}</Text>
+              )}
             </View>
           </View>
         )}
@@ -418,4 +458,26 @@ const styles = StyleSheet.create({
   },
   errorContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
   errorText: { color: '#ef4444', fontSize: 16, marginBottom: 12 },
+  tipsText: {
+    color: '#fbbf24',
+    fontWeight: 'bold',
+    fontSize: 13,
+    marginTop: 2,
+  },
+  rewardText: {
+    color: '#22c55e',
+    fontWeight: 'bold',
+    fontSize: 13,
+    marginTop: 2,
+  },
+  locationNameText: {
+    color: '#2563eb',
+    fontSize: 13,
+    marginTop: 2,
+  },
+  itemDesc: {
+    color: COLORS.text,
+    fontSize: 13,
+    marginTop: 2,
+  },
 });

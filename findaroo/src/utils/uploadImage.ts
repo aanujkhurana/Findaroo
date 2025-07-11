@@ -1,7 +1,7 @@
 import { supabase } from '../services/supabaseClient';
 import * as FileSystem from 'expo-file-system';
 
-export const uploadImage = async (uri: string, path: string, bucket: string = 'item-images'): Promise<string | null> => {
+export const uploadImage = async (uri: string, filename: string, userId: string, bucket: string = 'item-images'): Promise<string | null> => {
   try {
     // Get file info
     const fileInfo = await FileSystem.getInfoAsync(uri);
@@ -9,8 +9,8 @@ export const uploadImage = async (uri: string, path: string, bucket: string = 'i
       throw new Error('File does not exist');
     }
 
-    // Create file name with timestamp to avoid conflicts
-    const fileName = `${Date.now()}_${path}`;
+    // Create file name with userId prefix
+    const filePath = `${userId}/${Date.now()}_${filename}`;
     
     // Convert image to blob
     const response = await fetch(uri);
@@ -19,7 +19,7 @@ export const uploadImage = async (uri: string, path: string, bucket: string = 'i
     // Upload to Supabase Storage
     const { data, error } = await supabase.storage
       .from(bucket)
-      .upload(fileName, blob, {
+      .upload(filePath, blob, {
         contentType: 'image/jpeg',
         upsert: false
       });

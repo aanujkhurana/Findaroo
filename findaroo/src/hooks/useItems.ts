@@ -43,7 +43,8 @@ export const useItems = (filters: ItemFilters = {}) => {
         .from('items')
         .select(`
           *,
-          user:users(id, full_name, profile_pic)
+          user:users(id, full_name, profile_pic),
+          tips:tips(id, amount, status, created_at, sender_id, receiver_id, payment_intent_id)
         `)
         .eq('resolved', false)
         .order('created_at', { ascending: false });
