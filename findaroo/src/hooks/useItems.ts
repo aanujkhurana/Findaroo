@@ -9,6 +9,20 @@ interface ItemFilters {
   userId?: string;
 }
 
+// Utility to parse PostGIS POINT string to { latitude, longitude, address }
+function parsePointString(pointStr: string | undefined, address?: string): { latitude: number; longitude: number; address?: string } | undefined {
+  if (!pointStr || typeof pointStr !== 'string') return undefined;
+  const match = pointStr.match(/POINT\((-?\d+\.\d+) (-?\d+\.\d+)\)/);
+  if (match) {
+    return {
+      longitude: parseFloat(match[1]),
+      latitude: parseFloat(match[2]),
+      address,
+    };
+  }
+  return undefined;
+}
+
 export const useItems = (filters: ItemFilters = {}) => {
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,7 +70,11 @@ export const useItems = (filters: ItemFilters = {}) => {
 
       if (error) throw error;
 
-      setItems(data || []);
+      // Normalize location field for all items
+      setItems((data || []).map(item => ({
+        ...item,
+        location: parsePointString(item.location, item.location_name),
+      })));
     } catch (err: any) {
       setError(err.message);
       console.error('[useItems] Error fetching items:', err);

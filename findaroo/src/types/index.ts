@@ -15,12 +15,9 @@ export interface Item {
   description: string;
   category: string;
   status: 'lost' | 'found';
-  location: {
-    latitude: number;
-    longitude: number;
-    address?: string;
-  };
-  image_url?: string;
+  location?: string; // PostGIS geometry string
+  location_name?: string; // Human-readable location name
+  image?: string; // Changed from image_url to match database schema
   user_id: string;
   created_at: string;
   updated_at: string;
