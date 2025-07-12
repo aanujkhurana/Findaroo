@@ -31,12 +31,12 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
         .from('messages')
         .select(`
           *,
-          sender:users!sender_id(id, full_name, profile_picture),
-          recipient:users!recipient_id(id, full_name, profile_picture)
+          sender:users!sender_id(id, full_name, profile_pic),
+          receiver:users!receiver_id(id, full_name, profile_pic)
         `)
         .eq('item_id', itemId)
-        .or(`and(sender_id.eq.${otherUserId},recipient_id.eq.${currentUser.data.user.id}),and(sender_id.eq.${currentUser.data.user.id},recipient_id.eq.${otherUserId})`)
-        .order('created_at', { ascending: true });
+        .or(`and(sender_id.eq.${otherUserId},receiver_id.eq.${currentUser.data.user.id}),and(sender_id.eq.${currentUser.data.user.id},receiver_id.eq.${otherUserId})`)
+        .order('sent_at', { ascending: true });
 
       if (error) throw error;
 
@@ -61,12 +61,12 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
         .from('messages')
         .select(`
           *,
-          sender:users!sender_id(id, full_name, profile_picture),
-          recipient:users!recipient_id(id, full_name, profile_picture),
-          item:items(id, title, status, image_url)
+          sender:users!sender_id(id, full_name, profile_pic),
+          receiver:users!receiver_id(id, full_name, profile_pic),
+          item:items(id, title, status, image)
         `)
-        .or(`sender_id.eq.${currentUser.data.user.id},recipient_id.eq.${currentUser.data.user.id}`)
-        .order('created_at', { ascending: false });
+        .or(`sender_id.eq.${currentUser.data.user.id},receiver_id.eq.${currentUser.data.user.id}`)
+        .order('sent_at', { ascending: false });
 
       if (error) throw error;
 
@@ -74,12 +74,12 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
       const threadMap = new Map<string, ChatThread>();
       
       data?.forEach(message => {
-        const otherParticipantId = message.sender_id === currentUser.data.user?.id 
-          ? message.recipient_id 
+        const otherParticipantId = message.sender_id === currentUser.data.user?.id
+          ? message.receiver_id
           : message.sender_id;
-        
+
         const threadKey = `${message.item_id}-${otherParticipantId}`;
-        
+
         if (!threadMap.has(threadKey)) {
           threadMap.set(threadKey, {
             id: threadKey,
@@ -87,17 +87,17 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
             participant_1_id: currentUser.data.user!.id,
             participant_2_id: otherParticipantId,
             last_message: message,
-            created_at: message.created_at,
-            updated_at: message.created_at,
+            created_at: message.sent_at,
+            updated_at: message.sent_at,
             item: message.item,
-            participant_1: currentUser.data.user?.id === message.sender_id ? message.sender : message.recipient,
-            participant_2: currentUser.data.user?.id === message.sender_id ? message.recipient : message.sender,
+            participant_1: currentUser.data.user?.id === message.sender_id ? message.sender : message.receiver,
+            participant_2: currentUser.data.user?.id === message.sender_id ? message.receiver : message.sender,
           });
         } else {
           const thread = threadMap.get(threadKey)!;
-          if (new Date(message.created_at) > new Date(thread.updated_at)) {
+          if (new Date(message.sent_at) > new Date(thread.updated_at)) {
             thread.last_message = message;
-            thread.updated_at = message.created_at;
+            thread.updated_at = message.sent_at;
           }
         }
       });
@@ -130,8 +130,8 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
             .from('messages')
             .select(`
               *,
-              sender:users!sender_id(id, full_name, profile_picture),
-              recipient:users!recipient_id(id, full_name, profile_picture)
+              sender:users!sender_id(id, full_name, profile_pic),
+              receiver:users!receiver_id(id, full_name, profile_pic)
             `)
             .eq('id', payload.new.id)
             .single();
@@ -148,7 +148,7 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
     };
   };
 
-  const sendMessage = async (content: string, recipientId: string): Promise<Message | null> => {
+  const sendMessage = async (content: string, receiverId: string): Promise<Message | null> => {
     if (!itemId || !content.trim()) return null;
 
     try {
@@ -159,16 +159,16 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
         .from('messages')
         .insert([
           {
-            content: content.trim(),
+            message: content.trim(),
             sender_id: currentUser.data.user.id,
-            recipient_id: recipientId,
+            receiver_id: receiverId,
             item_id: itemId,
           },
         ])
         .select(`
           *,
-          sender:users!sender_id(id, full_name, profile_picture),
-          recipient:users!recipient_id(id, full_name, profile_picture)
+          sender:users!sender_id(id, full_name, profile_pic),
+          receiver:users!receiver_id(id, full_name, profile_pic)
         `)
         .single();
 

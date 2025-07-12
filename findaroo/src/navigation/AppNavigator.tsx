@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Text } from 'react-native';
+import { Text, Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useAuth } from '../hooks/useAuth';
 import { Loading } from '../components/Loading';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { MaterialIcons, Ionicons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import ActivityScreen from '../screens/ActivityScreen';
 
 // Auth Screens
@@ -19,6 +19,7 @@ import { HomeFeedScreen } from '../screens/HomeFeedScreen';
 import { CreateItemScreen } from '../screens/CreateItemScreen';
 import { ItemDetailsScreen } from '../screens/ItemDetailsScreen';
 import { ChatScreen } from '../screens/ChatScreen';
+import { ChatListScreen } from '../screens/ChatListScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { CreateLostItemScreen } from '../screens/CreateLostItemScreen';
 import { CreateFoundItemScreen } from '../screens/CreateFoundItemScreen';
@@ -53,63 +54,127 @@ const MainTabs = () => (
     screenOptions={{
       headerShown: false,
       tabBarStyle: {
-        backgroundColor: '#fff',
+        backgroundColor: '#FFFFFF',
         borderTopWidth: 0,
-        elevation: 10,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 12,
-        height: 72,
-        paddingBottom: 12,
-        paddingTop: 8,
+        elevation: Platform.OS === 'android' ? 20 : 0,
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.12,
+        shadowRadius: 16,
+        height: Platform.OS === 'ios' ? 88 : 72,
+        paddingBottom: Platform.OS === 'ios' ? 24 : 12,
+        paddingTop: 12,
+        paddingHorizontal: 8,
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
       },
       tabBarLabelStyle: {
-        fontSize: 13,
+        fontSize: 11,
         fontWeight: '600',
-        marginTop: 2,
+        marginTop: 4,
+        letterSpacing: 0.5,
+        textTransform: 'uppercase',
       },
-      tabBarActiveTintColor: '#4F46E5',
-      tabBarInactiveTintColor: '#9CA3AF',
+      tabBarActiveTintColor: '#6366F1',
+      tabBarInactiveTintColor: '#64748B',
+      tabBarItemStyle: {
+        paddingVertical: 4,
+        borderRadius: 16,
+        marginHorizontal: 2,
+      },
     }}
   >
-    <Tab.Screen 
-      name="Home" 
+    <Tab.Screen
+      name="Home"
       component={HomeFeedScreen}
       options={{
-        tabBarLabel: 'Map',
-        tabBarIcon: ({ focused }) => (
-          <MaterialIcons name="map" size={28} color={focused ? '#4F46E5' : '#9CA3AF'} />
+        tabBarLabel: 'Explore',
+        tabBarIcon: ({ focused, size }) => (
+          <Feather
+            name="map-pin"
+            size={focused ? 26 : 24}
+            color={focused ? '#6366F1' : '#64748B'}
+            style={{
+              transform: [{ scale: focused ? 1.1 : 1 }],
+              opacity: focused ? 1 : 0.8
+            }}
+          />
         ),
       }}
     />
-    <Tab.Screen 
-      name="My Items" 
-      component={CreateItemScreen}
-      options={{
-        tabBarLabel: 'My Items',
-        tabBarIcon: ({ focused }) => (
-          <MaterialIcons name="inventory" size={28} color={focused ? '#4F46E5' : '#9CA3AF'} />
-        ),
-      }}
-    />
-    <Tab.Screen 
-      name="Profile" 
-      component={ProfileScreen}
-      options={{
-        tabBarLabel: 'Profile',
-        tabBarIcon: ({ focused }) => (
-          <MaterialIcons name="person" size={28} color={focused ? '#4F46E5' : '#9CA3AF'} />
-        ),
-      }}
-    />
-    <Tab.Screen 
-      name="Activity" 
+    <Tab.Screen
+      name="Activity"
       component={ActivityScreen}
       options={{
         tabBarLabel: 'Activity',
-        tabBarIcon: ({ focused }) => (
-          <MaterialIcons name="notifications" size={28} color={focused ? '#4F46E5' : '#9CA3AF'} />
+        tabBarIcon: ({ focused, size }) => (
+          <Feather
+            name="bell"
+            size={focused ? 26 : 24}
+            color={focused ? '#6366F1' : '#64748B'}
+            style={{
+              transform: [{ scale: focused ? 1.1 : 1 }],
+              opacity: focused ? 1 : 0.8
+            }}
+          />
+        ),
+      }}
+    />
+    <Tab.Screen
+      name="My Items"
+      component={CreateItemScreen}
+      options={{
+        tabBarLabel: 'Post',
+        tabBarIcon: ({ focused, size }) => (
+          <Feather
+            name="plus-circle"
+            size={focused ? 26 : 24}
+            color={focused ? '#6366F1' : '#64748B'}
+            style={{
+              transform: [{ scale: focused ? 1.1 : 1 }],
+              opacity: focused ? 1 : 0.8
+            }}
+          />
+        ),
+      }}
+    />
+    <Tab.Screen
+      name="Chat"
+      component={ChatListScreen}
+      options={{
+        tabBarLabel: 'Message',
+        tabBarIcon: ({ focused, size }) => (
+          <Feather
+            name="message-circle"
+            size={focused ? 26 : 24}
+            color={focused ? '#6366F1' : '#64748B'}
+            style={{
+              transform: [{ scale: focused ? 1.1 : 1 }],
+              opacity: focused ? 1 : 0.8
+            }}
+          />
+        ),
+      }}
+    />
+    <Tab.Screen
+      name="Profile"
+      component={ProfileScreen}
+      options={{
+        tabBarLabel: 'Profile',
+        tabBarIcon: ({ focused, size }) => (
+          <Feather
+            name="user"
+            size={focused ? 26 : 24}
+            color={focused ? '#6366F1' : '#64748B'}
+            style={{
+              transform: [{ scale: focused ? 1.1 : 1 }],
+              opacity: focused ? 1 : 0.8
+            }}
+          />
         ),
       }}
     />

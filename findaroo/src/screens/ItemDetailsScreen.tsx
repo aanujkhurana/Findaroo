@@ -331,7 +331,17 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
               <View style={styles.ownerRating}><MaterialIcons name="star" size={16} color="#fbbf24" /><Text style={styles.ownerRatingText}>{(owner.karma_points ? (owner.karma_points / 100).toFixed(1) : '4.8')}</Text></View>
             </View>
             <View style={styles.ownerActions}>
-              <TouchableOpacity style={styles.messageBtn}><MaterialIcons name="message" size={18} color="#38bdf8" /><Text style={styles.messageBtnText}>Message</Text></TouchableOpacity>
+              <TouchableOpacity
+                style={styles.messageBtn}
+                onPress={() => navigation.navigate('Chat', {
+                  itemId: item.id,
+                  otherUserId: owner.id,
+                  otherUserName: owner.full_name,
+                })}
+              >
+                <MaterialIcons name="message" size={18} color="#38bdf8" />
+                <Text style={styles.messageBtnText}>Message</Text>
+              </TouchableOpacity>
               <TouchableOpacity style={styles.callBtn}><MaterialIcons name="call" size={18} color="#22c55e" /><Text style={styles.callBtnText}>Call</Text></TouchableOpacity>
             </View>
           </View>

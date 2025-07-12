@@ -40,13 +40,13 @@ export interface Item {
 
 export interface Message {
   id: string;
-  content: string;
+  message: string;
   sender_id: string;
-  recipient_id: string;
+  receiver_id: string;
   item_id: string;
-  created_at: string;
+  sent_at: string;
   sender?: User;
-  recipient?: User;
+  receiver?: User;
 }
 
 export interface ChatThread {
