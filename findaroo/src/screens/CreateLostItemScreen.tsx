@@ -19,7 +19,7 @@ import { useCreateItem } from '../hooks/useCreateItem';
 import { useAuth } from '../hooks/useAuth';
 import { Category, LocationCoords } from '../types';
 import * as ImagePicker from 'expo-image-picker';
-import { uploadImage, getImageUrl } from '../utils/uploadImage';
+import { uploadImage, getSignedImageUrl } from '../utils/uploadImage';
 
 const CATEGORIES: { key: Category; label: string; icon: React.ReactNode }[] = [
   { key: 'electronics', label: 'Electronics', icon: <Feather name="smartphone" size={24} color="#6b7280" /> },
@@ -57,20 +57,40 @@ export const CreateLostItemScreen = ({ navigation }: any) => {
   const { createItem, loading: createLoading } = useCreateItem();
   const [currentStep, setCurrentStep] = useState(1);
   // Remove the local loading state since we're using the hook's loading state
+const [imagePreview, setImagePreview] = useState<string | null>(null);
+const [debugSignedUrl, setDebugSignedUrl] = useState<string>('');
+const [formData, setFormData] = useState<FormData>({
+  title: '',
+  category: null,
+  description: '',
+  location: null,
+  dateLost: new Date(),
+  timeRange: '',
+  image: undefined,
+  rewardAmount: undefined,
+  offerReward: false,
+});
+
+// Fetch signed URL for preview when image changes
+useEffect(() => {
+  let isMounted = true;
+  async function fetchSignedUrl() {
+    if (formData.image) {
+      const url = await getSignedImageUrl(formData.image, 'item-images');
+      if (isMounted) {
+        setImagePreview(url);
+        setDebugSignedUrl(url);
+      }
+    } else {
+      setImagePreview(null);
+      setDebugSignedUrl('');
+    }
+  }
+  fetchSignedUrl();
+  return () => { isMounted = false; };
+}, [formData.image]);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
-
-  const [formData, setFormData] = useState<FormData>({
-    title: '',
-    category: null,
-    description: '',
-    location: null,
-    dateLost: new Date(),
-    timeRange: '',
-    image: undefined,
-    rewardAmount: undefined,
-    offerReward: false,
-  });
 
   // Auto-detect user location (simplified for now)
   useEffect(() => {
@@ -272,25 +292,6 @@ export const CreateLostItemScreen = ({ navigation }: any) => {
           value={formData.timeRange}
           onChangeText={(text) => updateFormData('timeRange', text)}
         />
-      </View>
-
-      <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>Add a Photo (Optional)</Text>
-        <TouchableOpacity style={styles.uploadButton} onPress={handlePickImage}>
-          <Feather name="camera" size={24} color="#6b7280" />
-          <Text style={styles.uploadButtonText}>Take Photo or Choose from Gallery</Text>
-        </TouchableOpacity>
-        {formData.image && (
-          <View style={{ alignItems: 'center', marginTop: 12 }}>
-            <Image source={{ uri: getImageUrl(formData.image, 'item-images') }} style={{ width: 120, height: 120, borderRadius: 12 }} />
-            {/* Debug info */}
-            <View style={{ marginTop: 8, backgroundColor: '#f3f4f6', padding: 6, borderRadius: 6 }}>
-              <Text style={{ fontSize: 12, color: '#888' }}>Path: {formData.image}</Text>
-              <Text style={{ fontSize: 12, color: '#888' }}>URL: {getImageUrl(formData.image, 'item-images')}</Text>
-            </View>
-          </View>
-        )}
-        <Text style={styles.tipText}>📸 Photos boost return rates by 2x — even stock images help!</Text>
       </View>
     </View>
   );

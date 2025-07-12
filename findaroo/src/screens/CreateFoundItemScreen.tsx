@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, TextInput, Scro
 import { Feather, MaterialIcons, FontAwesome, FontAwesome5 } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
-import { uploadImage, getImageUrl } from '../utils/uploadImage';
+import { uploadImage, getSignedImageUrl } from '../utils/uploadImage';
 import { useCreateItem } from '../hooks/useCreateItem';
 import { useAuth } from '../hooks/useAuth';
 import { Category, LocationCoords } from '../types';
@@ -55,6 +55,26 @@ export const CreateFoundItemScreen = ({ navigation }: any) => {
   });
   const [showImagePicker, setShowImagePicker] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [debugSignedUrl, setDebugSignedUrl] = useState<string>('');
+
+  // Fetch signed URL for preview when image changes
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchSignedUrl() {
+      if (formData.image) {
+        const url = await getSignedImageUrl(formData.image, 'item-images');
+        if (isMounted) {
+          setImagePreview(url);
+          setDebugSignedUrl(url);
+        }
+      } else {
+        setImagePreview(null);
+        setDebugSignedUrl('');
+      }
+    }
+    fetchSignedUrl();
+    return () => { isMounted = false; };
+  }, [formData.image]);
 
   // Auto-detect user location (simplified for now)
   useEffect(() => {
@@ -189,11 +209,11 @@ export const CreateFoundItemScreen = ({ navigation }: any) => {
         </TouchableOpacity>
         {formData.image && (
           <View style={{ alignItems: 'center', marginTop: 12 }}>
-            <Image source={{ uri: getImageUrl(formData.image, 'item-images') }} style={{ width: 120, height: 120, borderRadius: 12 }} />
+            <Image source={{ uri: imagePreview || undefined }} style={{ width: 120, height: 120, borderRadius: 12 }} />
             {/* Debug info */}
             <View style={{ marginTop: 8, backgroundColor: '#f3f4f6', padding: 6, borderRadius: 6 }}>
               <Text style={{ fontSize: 12, color: '#888' }}>Path: {formData.image}</Text>
-              <Text style={{ fontSize: 12, color: '#888' }}>URL: {getImageUrl(formData.image, 'item-images')}</Text>
+              <Text style={{ fontSize: 12, color: '#888' }}>URL: {debugSignedUrl}</Text>
             </View>
           </View>
         )}
