@@ -8,6 +8,7 @@ import { Category } from '../types';
 import { MaterialIcons, Ionicons, Feather } from '@expo/vector-icons';
 import MapView, { Marker } from 'react-native-maps';
 import { Modal as RNModal } from 'react-native';
+import { LocationFilterModal } from '../components/LocationFilterModal';
 
 // Minimal color palette
 const COLORS = {
@@ -84,6 +85,7 @@ export const HomeFeedScreen = ({ navigation }: any) => {
   const [maxDistance, setMaxDistance] = useState<number | undefined>(undefined);
   const [sortByDistance, setSortByDistance] = useState(false);
   const [distanceModalVisible, setDistanceModalVisible] = useState(false);
+  const [locationFilterModalVisible, setLocationFilterModalVisible] = useState(false);
 
   const filters = useMemo(() => ({
     status,
@@ -162,7 +164,7 @@ export const HomeFeedScreen = ({ navigation }: any) => {
         {/* Distance Filter Button */}
         <TouchableOpacity
           style={[styles.filterIconBtn, maxDistance && styles.filterIconBtnActive]}
-          onPress={() => setDistanceModalVisible(true)}
+          onPress={() => setLocationFilterModalVisible(true)}
         >
           <Feather name="map-pin" size={20} color={maxDistance ? '#fff' : COLORS.primary} />
           {maxDistance && (
@@ -276,6 +278,20 @@ export const HomeFeedScreen = ({ navigation }: any) => {
           </View>
         </View>
       </RNModal>
+
+      {/* Location Filter Modal */}
+      <LocationFilterModal
+        visible={locationFilterModalVisible}
+        onClose={() => setLocationFilterModalVisible(false)}
+        currentMaxDistance={maxDistance}
+        currentSortByDistance={sortByDistance}
+        onApplyFilters={(distance, sortByDistance) => {
+          setMaxDistance(distance);
+          setSortByDistance(sortByDistance);
+          setLocationFilterModalVisible(false);
+        }}
+        userLocation={userLocation}
+      />
 
       {/* Map Preview Row (expandable) */}
       <TouchableOpacity onPress={() => setMapExpanded((prev) => !prev)} activeOpacity={0.85}>
