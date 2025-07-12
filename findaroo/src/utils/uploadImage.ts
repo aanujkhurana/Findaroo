@@ -29,7 +29,7 @@ export const uploadImage = async (uri: string, filename: string, userId: string,
       .from(bucket)
       .upload(filePath, blob, {
         contentType, // Use detected content type
-        upsert: false
+        upsert: true // Changed to true to allow overwriting existing files
       });
     console.log('[uploadImage] Supabase upload response:', { data, error });
 
@@ -47,12 +47,58 @@ export const uploadImage = async (uri: string, filename: string, userId: string,
 
 export const getImageUrl = (path: string, bucket: string = 'item-images'): string => {
   if (!path) return '';
-  // NOTE: If your bucket is private, use createSignedUrl instead of getPublicUrl
-  const { data } = supabase.storage
-    .from(bucket)
-    .getPublicUrl(path);
+  
+  try {
+    // Clean the path
+    const cleanPath = path.trim();
+    console.log(`[getImageUrl] Getting public URL for path: ${cleanPath} from bucket: ${bucket}`);
+    
+    // NOTE: For private buckets, use createSignedUrl instead of getPublicUrl
+    const { data } = supabase.storage
+      .from(bucket)
+      .getPublicUrl(cleanPath);
+    
+    if (!data?.publicUrl) {
+      console.error(`[getImageUrl] No public URL returned for ${cleanPath}`);
+      return '';
+    }
+    
+    return data.publicUrl;
+  } catch (error) {
+    console.error('[getImageUrl] Error getting public URL:', error);
+    return '';
+  }
+};
 
-  return data.publicUrl;
+// Get a signed URL for private buckets with improved error handling
+export const getSignedImageUrl = async (path: string, bucket: string = 'item-images'): Promise<string> => {
+  if (!path) return '';
+  
+  try {
+    // Ensure path is properly formatted
+    const cleanPath = path.trim();
+    console.log(`[getSignedImageUrl] Getting signed URL for path: ${cleanPath} from bucket: ${bucket}`);
+    
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .createSignedUrl(cleanPath, 60 * 60); // 1 hour expiry
+    
+    if (error) {
+      console.error(`[getSignedImageUrl] Error creating signed URL for ${cleanPath}:`, error);
+      return '';
+    }
+    
+    if (!data?.signedUrl) {
+      console.error(`[getSignedImageUrl] No signed URL returned for ${cleanPath}`);
+      return '';
+    }
+    
+    console.log(`[getSignedImageUrl] Successfully generated signed URL for ${cleanPath}`);
+    return data.signedUrl;
+  } catch (error) {
+    console.error('[getSignedImageUrl] Unexpected error:', error);
+    return '';
+  }
 };
 
 export const deleteImage = async (path: string, bucket: string = 'item-images'): Promise<boolean> => {

@@ -1,18 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, Image, ScrollView, Alert, Platform, TouchableOpacity, Switch, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import { useAuth } from '../hooks/useAuth';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as ImagePicker from 'expo-image-picker';
+import { uploadImage } from '../utils/uploadImage';
+import { getSignedImageUrl } from '../utils/uploadImage';
 
 export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
-  const { signOut } = useAuth();
+  const { signOut, user, updateProfile } = useAuth();
   // Static data for demo
   const avatarUrl = undefined;
   const [pushNotifications, setPushNotifications] = useState(true);
   const [emailUpdates, setEmailUpdates] = useState(false);
   const [autoAccept, setAutoAccept] = useState(true);
   const [radius, setRadius] = useState(15);
+  const [profilePicUrl, setProfilePicUrl] = useState('');
 
   const handleSignOut = async () => {
     const { error } = await signOut();
@@ -22,6 +26,108 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
       navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
     }
   };
+
+  const handlePickProfileImage = async () => {
+    if (!user) {
+      Alert.alert('Error', 'You must be logged in to update your profile picture');
+      return;
+    }
+    
+    try {
+      // Request permissions first
+      if (Platform.OS !== 'web') {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Permission denied', 'We need camera roll permissions to upload your profile picture');
+          return;
+        }
+      }
+      
+      // Launch image picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.8,
+        aspect: [1, 1], // Square aspect ratio for profile pictures
+      });
+      
+      if (result.canceled || !result.assets || result.assets.length === 0) {
+        console.log('[ProfileImageUpload] Image selection canceled');
+        return;
+      }
+      
+      // Show loading indicator
+      Alert.alert('Uploading...', 'Please wait while we upload your profile picture');
+      
+      const asset = result.assets[0];
+      const uri = asset.uri;
+      const filename = asset.fileName || uri.split('/').pop() || `profile_${Date.now()}.jpg`;
+      
+      console.log(`[ProfileImageUpload] Uploading image: ${filename}`);
+      const path = await uploadImage(uri, filename, user.id, 'profile-pictures');
+      
+      if (!path) {
+        Alert.alert('Upload failed', 'Could not upload image. Please try again.');
+        console.error('[ProfileImageUpload] Upload failed: path is null');
+        return;
+      }
+      
+      console.log(`[ProfileImageUpload] Image uploaded successfully to path: ${path}`);
+      
+      // Update user profile with new profile_pic path
+      const { data, error } = await updateProfile({ profile_pic: path });
+      
+      if (error) {
+        Alert.alert('Profile update failed', error.message || 'Could not update profile with new image');
+        console.error('[ProfileImageUpload] Profile update failed:', error);
+        return;
+      }
+      
+      console.log('[ProfileImageUpload] Profile updated successfully with new image');
+      
+      // Fetch new signed URL after upload
+      const signedUrl = await getSignedImageUrl(path, 'profile-pictures');
+      if (signedUrl) {
+        setProfilePicUrl(signedUrl);
+        Alert.alert('Success', 'Profile picture updated successfully');
+      } else {
+        Alert.alert('Warning', 'Image uploaded but may not display correctly. Please try again later.');
+      }
+    } catch (error) {
+      console.error('[ProfileImageUpload] Unexpected error:', error);
+      Alert.alert('Error', 'An unexpected error occurred. Please try again.');
+    }
+  };
+
+  // Fetch signed URL for profile picture
+  useEffect(() => {
+    const fetchProfilePicture = async () => {
+      try {
+        if (!user?.profile_pic) {
+          console.log('[ProfileScreen] No profile picture path available');
+          setProfilePicUrl('');
+          return;
+        }
+        
+        console.log(`[ProfileScreen] Fetching profile picture URL for path: ${user.profile_pic}`);
+        const url = await getSignedImageUrl(user.profile_pic, 'profile-pictures');
+        
+        if (!url) {
+          console.error('[ProfileScreen] Failed to get signed URL for profile picture');
+          setProfilePicUrl('');
+          return;
+        }
+        
+        console.log('[ProfileScreen] Successfully fetched profile picture URL');
+        setProfilePicUrl(url);
+      } catch (error) {
+        console.error('[ProfileScreen] Error fetching profile picture:', error);
+        setProfilePicUrl('');
+      }
+    };
+    
+    fetchProfilePicture();
+  }, [user?.profile_pic]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -41,40 +147,38 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <View style={{ marginRight: 16 }}>
               <View>
-                {avatarUrl ? (
-                  <Image source={{ uri: avatarUrl }} style={styles.avatar} />
-                ) : (
-                  <View style={styles.avatarPlaceholder}>
-                    <Text style={styles.avatarInitial}>A</Text>
+                <TouchableOpacity onPress={handlePickProfileImage}>
+                  {profilePicUrl ? (
+                    <Image source={{ uri: profilePicUrl }} style={styles.avatar} />
+                  ) : (
+                    <View style={styles.avatarPlaceholder}>
+                      <Text style={styles.avatarInitial}>{user?.full_name?.charAt(0).toUpperCase() || 'A'}</Text>
+                    </View>
+                  )}
+                  <View style={styles.avatarBadge}>
+                    <MaterialIcons name="check" size={16} color="#fff" />
                   </View>
-                )}
-                <View style={styles.avatarBadge}>
-                  <MaterialIcons name="check" size={16} color="#fff" />
-                </View>
+                </TouchableOpacity>
               </View>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.profileName}>Sarah Chen</Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
+              <Text style={styles.profileName}>{user?.full_name || 'User'}</Text>
+              {/* Optionally display user location if available in user profile */}
+              {/* <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
                 <MaterialIcons name="location-pin" size={16} color="#aaa" />
-                <Text style={styles.profileLocation}>Melbourne, VIC</Text>
-              </View>
+                <Text style={styles.profileLocation}>{user?.location || 'Location not set'}</Text>
+              </View> */}
             </View>
           </View>
           <View style={styles.profileStatsRow}>
             <View style={styles.reputationCard}>
               <Text style={styles.reputationLabel}>Reputation Score</Text>
-              <Text style={styles.reputationValue}>4.8</Text>
-              <View style={styles.starsRow}>
-                {[...Array(5)].map((_, i) => (
-                  <MaterialIcons key={i} name="star" size={16} color="#FFD700" />
-                ))}
-                <Text style={styles.reputationSub}>Based on 23 returns</Text>
-              </View>
+              <Text style={styles.reputationValue}>{user?.karma_points ? (user.karma_points / 100).toFixed(1) : 'N/A'}</Text>
+              {/* Optionally display stars and returns if you have this data */}
             </View>
             <View style={styles.karmaCard}>
               <Text style={styles.karmaLabel}>Karma Points</Text>
-              <Text style={styles.karmaValue}>1,247</Text>
+              <Text style={styles.karmaValue}>{user?.karma_points ?? 'N/A'}</Text>
             </View>
           </View>
         </View>

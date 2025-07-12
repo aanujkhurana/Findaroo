@@ -214,6 +214,14 @@ export const useAuth = () => {
   const updateProfile = async (updates: Partial<User>) => {
     try {
       if (!user) throw new Error('No user logged in');
+      
+      console.log(`[useAuth] Updating user profile for user ID: ${user.id}`, updates);
+      
+      // Ensure profile_pic is properly formatted if it's being updated
+      if (updates.profile_pic) {
+        updates.profile_pic = updates.profile_pic.trim();
+        console.log(`[useAuth] Updating profile picture to: ${updates.profile_pic}`);
+      }
 
       const { data, error } = await supabase
         .from('users')
@@ -222,12 +230,19 @@ export const useAuth = () => {
         .select()
         .single();
 
-      if (!error && data) {
+      if (error) {
+        console.error('[useAuth] Error updating user profile:', error);
+        return { data: null, error };
+      }
+      
+      if (data) {
+        console.log('[useAuth] User profile updated successfully:', data);
         setUser(data);
       }
 
-      return { data, error };
+      return { data, error: null };
     } catch (error: any) {
+      console.error('[useAuth] Unexpected error updating profile:', error);
       return { data: null, error };
     }
   };
@@ -243,8 +258,12 @@ export const useAuth = () => {
 
       // If email is confirmed and we have a session, try to create the user profile
       if (data.user && data.session) {
-        const userProfile = await fetchUserProfile(data.user.id);
-        if (!userProfile) {
+        // Call fetchUserProfile but don't check its return value since it doesn't return anything
+        await fetchUserProfile(data.user.id);
+        
+        // Instead, check if user is set after the fetchUserProfile call
+        if (!user) {
+          console.log('Creating user profile after email confirmation');
           // Create profile if it doesn't exist
           await createUserProfile(
             data.user.id,
