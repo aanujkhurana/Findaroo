@@ -95,11 +95,10 @@ export const ItemCard: React.FC<ItemCardProps> = ({ item, onPress, userLocation,
   }, [item.image, item.user?.profile_pic]);
 
   // Type guard for location object
-  function isLocationObject(value: any): value is { address: string; latitude: number; longitude: number } {
+  function isLocationObject(value: any): value is { address?: string; latitude: number; longitude: number } {
     return (
       typeof value === 'object' &&
       value !== null &&
-      typeof value.address === 'string' &&
       typeof value.latitude === 'number' &&
       typeof value.longitude === 'number'
     );
@@ -117,6 +116,11 @@ export const ItemCard: React.FC<ItemCardProps> = ({ item, onPress, userLocation,
 
   const distanceText = getDistanceText();
   const statusStyle = getStatusStyle(item.status);
+
+  // Debug location data
+  console.log('[ItemCard] Item location:', item.location);
+  console.log('[ItemCard] Item location_name:', item.location_name);
+  console.log('[ItemCard] Is location object:', isLocationObject(item.location));
 
   return (
     <TouchableOpacity onPress={onPress} style={styles.itemCard}>
@@ -155,44 +159,34 @@ export const ItemCard: React.FC<ItemCardProps> = ({ item, onPress, userLocation,
           {item.description}
         </Text>
 
-        {/* Location and Reward Row */}
-        <View style={styles.locationRewardRow}>
-          {isLocationObject(item.location) && (
-            <Text style={styles.locationText} numberOfLines={1}>
-              📍 {item.location.address}
-            </Text>
-          )}
-          {item.reward_amount && item.reward_amount > 0 && (
-            <Text style={styles.rewardText}>
-              💰 ${item.reward_amount}
-            </Text>
-          )}
-        </View>
+        {/* Reward Row */}
+        {item.reward_amount && item.reward_amount > 0 && (
+          <Text style={styles.rewardText}>
+            💰 Reward: ${item.reward_amount}
+          </Text>
+        )}
 
         {/* Footer Row */}
         <View style={styles.itemFooterRow}>
           <View style={styles.itemFooterLeft}>
-            {userProfileUrl ? (
-              <Image
-                source={{ uri: userProfileUrl }}
-                style={styles.userAvatar}
-              />
-            ) : (
-              <View style={styles.userAvatarPlaceholder}>
-                <Text style={styles.userAvatarText}>
-                  {item.user?.full_name?.charAt(0).toUpperCase() || '?'}
-                </Text>
-              </View>
-            )}
-            <Text style={styles.userName}>
-              {item.user?.full_name || 'Unknown User'}
-            </Text>
+            {isLocationObject(item.location) ? (
+              <Text style={styles.itemFooterText} numberOfLines={1}>
+                📍 {item.location.address || 'Location available'}
+              </Text>
+            ) : item.location_name ? (
+              <Text style={styles.itemFooterText} numberOfLines={1}>
+                📍 {item.location_name}
+              </Text>
+            ) : null}
             {distanceText && (
-              <Text style={styles.distanceText}>
+              <Text style={[styles.itemFooterText, { color: COLORS.primary, fontWeight: '600', marginLeft: 8 }]}>
                 • {distanceText}
               </Text>
             )}
           </View>
+          <Text style={styles.itemFooterText}>
+            {formatDate(item.created_at)}
+          </Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -269,22 +263,11 @@ const styles = StyleSheet.create({
     marginTop: 2,
     lineHeight: 18,
   },
-  locationRewardRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 4,
-  },
-  locationText: {
-    fontSize: 12,
-    color: COLORS.muted,
-    flex: 1,
-    marginRight: 8,
-  },
   rewardText: {
     fontSize: 12,
     fontWeight: '600',
     color: COLORS.matchedText,
+    marginTop: 4,
   },
   itemFooterRow: {
     flexDirection: 'row',
@@ -295,35 +278,10 @@ const styles = StyleSheet.create({
   itemFooterLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
-  userAvatar: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    marginRight: 6,
-  },
-  userAvatarPlaceholder: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: '#d1d5db',
-    marginRight: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  userAvatarText: {
-    fontSize: 10,
-    color: COLORS.muted,
-    fontWeight: '600',
-  },
-  userName: {
+  itemFooterText: {
     color: COLORS.muted,
     fontSize: 12,
-  },
-  distanceText: {
-    color: COLORS.primary,
-    fontSize: 12,
-    fontWeight: '600',
-    marginLeft: 4,
   },
 });

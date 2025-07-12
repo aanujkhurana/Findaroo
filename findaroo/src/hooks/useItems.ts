@@ -87,11 +87,21 @@ export const useItems = (filters: ItemFilters = {}) => {
 
       if (error) throw error;
 
+      // Debug raw location data
+      if (data && data.length > 0) {
+        console.log('[useItems] Sample item raw location:', data[0].location);
+        console.log('[useItems] Sample item location_name:', data[0].location_name);
+      }
+
       // Normalize location field for all items
-      let processedItems = (data || []).map(item => ({
-        ...item,
-        location: parsePointString(item.location, item.location_name),
-      }));
+      let processedItems = (data || []).map(item => {
+        const parsedLocation = parsePointString(item.location, item.location_name);
+        console.log('[useItems] Raw location:', item.location, 'Parsed:', parsedLocation);
+        return {
+          ...item,
+          location: parsedLocation,
+        };
+      });
 
       // Apply distance-based filtering and sorting if user location is available
       if (userLocation && processedItems.length > 0) {
