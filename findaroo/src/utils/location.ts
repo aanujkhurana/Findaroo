@@ -3,15 +3,27 @@ import { LocationCoords } from '../types';
 
 export const getCurrentLocation = async (): Promise<LocationCoords | null> => {
   try {
+    console.log('[getCurrentLocation] Requesting location permissions...');
+
     // Request permissions
     const { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') {
+      console.error('[getCurrentLocation] Location permission denied');
       throw new Error('Location permission not granted');
     }
 
-    // Get current position
+    console.log('[getCurrentLocation] Permission granted, getting current position...');
+
+    // Get current position with timeout and fallback
     const location = await Location.getCurrentPositionAsync({
-      accuracy: Location.Accuracy.High,
+      accuracy: Location.Accuracy.Balanced, // Changed from High to Balanced for better performance
+      timeout: 15000, // 15 second timeout
+      maximumAge: 60000, // Accept cached location up to 1 minute old
+    });
+
+    console.log('[getCurrentLocation] Got coordinates:', {
+      latitude: location.coords.latitude,
+      longitude: location.coords.longitude
     });
 
     // Get address from coordinates
@@ -20,36 +32,96 @@ export const getCurrentLocation = async (): Promise<LocationCoords | null> => {
       longitude: location.coords.longitude,
     });
 
-    const addressString = address[0] ? 
-      `${address[0].street || ''} ${address[0].city || ''} ${address[0].region || ''}`.trim() : 
+    console.log('[getCurrentLocation] Reverse geocoding result:', address[0]);
+
+    const addressString = address[0] ?
+      formatAddress(address[0]) :
       'Unknown location';
 
-    return {
+    const result = {
       latitude: location.coords.latitude,
       longitude: location.coords.longitude,
       address: addressString,
     };
+
+    console.log('[getCurrentLocation] Final result:', result);
+    return result;
   } catch (error) {
-    console.error('Error getting location:', error);
+    console.error('[getCurrentLocation] Error getting location:', error);
     return null;
   }
 };
 
+// Helper function to format address consistently
+const formatAddress = (addressComponent: Location.LocationGeocodedAddress): string => {
+  const parts = [];
+
+  if (addressComponent.streetNumber) parts.push(addressComponent.streetNumber);
+  if (addressComponent.street) parts.push(addressComponent.street);
+  if (addressComponent.city) parts.push(addressComponent.city);
+  if (addressComponent.region) parts.push(addressComponent.region);
+
+  return parts.join(', ') || 'Unknown location';
+};
+
 export const getAddressFromCoordinates = async (latitude: number, longitude: number): Promise<string> => {
   try {
+    console.log('[getAddressFromCoordinates] Getting address for:', { latitude, longitude });
+
     const address = await Location.reverseGeocodeAsync({
       latitude,
       longitude,
     });
 
+    console.log('[getAddressFromCoordinates] Reverse geocoding result:', address[0]);
+
     if (address[0]) {
-      return `${address[0].street || ''} ${address[0].city || ''} ${address[0].region || ''}`.trim();
+      return formatAddress(address[0]);
     }
 
     return 'Unknown location';
   } catch (error) {
-    console.error('Error getting address:', error);
+    console.error('[getAddressFromCoordinates] Error getting address:', error);
     return 'Unknown location';
+  }
+};
+
+// Function to check if location services are enabled
+export const checkLocationPermissions = async (): Promise<{
+  granted: boolean;
+  canAskAgain: boolean;
+  status: Location.PermissionStatus;
+}> => {
+  try {
+    const { status, canAskAgain } = await Location.getForegroundPermissionsAsync();
+    return {
+      granted: status === 'granted',
+      canAskAgain,
+      status,
+    };
+  } catch (error) {
+    console.error('[checkLocationPermissions] Error checking permissions:', error);
+    return {
+      granted: false,
+      canAskAgain: false,
+      status: 'undetermined' as Location.PermissionStatus,
+    };
+  }
+};
+
+// Function to request location permissions with better error handling
+export const requestLocationPermissions = async (): Promise<boolean> => {
+  try {
+    console.log('[requestLocationPermissions] Requesting location permissions...');
+
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    const granted = status === 'granted';
+
+    console.log('[requestLocationPermissions] Permission result:', { status, granted });
+    return granted;
+  } catch (error) {
+    console.error('[requestLocationPermissions] Error requesting permissions:', error);
+    return false;
   }
 };
 

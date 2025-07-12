@@ -10,8 +10,6 @@ import { getSignedImageUrl } from '../utils/uploadImage';
 
 export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
   const { signOut, user, updateProfile } = useAuth();
-  // Static data for demo
-  const avatarUrl = undefined;
   const [pushNotifications, setPushNotifications] = useState(true);
   const [emailUpdates, setEmailUpdates] = useState(false);
   const [autoAccept, setAutoAccept] = useState(true);
@@ -163,6 +161,12 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.profileName}>{user?.full_name || 'User'}</Text>
+              {user?.phone && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
+                  <MaterialIcons name="phone" size={16} color="#aaa" />
+                  <Text style={styles.profileLocation}>{user.phone}</Text>
+                </View>
+              )}
               {/* Optionally display user location if available in user profile */}
               {/* <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
                 <MaterialIcons name="location-pin" size={16} color="#aaa" />
@@ -191,16 +195,16 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
               <Text style={styles.addNew}>Add New</Text>
             </TouchableOpacity>
           </View>
-          {/* Credit/Debit Card */}
+          {/* Credit/Debit Card - Placeholder */}
           <View style={styles.paymentRow}>
             <View style={styles.paymentIconBox}>
               <MaterialIcons name="credit-card" size={20} color="#2563eb" />
             </View>
             <View style={{ marginLeft: 12 }}>
-              <Text style={styles.paymentText}>•••• 4242</Text>
-              <Text style={styles.paymentSub}>Expires 12/25</Text>
+              <Text style={styles.paymentText}>No payment methods added</Text>
+              <Text style={styles.paymentSub}>Add a payment method to get started</Text>
             </View>
-            <View style={styles.defaultBadge}><Text style={styles.defaultBadgeText}>Default</Text></View>
+            <MaterialIcons name="chevron-right" size={24} color="#bbb" style={{ marginLeft: 'auto' }} />
           </View>
           {/* PayID */}
           <View style={styles.paymentRow}>
@@ -208,15 +212,17 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
               <Text style={{ color: '#F59E42', fontWeight: 'bold', fontSize: 16 }}>P</Text>
             </View>
             <View style={{ marginLeft: 12 }}>
-              <Text style={styles.paymentText}>sarah.chen@email.com</Text>
+              <Text style={styles.paymentText}>{user?.email || 'No email available'}</Text>
             </View>
             <MaterialIcons name="chevron-right" size={24} color="#bbb" style={{ marginLeft: 'auto' }} />
           </View>
           {/* ID Verification */}
-          <View style={styles.verificationCard}>
-            <View style={styles.verificationIcon}><MaterialIcons name="check" size={20} color="#fff" /></View>
+          <View style={[styles.verificationCard, { backgroundColor: '#FFF4E6' }]}>
+            <View style={[styles.verificationIcon, { backgroundColor: '#F59E42' }]}>
+              <MaterialIcons name="pending" size={20} color="#fff" />
+            </View>
             <View>
-              <Text style={styles.verifiedText}>Verified</Text>
+              <Text style={[styles.verifiedText, { color: '#F59E42' }]}>Verification Pending</Text>
               <Text style={styles.verifiedSub}>Driver’s License verified</Text>
             </View>
           </View>
@@ -301,13 +307,14 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
             <MaterialIcons name="chevron-right" size={24} color="#bbb" style={{ marginLeft: 'auto' }} />
           </TouchableOpacity>
         </View>
+
+        {/* Sign Out Button */}
+        <View style={styles.signOutContainer}>
+          <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
+            <Text style={styles.signOutText}>Sign Out</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
-      {/* Sign Out Button */}
-      <View style={styles.signOutContainer}>
-        <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
-          <Text style={styles.signOutText}>Sign Out</Text>
-        </TouchableOpacity>
-      </View>
     </SafeAreaView>
   );
 };
@@ -335,7 +342,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 20,
-    paddingBottom: 32,
+    paddingBottom: 40,
   },
   card: {
     backgroundColor: '#F7F8FA',
@@ -591,8 +598,9 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   signOutContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 24,
+    paddingHorizontal: 0,
+    paddingTop: 20,
+    paddingBottom: 0,
     backgroundColor: 'transparent',
   },
   signOutButton: {

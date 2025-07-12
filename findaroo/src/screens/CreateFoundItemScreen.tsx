@@ -7,6 +7,8 @@ import { uploadImage, getSignedImageUrl } from '../utils/uploadImage';
 import { useCreateItem } from '../hooks/useCreateItem';
 import { useAuth } from '../hooks/useAuth';
 import { Category, LocationCoords } from '../types';
+import { getCurrentLocation, requestLocationPermissions } from '../utils/location';
+import { LocationPicker } from '../components/LocationPicker';
 
 const CATEGORIES: { key: Category; label: string; icon: React.ReactNode }[] = [
   { key: 'electronics', label: 'Electronics', icon: <Feather name="smartphone" size={24} color="#6b7280" /> },
@@ -56,6 +58,9 @@ export const CreateFoundItemScreen = ({ navigation }: any) => {
   const [showImagePicker, setShowImagePicker] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [debugSignedUrl, setDebugSignedUrl] = useState<string>('');
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
 
   // Fetch signed URL for preview when image changes
   useEffect(() => {
@@ -76,20 +81,83 @@ export const CreateFoundItemScreen = ({ navigation }: any) => {
     return () => { isMounted = false; };
   }, [formData.image]);
 
-  // Auto-detect user location (simplified for now)
+  // Auto-detect user location
   useEffect(() => {
-    setFormData(prev => ({
-      ...prev,
-      location: {
-        latitude: 37.7749,
-        longitude: -122.4194,
-        address: 'San Francisco, CA'
+    const getLocation = async () => {
+      setLocationLoading(true);
+      setLocationError(null);
+
+      try {
+        console.log('[CreateFoundItemScreen] Getting current location...');
+        const location = await getCurrentLocation();
+
+        if (location) {
+          console.log('[CreateFoundItemScreen] Location obtained:', location);
+          setFormData(prev => ({
+            ...prev,
+            location: location
+          }));
+        } else {
+          console.log('[CreateFoundItemScreen] Failed to get location, using fallback');
+          setLocationError('Unable to get your location. Please check location permissions.');
+          // Fallback to a default location if needed
+          setFormData(prev => ({
+            ...prev,
+            location: {
+              latitude: 37.7749,
+              longitude: -122.4194,
+              address: 'San Francisco, CA (Default)'
+            }
+          }));
+        }
+      } catch (error) {
+        console.error('[CreateFoundItemScreen] Error getting location:', error);
+        setLocationError('Error getting location. Please try again.');
+      } finally {
+        setLocationLoading(false);
       }
-    }));
+    };
+
+    getLocation();
   }, []);
+
+  // Function to manually refresh location
+  const refreshLocation = async () => {
+    setLocationLoading(true);
+    setLocationError(null);
+
+    try {
+      const hasPermission = await requestLocationPermissions();
+      if (!hasPermission) {
+        setLocationError('Location permission is required to detect your location.');
+        return;
+      }
+
+      const location = await getCurrentLocation();
+      if (location) {
+        setFormData(prev => ({
+          ...prev,
+          location: location
+        }));
+        setLocationError(null);
+      } else {
+        setLocationError('Unable to get your location. Please try again.');
+      }
+    } catch (error) {
+      console.error('[CreateFoundItemScreen] Error refreshing location:', error);
+      setLocationError('Error getting location. Please try again.');
+    } finally {
+      setLocationLoading(false);
+    }
+  };
 
   const updateFormData = (field: keyof FormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleLocationChange = (location: LocationCoords) => {
+    setFormData(prev => ({ ...prev, location }));
+    setLocationError(null);
   };
 
   const canProceedToNext = () => {
@@ -252,13 +320,49 @@ export const CreateFoundItemScreen = ({ navigation }: any) => {
     <View style={styles.stepContainer}>
       <View style={styles.inputGroup}>
         <Text style={styles.inputLabel}>Location *</Text>
-        <View style={styles.locationBox}>
-          <Feather name="map-pin" size={20} color="#6b7280" />
-          <Text style={styles.locationText}>
-            {formData.location?.address || 'Detecting your location...'}
+        <TouchableOpacity
+          style={styles.locationBox}
+          onPress={refreshLocation}
+          disabled={locationLoading}
+        >
+          <Feather
+            name="map-pin"
+            size={20}
+            color={locationError ? "#ef4444" : "#6b7280"}
+          />
+          <Text style={[
+            styles.locationText,
+            locationError && styles.locationTextError
+          ]}>
+            {locationLoading
+              ? 'Getting your location...'
+              : locationError
+                ? locationError
+                : formData.location?.address || 'Tap to detect location'
+            }
           </Text>
-        </View>
-        <Text style={styles.tipText}>📍 Only an approximate location is shown publicly.</Text>
+          {!locationLoading && (
+            <Feather name="refresh-cw" size={16} color="#6b7280" style={{ marginLeft: 8 }} />
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.manualLocationButton}
+          onPress={() => setShowLocationPicker(true)}
+        >
+          <Feather name="edit-3" size={16} color="#3b82f6" />
+          <Text style={styles.manualLocationText}>Choose Different Location</Text>
+        </TouchableOpacity>
+
+        <Text style={styles.tipText}>
+          📍 Only an approximate location is shown publicly
+          {!locationLoading && '\n🔄 Tap to refresh location or choose manually'}
+        </Text>
+        {locationError && (
+          <Text style={styles.errorText}>
+            💡 Make sure location services are enabled in your device settings
+          </Text>
+        )}
       </View>
       <View style={styles.inputGroup}>
         <Text style={styles.inputLabel}>Date Found *</Text>
@@ -425,6 +529,20 @@ export const CreateFoundItemScreen = ({ navigation }: any) => {
           }}
         />
       )}
+
+      {/* Location Picker Modal */}
+      <Modal
+        visible={showLocationPicker}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowLocationPicker(false)}
+      >
+        <LocationPicker
+          currentLocation={formData.location}
+          onLocationChange={handleLocationChange}
+          onClose={() => setShowLocationPicker(false)}
+        />
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -460,6 +578,25 @@ const styles = StyleSheet.create({
   categoryLabelSelected: { color: '#38bdf8' },
   locationBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f9fafb', borderRadius: 10, padding: 12, marginBottom: 8 },
   locationText: { color: '#222', fontSize: 15, marginLeft: 10 },
+  locationTextError: { color: '#ef4444' },
+  errorText: { color: '#ef4444', fontSize: 12, marginTop: 4, fontStyle: 'italic' },
+  manualLocationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f0f9ff',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+  },
+  manualLocationText: {
+    color: '#3b82f6',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 6,
+  },
   dateButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f9fafb', borderRadius: 10, padding: 12, marginBottom: 8 },
   dateButtonText: { color: '#222', fontSize: 15, marginLeft: 10 },
   uploadButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f9fafb', borderRadius: 10, padding: 12, marginBottom: 8 },
