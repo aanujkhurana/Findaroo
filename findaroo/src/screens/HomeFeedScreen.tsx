@@ -190,43 +190,74 @@ export const HomeFeedScreen = ({ navigation }: any) => {
       <RNModal
         visible={categoryModalVisible}
         animationType="slide"
-        transparent={true}
+        presentationStyle="pageSheet"
         onRequestClose={() => setCategoryModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Select Categories</Text>
-            {CATEGORY_OPTIONS.filter(opt => opt.value !== undefined).map(opt => {
-              const selected = pendingCategories.includes(opt.value as Category);
-              return (
-                <TouchableOpacity
-                  key={opt.label}
-                  style={[styles.modalOption, selected && styles.modalOptionSelected]}
-                  onPress={() => {
-                    setPendingCategories(prev =>
-                      selected
-                        ? prev.filter(c => c !== opt.value)
-                        : [...prev, opt.value as Category]
-                    );
-                  }}
-                >
-                  <Text style={[styles.modalOptionText, selected && styles.modalOptionTextSelected]}>
-                    {selected ? '✓ ' : ''}{opt.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+        <SafeAreaView style={styles.categoryModalContainer}>
+          {/* Header */}
+          <View style={styles.categoryModalHeader}>
             <TouchableOpacity
-              style={styles.modalCloseBtn}
+              onPress={() => setCategoryModalVisible(false)}
+              style={styles.categoryModalCloseButton}
+            >
+              <Feather name="x" size={24} color={COLORS.muted} />
+            </TouchableOpacity>
+            <Text style={styles.categoryModalTitle}>Select Categories</Text>
+            <TouchableOpacity
               onPress={() => {
                 setCategories(pendingCategories);
                 setCategoryModalVisible(false);
               }}
+              style={styles.categoryModalApplyButton}
             >
-              <Text style={styles.modalCloseText}>Done</Text>
+              <Text style={styles.categoryModalApplyButtonText}>Apply</Text>
             </TouchableOpacity>
           </View>
-        </View>
+
+          {/* Categories List */}
+          <ScrollView style={styles.categoryModalContent} showsVerticalScrollIndicator={false}>
+            <View style={styles.categoryModalSection}>
+              <Text style={styles.categoryModalSectionTitle}>Choose item categories to filter by:</Text>
+
+              {CATEGORY_OPTIONS.filter(opt => opt.value !== undefined).map(opt => {
+                const selected = pendingCategories.includes(opt.value as Category);
+                return (
+                  <TouchableOpacity
+                    key={opt.label}
+                    style={[styles.categoryModalOption, selected && styles.categoryModalOptionSelected]}
+                    onPress={() => {
+                      setPendingCategories(prev =>
+                        selected
+                          ? prev.filter(c => c !== opt.value)
+                          : [...prev, opt.value as Category]
+                      );
+                    }}
+                  >
+                    <Feather
+                      name={selected ? "check-square" : "square"}
+                      size={20}
+                      color={selected ? COLORS.primary : COLORS.muted}
+                    />
+                    <Text style={[styles.categoryModalOptionText, selected && styles.categoryModalOptionTextSelected]}>
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* Clear All Button */}
+            <View style={styles.categoryModalActions}>
+              <TouchableOpacity
+                style={styles.categoryModalClearButton}
+                onPress={() => setPendingCategories([])}
+              >
+                <Feather name="x-circle" size={16} color={COLORS.muted} />
+                <Text style={styles.categoryModalClearButtonText}>Clear All</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </SafeAreaView>
       </RNModal>
 
       {/* Distance Filter Modal */}
@@ -550,63 +581,91 @@ const styles = StyleSheet.create({
   errorContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
   errorText: { color: '#ef4444', fontSize: 16, marginBottom: 12 },
 
-  // Modal styles
-  modalOverlay: {
+  // Category Modal styles
+  categoryModalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: COLORS.background,
   },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 24,
-    width: '80%',
-    alignItems: 'stretch',
-    elevation: 4,
-  },
-  modalTitle: {
-    fontWeight: 'bold',
-    fontSize: 18,
-    marginBottom: 16,
-    color: COLORS.primary,
-    textAlign: 'center',
-  },
-  modalOption: {
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-    marginBottom: 4,
+  categoryModalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
   },
-  modalOptionIcon: {
-    fontSize: 20,
-    marginRight: 12,
+  categoryModalCloseButton: {
+    padding: 4,
   },
-  modalSeparator: {
-    height: 1,
-    backgroundColor: COLORS.border,
-    marginVertical: 8,
+  categoryModalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.text,
   },
-  modalOptionSelected: {
+  categoryModalApplyButton: {
     backgroundColor: COLORS.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
   },
-  modalOptionText: {
+  categoryModalApplyButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  categoryModalContent: {
+    flex: 1,
+  },
+  categoryModalSection: {
+    padding: 20,
+  },
+  categoryModalSectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 16,
+  },
+  categoryModalOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.card,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: 8,
+  },
+  categoryModalOptionSelected: {
+    backgroundColor: `${COLORS.primary}10`,
+    borderColor: COLORS.primary,
+  },
+  categoryModalOptionText: {
     fontSize: 16,
     color: COLORS.text,
-    textAlign: 'center',
+    marginLeft: 12,
   },
-  modalOptionTextSelected: {
-    color: '#fff',
-    fontWeight: 'bold',
+  categoryModalOptionTextSelected: {
+    color: COLORS.primary,
+    fontWeight: '500',
   },
-  modalCloseBtn: {
-    marginTop: 12,
+  categoryModalActions: {
+    padding: 20,
+    paddingTop: 0,
+  },
+  categoryModalClearButton: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.card,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
-  modalCloseText: {
+  categoryModalClearButtonText: {
+    fontSize: 14,
     color: COLORS.muted,
-    fontSize: 16,
+    marginLeft: 8,
   },
 });
