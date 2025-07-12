@@ -155,12 +155,16 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
         if (owner?.profile_pic) {
           console.log(`[ItemDetailsScreen] Fetching owner profile picture URL for path: ${owner.profile_pic}`);
           const profileUrl = await getSignedImageUrl(owner.profile_pic, 'profile-pictures');
-          setOwnerProfileUrl(profileUrl);
-          
-          if (!profileUrl) {
+
+          if (profileUrl) {
+            console.log(`[ItemDetailsScreen] Successfully got profile picture URL: ${profileUrl.substring(0, 50)}...`);
+            setOwnerProfileUrl(profileUrl);
+          } else {
             console.error('[ItemDetailsScreen] Failed to get signed URL for owner profile picture');
+            setOwnerProfileUrl('');
           }
         } else {
+          console.log('[ItemDetailsScreen] Owner has no profile picture, using initials fallback');
           setOwnerProfileUrl('');
         }
       } catch (error) {
@@ -320,9 +324,20 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
             <Text style={styles.sectionLabel}>Contact Owner</Text>
             <View style={styles.ownerRow}>
               {ownerProfileUrl ? (
-                <Image source={{ uri: ownerProfileUrl }} style={styles.ownerAvatar} />
+                <Image
+                  source={{ uri: ownerProfileUrl }}
+                  style={styles.ownerAvatar}
+                  onError={() => {
+                    console.log('[ItemDetailsScreen] Failed to load profile image, falling back to initials');
+                    setOwnerProfileUrl('');
+                  }}
+                />
               ) : (
-                <View style={styles.ownerAvatar}><Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 18 }}>{owner.full_name?.charAt(0).toUpperCase()}</Text></View>
+                <View style={[styles.ownerAvatar, styles.ownerAvatarFallback]}>
+                  <Text style={styles.ownerAvatarText}>
+                    {owner.full_name?.charAt(0).toUpperCase() || '?'}
+                  </Text>
+                </View>
               )}
               <View style={{ flex: 1 }}>
                 <Text style={styles.ownerName}>{owner.full_name}</Text>
@@ -467,6 +482,16 @@ const styles = StyleSheet.create({
   },
   ownerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   ownerAvatar: { width: 44, height: 44, borderRadius: 22, marginRight: 10 },
+  ownerAvatarFallback: {
+    backgroundColor: '#3b82f6',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  ownerAvatarText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 18
+  },
   ownerName: { color: '#222', fontWeight: 'bold', fontSize: 15 },
   ownerSince: { color: '#888', fontSize: 13 },
   ownerRating: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fef9c3', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2 },

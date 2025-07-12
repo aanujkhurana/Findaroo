@@ -208,7 +208,7 @@ CREATE TABLE karma_events (
 
 #### Storage Buckets
 - `item-images` - For item photos
-- `profile-pics` - For user avatars
+- `profile-pictures` - For user avatars
 
 #### Row Level Security (RLS)
 Enable RLS on all tables and create appropriate policies for user access control.

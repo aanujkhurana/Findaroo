@@ -5,7 +5,7 @@ import Slider from '@react-native-community/slider';
 import { useAuth } from '../hooks/useAuth';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
-import { uploadImage } from '../utils/uploadImage';
+import { uploadImage, deleteImage } from '../utils/uploadImage';
 import { getSignedImageUrl } from '../utils/uploadImage';
 
 export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
@@ -30,7 +30,7 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
       Alert.alert('Error', 'You must be logged in to update your profile picture');
       return;
     }
-    
+
     try {
       // Request permissions first
       if (Platform.OS !== 'web') {
@@ -40,7 +40,7 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
           return;
         }
       }
-      
+
       // Launch image picker
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -48,41 +48,48 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
         quality: 0.8,
         aspect: [1, 1], // Square aspect ratio for profile pictures
       });
-      
+
       if (result.canceled || !result.assets || result.assets.length === 0) {
         console.log('[ProfileImageUpload] Image selection canceled');
         return;
       }
-      
+
       // Show loading indicator
       Alert.alert('Uploading...', 'Please wait while we upload your profile picture');
-      
+
       const asset = result.assets[0];
       const uri = asset.uri;
       const filename = asset.fileName || uri.split('/').pop() || `profile_${Date.now()}.jpg`;
-      
+
       console.log(`[ProfileImageUpload] Uploading image: ${filename}`);
+
+      // Delete old profile picture if it exists
+      if (user.profile_pic) {
+        console.log(`[ProfileImageUpload] Deleting old profile picture: ${user.profile_pic}`);
+        await deleteImage(user.profile_pic, 'profile-pictures');
+      }
+
       const path = await uploadImage(uri, filename, user.id, 'profile-pictures');
-      
+
       if (!path) {
         Alert.alert('Upload failed', 'Could not upload image. Please try again.');
         console.error('[ProfileImageUpload] Upload failed: path is null');
         return;
       }
-      
+
       console.log(`[ProfileImageUpload] Image uploaded successfully to path: ${path}`);
-      
+
       // Update user profile with new profile_pic path
       const { data, error } = await updateProfile({ profile_pic: path });
-      
+
       if (error) {
         Alert.alert('Profile update failed', error.message || 'Could not update profile with new image');
         console.error('[ProfileImageUpload] Profile update failed:', error);
         return;
       }
-      
+
       console.log('[ProfileImageUpload] Profile updated successfully with new image');
-      
+
       // Fetch new signed URL after upload
       const signedUrl = await getSignedImageUrl(path, 'profile-pictures');
       if (signedUrl) {
@@ -95,6 +102,82 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
       console.error('[ProfileImageUpload] Unexpected error:', error);
       Alert.alert('Error', 'An unexpected error occurred. Please try again.');
     }
+  };
+
+  const handleDeleteProfileImage = async () => {
+    if (!user || !user.profile_pic) {
+      Alert.alert('Error', 'No profile picture to delete');
+      return;
+    }
+
+    Alert.alert(
+      'Delete Profile Picture',
+      'Are you sure you want to delete your profile picture?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              console.log(`[ProfileImageDelete] Deleting profile picture: ${user.profile_pic}`);
+
+              // Delete image from storage
+              const deleteSuccess = await deleteImage(user.profile_pic, 'profile-pictures');
+
+              if (!deleteSuccess) {
+                Alert.alert('Delete failed', 'Could not delete image from storage. Please try again.');
+                console.error('[ProfileImageDelete] Delete failed: deleteImage returned false');
+                return;
+              }
+
+              // Update user profile to remove profile_pic path
+              const { data, error } = await updateProfile({ profile_pic: null });
+
+              if (error) {
+                Alert.alert('Profile update failed', error.message || 'Could not update profile');
+                console.error('[ProfileImageDelete] Profile update failed:', error);
+                return;
+              }
+
+              console.log('[ProfileImageDelete] Profile picture deleted successfully');
+              setProfilePicUrl('');
+              Alert.alert('Success', 'Profile picture deleted successfully');
+            } catch (error) {
+              console.error('[ProfileImageDelete] Unexpected error:', error);
+              Alert.alert('Error', 'An unexpected error occurred. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleProfilePictureOptions = () => {
+    const options = [
+      {
+        text: 'Cancel',
+        style: 'cancel' as const,
+      },
+      {
+        text: 'Update Picture',
+        onPress: handlePickProfileImage,
+      },
+    ];
+
+    // Only show delete option if user has a profile picture
+    if (user?.profile_pic) {
+      options.splice(1, 0, {
+        text: 'Delete Picture',
+        style: 'destructive' as const,
+        onPress: handleDeleteProfileImage,
+      });
+    }
+
+    Alert.alert('Profile Picture', 'Choose an option:', options);
   };
 
   // Fetch signed URL for profile picture
@@ -145,7 +228,7 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <View style={{ marginRight: 16 }}>
               <View>
-                <TouchableOpacity onPress={handlePickProfileImage}>
+                <TouchableOpacity onPress={handleProfilePictureOptions}>
                   {profilePicUrl ? (
                     <Image source={{ uri: profilePicUrl }} style={styles.avatar} />
                   ) : (
@@ -154,7 +237,7 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
                     </View>
                   )}
                   <View style={styles.avatarBadge}>
-                    <MaterialIcons name="check" size={16} color="#fff" />
+                    <MaterialIcons name="edit" size={16} color="#fff" />
                   </View>
                 </TouchableOpacity>
               </View>

@@ -187,13 +187,12 @@ WITH CHECK (
   AND auth.uid()::text = split_part(name, '/', 1)
 );
 
--- SELECT
-CREATE POLICY "Allow user to read their profile picture"
+-- SELECT: Allow all authenticated users to read any profile picture
+CREATE POLICY "Allow authenticated users to read profile pictures"
 ON storage.objects FOR SELECT
 TO authenticated
 USING (
   bucket_id = 'profile-pictures'
-  AND auth.uid()::text = split_part(name, '/', 1)
 );
 
 -- DELETE
