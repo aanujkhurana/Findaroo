@@ -66,10 +66,10 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
       // Delete old profile picture if it exists
       if (user.profile_pic) {
         console.log(`[ProfileImageUpload] Deleting old profile picture: ${user.profile_pic}`);
-        await deleteImage(user.profile_pic, 'profile-pictures');
+        await deleteImage(user.profile_pic, 'profile-pics');
       }
 
-      const path = await uploadImage(uri, filename, user.id, 'profile-pictures');
+      const path = await uploadImage(uri, filename, user.id, 'profile-pics');
 
       if (!path) {
         Alert.alert('Upload failed', 'Could not upload image. Please try again.');
@@ -91,7 +91,7 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
       console.log('[ProfileImageUpload] Profile updated successfully with new image');
 
       // Fetch new signed URL after upload
-      const signedUrl = await getSignedImageUrl(path, 'profile-pictures');
+      const signedUrl = await getSignedImageUrl(path, 'profile-pics');
       if (signedUrl) {
         setProfilePicUrl(signedUrl);
         Alert.alert('Success', 'Profile picture updated successfully');
@@ -126,7 +126,7 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
               console.log(`[ProfileImageDelete] Deleting profile picture: ${user.profile_pic}`);
 
               // Delete image from storage
-              const deleteSuccess = await deleteImage(user.profile_pic, 'profile-pictures');
+              const deleteSuccess = await deleteImage(user.profile_pic, 'profile-pics');
 
               if (!deleteSuccess) {
                 Alert.alert('Delete failed', 'Could not delete image from storage. Please try again.');
@@ -191,7 +191,7 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
         }
         
         console.log(`[ProfileScreen] Fetching profile picture URL for path: ${user.profile_pic}`);
-        const url = await getSignedImageUrl(user.profile_pic, 'profile-pictures');
+        const url = await getSignedImageUrl(user.profile_pic, 'profile-pics');
         
         if (!url) {
           console.error('[ProfileScreen] Failed to get signed URL for profile picture');

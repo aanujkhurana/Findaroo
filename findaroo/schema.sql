@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   full_name TEXT,
   email TEXT UNIQUE,
-  profile_picture TEXT,
+  profile_pic TEXT,
   phone TEXT,
   karma_points INTEGER DEFAULT 0,
   created_at TIMESTAMP DEFAULT now()

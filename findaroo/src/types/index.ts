@@ -6,7 +6,7 @@ export interface User {
   karma_points?: number;
   phone?: string;
   created_at: string;
-  updated_at?: string;
+  // Note: removed updated_at as it's not in the DatabaseReadme.md spec
 }
 
 export interface Tip {
@@ -15,7 +15,7 @@ export interface Tip {
   sender_id: string;
   receiver_id: string;
   amount: number;
-  status: 'pending' | 'paid' | 'failed';
+  status: 'pending' | 'succeeded' | 'failed'; // Updated to match DatabaseReadme.md spec
   payment_intent_id?: string;
   created_at: string;
 }
@@ -25,13 +25,13 @@ export interface Item {
   title: string;
   description: string;
   category: string;
-  status: 'lost' | 'found' | 'returned';
+  status: 'lost' | 'found' | 'returned' | 'kept' | 'claimed' | 'flagged' | 'duplicate'; // Updated to match DatabaseReadme.md spec
   location?: string; // PostGIS geometry string
   location_name?: string; // Human-readable location name
-  image?: string; // Changed from image_url to match database schema
+  image?: string; // Storage path (e.g. userId/image.jpg)
   user_id: string;
   created_at: string;
-  updated_at: string;
+  // Note: removed updated_at as it's not in the DatabaseReadme.md spec
   resolved: boolean;
   reward_amount?: number;
   user?: User;
@@ -65,10 +65,11 @@ export interface ChatThread {
 export interface KarmaEvent {
   id: string;
   user_id: string;
+  item_id?: string; // Optional reference to item, as per DatabaseReadme.md spec
+  action: string; // Changed from event_type to action to match DatabaseReadme.md spec
   points: number;
-  event_type: 'item_posted' | 'item_found' | 'item_returned' | 'tip_received';
-  description: string;
   created_at: string;
+  // Note: removed description as it's not in the DatabaseReadme.md spec
 }
 
 export type Category = 

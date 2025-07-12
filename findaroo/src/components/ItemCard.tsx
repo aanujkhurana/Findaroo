@@ -36,6 +36,14 @@ export const ItemCard: React.FC<ItemCardProps> = ({ item, onPress, userLocation,
         return { backgroundColor: COLORS.matched, color: COLORS.matchedText };
       case 'returned':
         return { backgroundColor: COLORS.resolved, color: COLORS.resolvedText };
+      case 'claimed':
+        return { backgroundColor: '#3b82f6', color: '#ffffff' }; // Blue for claimed
+      case 'kept':
+        return { backgroundColor: '#f59e0b', color: '#ffffff' }; // Orange for kept
+      case 'flagged':
+        return { backgroundColor: '#ef4444', color: '#ffffff' }; // Red for flagged
+      case 'duplicate':
+        return { backgroundColor: '#6b7280', color: '#ffffff' }; // Gray for duplicate
       default:
         return { backgroundColor: COLORS.active, color: COLORS.activeText };
     }

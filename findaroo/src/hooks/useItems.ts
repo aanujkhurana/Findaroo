@@ -4,7 +4,7 @@ import { Item, Category, LocationCoords } from '../types';
 import { getCurrentLocation, filterItemsByDistance, sortItemsByDistance, formatDistance } from '../utils/location';
 
 interface ItemFilters {
-  status?: 'lost' | 'found';
+  status?: 'lost' | 'found' | 'returned' | 'kept' | 'claimed' | 'flagged' | 'duplicate';
   category?: Category;
   search?: string;
   userId?: string;

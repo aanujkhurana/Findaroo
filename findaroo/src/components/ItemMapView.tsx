@@ -8,7 +8,7 @@ import { getCurrentLocation } from '../utils/location';
 interface ItemMapViewProps {
   itemLocation: LocationCoords;
   itemTitle: string;
-  itemStatus: 'lost' | 'found';
+  itemStatus: 'lost' | 'found' | 'returned' | 'kept' | 'claimed' | 'flagged' | 'duplicate';
   showUserLocation?: boolean;
   showApproximateArea?: boolean;
   onClose?: () => void;
@@ -40,12 +40,46 @@ export const ItemMapView: React.FC<ItemMapViewProps> = ({
     }
   }, [showUserLocation]);
 
-  const getMarkerColor = (status: 'lost' | 'found') => {
-    return status === 'lost' ? '#ef4444' : '#22c55e';
+  const getMarkerColor = (status: string) => {
+    switch (status) {
+      case 'lost':
+        return '#ef4444'; // Red
+      case 'found':
+        return '#22c55e'; // Green
+      case 'returned':
+        return '#10b981'; // Emerald
+      case 'claimed':
+        return '#3b82f6'; // Blue
+      case 'kept':
+        return '#f59e0b'; // Orange
+      case 'flagged':
+        return '#dc2626'; // Dark red
+      case 'duplicate':
+        return '#6b7280'; // Gray
+      default:
+        return '#ef4444'; // Default to red
+    }
   };
 
-  const getStatusIcon = (status: 'lost' | 'found') => {
-    return status === 'lost' ? '❌' : '✅';
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'lost':
+        return '❌';
+      case 'found':
+        return '✅';
+      case 'returned':
+        return '🔄';
+      case 'claimed':
+        return '🤝';
+      case 'kept':
+        return '📦';
+      case 'flagged':
+        return '🚩';
+      case 'duplicate':
+        return '📋';
+      default:
+        return '❓';
+    }
   };
 
   const centerOnItem = () => {

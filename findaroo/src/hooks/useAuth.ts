@@ -60,6 +60,8 @@ export const useAuth = () => {
   // Move createUserProfile above fetchUserProfile for correct type inference
   const createUserProfile = async (userId: string, email: string, fullName: string): Promise<{ data: any; error: any }> => {
     try {
+      console.log('Creating user profile with:', { userId, email, fullName });
+
       const { data, error } = await supabase
         .from('users')
         .insert([
@@ -68,17 +70,20 @@ export const useAuth = () => {
             email: email,
             full_name: fullName,
             created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
           },
         ])
         .select()
         .single();
 
+      console.log('createUserProfile result:', { data, error });
+
       if (!error && data) {
         setUser(data);
+        console.log('User profile created successfully:', data);
         return { data, error: null };
       }
-      
+
+      console.error('Failed to create user profile:', error);
       return { data: null, error };
     } catch (error: any) {
       console.error('Error creating user profile:', error);

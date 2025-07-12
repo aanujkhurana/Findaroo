@@ -21,6 +21,59 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
   const [similarImages, setSimilarImages] = useState<{ [id: string]: string }>({});
   const [showFullMap, setShowFullMap] = useState(false);
   const [userLocation, setUserLocation] = useState<LocationCoords | null>(null);
+
+  // Helper functions for status styling
+  const getStatusBadgeStyle = (status: string) => {
+    switch (status) {
+      case 'lost': return { backgroundColor: '#fee2e2' };
+      case 'found': return { backgroundColor: '#d1fae5' };
+      case 'returned': return { backgroundColor: '#e0e7ff' };
+      case 'claimed': return { backgroundColor: '#dbeafe' };
+      case 'kept': return { backgroundColor: '#fef3c7' };
+      case 'flagged': return { backgroundColor: '#fecaca' };
+      case 'duplicate': return { backgroundColor: '#f3f4f6' };
+      default: return { backgroundColor: '#fee2e2' };
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'lost': return '#f87171';
+      case 'found': return '#22c55e';
+      case 'returned': return '#6366f1';
+      case 'claimed': return '#3b82f6';
+      case 'kept': return '#f59e0b';
+      case 'flagged': return '#ef4444';
+      case 'duplicate': return '#6b7280';
+      default: return '#f87171';
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'lost': return 'error-outline';
+      case 'found': return 'check-circle';
+      case 'returned': return 'sync';
+      case 'claimed': return 'handshake';
+      case 'kept': return 'inventory';
+      case 'flagged': return 'flag';
+      case 'duplicate': return 'content-copy';
+      default: return 'error-outline';
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'lost': return 'Lost Item';
+      case 'found': return 'Found Item';
+      case 'returned': return 'Returned';
+      case 'claimed': return 'Claimed';
+      case 'kept': return 'Kept';
+      case 'flagged': return 'Flagged';
+      case 'duplicate': return 'Duplicate';
+      default: return 'Unknown Status';
+    }
+  };
   const [distance, setDistance] = useState<string | null>(null);
 
   // Parse coordinates from PostGIS POINT string
@@ -230,9 +283,9 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
         </View>
         {/* Status Badge and Date */}
         <View style={styles.statusRow}>
-          <View style={[styles.statusBadge, { backgroundColor: item.status === 'lost' ? '#fee2e2' : '#d1fae5' }] }>
-            <MaterialIcons name={item.status === 'lost' ? 'error-outline' : 'check-circle'} size={16} color={item.status === 'lost' ? '#f87171' : '#22c55e'} style={{ marginRight: 4 }} />
-            <Text style={[styles.statusText, { color: item.status === 'lost' ? '#f87171' : '#22c55e' }]}>{item.status === 'lost' ? 'Lost Item' : 'Found Item'}</Text>
+          <View style={[styles.statusBadge, getStatusBadgeStyle(item.status)]}>
+            <MaterialIcons name={getStatusIcon(item.status)} size={16} color={getStatusColor(item.status)} style={{ marginRight: 4 }} />
+            <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>{getStatusLabel(item.status)}</Text>
           </View>
           <Text style={styles.statusTime}>{formatRelativeDate(item.created_at)}</Text>
         </View>
