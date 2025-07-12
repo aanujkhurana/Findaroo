@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, Share } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { MaterialIcons, Feather } from '@expo/vector-icons';
-import { getImageUrl } from '../utils/uploadImage';
+import { getSignedImageUrl } from '../utils/uploadImage';
 import { supabase } from '../services/supabaseClient';
 import { Item, User } from '../types';
 
@@ -14,6 +14,9 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
   const [error, setError] = useState<string | null>(null);
   const [selectedImageIdx, setSelectedImageIdx] = useState(0);
   const [similarItems, setSimilarItems] = useState<Item[]>([]);
+  const [mainImageUrl, setMainImageUrl] = useState('');
+  const [ownerProfileUrl, setOwnerProfileUrl] = useState('');
+  const [similarImages, setSimilarImages] = useState<{ [id: string]: string }>({});
 
   // Parse coordinates from PostGIS POINT string
   function parsePointString(pointStr: string | undefined) {
@@ -27,13 +30,34 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
     }
     return null;
   }
-  // These will be set after loading and item is not null
+  // Only declare and use firstImage and coords if item is not null
   let firstImage: string | undefined = undefined;
   let coords: { latitude: number; longitude: number } | null = null;
+  if (item) {
+    firstImage = item.image ? item.image.split(',').map((img: string) => img.trim()).filter(Boolean)[0] : undefined;
+    if (firstImage) {
+      console.log('Item image path:', firstImage);
+      console.log('Image URL:', getSignedImageUrl(firstImage, 'item-images'));
+    } else {
+      console.log('No image for this item');
+    }
+    coords = parsePointString(item.location);
+    if (item.location) {
+      console.log('Item location string:', item.location);
+      console.log('Parsed coordinates:', coords);
+    } else {
+      console.log('No location for this item');
+    }
+  }
 
   // Share handler
   const handleShare = async () => {
     try {
+      if (!item) {
+        console.error('Cannot share: item is null');
+        return;
+      }
+      
       const message = `${item.title}\n\n${item.description || ''}\n\nLocation: ${item.location_name || ''}`;
       await Share.share({ message });
     } catch (error) {
@@ -78,6 +102,53 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
     if (item) fetchSimilar();
   }, [item]);
 
+  // Fetch signed URL for main image and owner profile
+  useEffect(() => {
+    const fetchImages = async () => {
+      try {
+        // Fetch main item image
+        if (item?.image) {
+          console.log(`[ItemDetailsScreen] Fetching item image URL for path: ${item.image}`);
+          const imageUrl = await getSignedImageUrl(item.image, 'item-images');
+          setMainImageUrl(imageUrl);
+        } else {
+          setMainImageUrl('');
+        }
+        
+        // Fetch owner profile picture
+        if (owner?.profile_pic) {
+          console.log(`[ItemDetailsScreen] Fetching owner profile picture URL for path: ${owner.profile_pic}`);
+          const profileUrl = await getSignedImageUrl(owner.profile_pic, 'profile-pictures');
+          setOwnerProfileUrl(profileUrl);
+          
+          if (!profileUrl) {
+            console.error('[ItemDetailsScreen] Failed to get signed URL for owner profile picture');
+          }
+        } else {
+          setOwnerProfileUrl('');
+        }
+      } catch (error) {
+        console.error('[ItemDetailsScreen] Error fetching images:', error);
+      }
+    };
+    
+    fetchImages();
+  }, [item?.image, owner?.profile_pic]);
+
+  // Fetch signed URLs for similar items
+  useEffect(() => {
+    const fetchSimilarImages = async () => {
+      const images: { [id: string]: string } = {};
+      await Promise.all(similarItems.map(async (sim) => {
+        if (sim.image) {
+          images[sim.id] = await getSignedImageUrl(sim.image, 'item-images');
+        }
+      }));
+      setSimilarImages(images);
+    };
+    if (similarItems.length > 0) fetchSimilarImages();
+  }, [similarItems]);
+
   if (loading) {
     return (
       <SafeAreaView style={styles.safeArea}>
@@ -101,21 +172,8 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
   // Calculate tips
   const totalTips = item.tips?.filter(tip => tip.amount && tip.amount > 0).reduce((sum, tip) => sum + Number(tip.amount), 0) || 0;
 
-  // Compute firstImage and coords here, after all null checks
-  firstImage = item.image ? item.image.split(',').map((img: string) => img.trim()).filter(Boolean)[0] : undefined;
-  if (firstImage) {
-    console.log('Item image path:', firstImage);
-    console.log('Image URL:', getImageUrl(firstImage));
-  } else {
-    console.log('No image for this item');
-  }
-  coords = parsePointString(item.location);
-  if (item.location) {
-    console.log('Item location string:', item.location);
-    console.log('Parsed coordinates:', coords);
-  } else {
-    console.log('No location for this item');
-  }
+  // Only use firstImage and coords in JSX if item is not null
+  // Pass them as props or use them in the JSX below only if item is not null
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -140,8 +198,8 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
         </View>
         {/* Main Image */}
         <View style={styles.imageGallery}>
-          {firstImage ? (
-            <Image source={{ uri: getImageUrl(firstImage) }} style={styles.mainImage} resizeMode="cover" />
+          {mainImageUrl ? (
+            <Image source={{ uri: mainImageUrl }} style={styles.mainImage} resizeMode="cover" />
           ) : (
             <View style={[styles.mainImage, { backgroundColor: '#f3f4f6', alignItems: 'center', justifyContent: 'center' }] }>
               <Feather name="image" size={48} color="#bbb" />
@@ -204,8 +262,8 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
           <View style={styles.card}>
             <Text style={styles.sectionLabel}>Contact Owner</Text>
             <View style={styles.ownerRow}>
-              {owner.profile_pic ? (
-                <Image source={{ uri: getImageUrl(owner.profile_pic, 'profile-pics') }} style={styles.ownerAvatar} />
+              {ownerProfileUrl ? (
+                <Image source={{ uri: ownerProfileUrl }} style={styles.ownerAvatar} />
               ) : (
                 <View style={styles.ownerAvatar}><Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 18 }}>{owner.full_name?.charAt(0).toUpperCase()}</Text></View>
               )}
@@ -227,8 +285,8 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
             <Text style={styles.sectionLabel}>Similar Items Found</Text>
             {similarItems.map((sim) => (
               <TouchableOpacity key={sim.id} style={styles.similarRow} onPress={() => navigation.push('ItemDetails', { itemId: sim.id })}>
-                {sim.image ? (
-                  <Image source={{ uri: getImageUrl(sim.image) }} style={styles.similarImg} />
+                {similarImages[sim.id] ? (
+                  <Image source={{ uri: similarImages[sim.id] }} style={styles.similarImg} />
                 ) : (
                   <View style={[styles.similarImg, { backgroundColor: '#f3f4f6', alignItems: 'center', justifyContent: 'center' }] }>
                     <Feather name="image" size={24} color="#bbb" />

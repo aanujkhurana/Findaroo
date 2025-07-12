@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { Item } from '../types';
-import { getImageUrl } from '../utils/uploadImage';
+import { getSignedImageUrl } from '../utils/uploadImage';
 
 interface ItemCardProps {
   item: Item;
@@ -45,6 +45,32 @@ export const ItemCard: React.FC<ItemCardProps> = ({ item, onPress }) => {
     });
   };
 
+  // Signed URLs for images
+  const [itemImageUrl, setItemImageUrl] = useState('');
+  const [userProfileUrl, setUserProfileUrl] = useState('');
+
+  useEffect(() => {
+    if (item.image) {
+      getSignedImageUrl(item.image, 'item-images').then(setItemImageUrl);
+    } else {
+      setItemImageUrl('');
+    }
+    if (item.user?.profile_pic) {
+      getSignedImageUrl(item.user.profile_pic, 'profile-pictures').then(setUserProfileUrl);
+    } else {
+      setUserProfileUrl('');
+    }
+  }, [item.image, item.user?.profile_pic]);
+
+  // Type guard for location object
+  function isLocationObject(value: any): value is { address: string } {
+    return (
+      typeof value === 'object' &&
+      value !== null &&
+      typeof value.address === 'string'
+    );
+  }
+
   return (
     <TouchableOpacity onPress={onPress} style={styles.card}>
       {/* Header */}
@@ -64,15 +90,15 @@ export const ItemCard: React.FC<ItemCardProps> = ({ item, onPress }) => {
       </View>
 
       {/* Image */}
-      {item.image_url && (
+      {itemImageUrl ? (
         <View style={styles.imageContainer}>
           <Image
-            source={{ uri: getImageUrl(item.image_url) }}
+            source={{ uri: itemImageUrl }}
             style={styles.image}
             resizeMode="cover"
           />
         </View>
-      )}
+      ) : null}
 
       {/* Description */}
       <View style={styles.descriptionContainer}>
@@ -83,7 +109,7 @@ export const ItemCard: React.FC<ItemCardProps> = ({ item, onPress }) => {
 
       {/* Location and reward */}
       <View style={styles.locationRewardContainer}>
-        {item.location?.address && (
+        {isLocationObject(item.location) && (
           <Text style={styles.location}>
             📍 {item.location.address}
           </Text>
@@ -98,9 +124,9 @@ export const ItemCard: React.FC<ItemCardProps> = ({ item, onPress }) => {
       {/* Footer */}
       <View style={styles.footer}>
         <View style={styles.userContainer}>
-          {item.user?.profile_pic ? (
+          {userProfileUrl ? (
             <Image
-              source={{ uri: getImageUrl(item.user.profile_pic, 'profile-pics') }}
+              source={{ uri: userProfileUrl }}
               style={styles.avatar}
             />
           ) : (
