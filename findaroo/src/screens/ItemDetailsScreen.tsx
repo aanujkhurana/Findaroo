@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, Share } from 'react-native';
+import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, Share, Modal } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { MaterialIcons, Feather } from '@expo/vector-icons';
 import { getSignedImageUrl } from '../utils/uploadImage';
 import { supabase } from '../services/supabaseClient';
-import { Item, User } from '../types';
+import { Item, User, LocationCoords } from '../types';
+import { ItemMapView } from '../components/ItemMapView';
+import { calculateDistance, formatDistance, getCurrentLocation } from '../utils/location';
 
 export const ItemDetailsScreen = ({ navigation, route }: any) => {
   const { itemId } = route.params;
@@ -17,6 +19,9 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
   const [mainImageUrl, setMainImageUrl] = useState('');
   const [ownerProfileUrl, setOwnerProfileUrl] = useState('');
   const [similarImages, setSimilarImages] = useState<{ [id: string]: string }>({});
+  const [showFullMap, setShowFullMap] = useState(false);
+  const [userLocation, setUserLocation] = useState<LocationCoords | null>(null);
+  const [distance, setDistance] = useState<string | null>(null);
 
   // Parse coordinates from PostGIS POINT string
   function parsePointString(pointStr: string | undefined) {
@@ -100,6 +105,37 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
       if (!error && data) setSimilarItems(data as Item[]);
     };
     if (item) fetchSimilar();
+  }, [item]);
+
+  // Get user location and calculate distance
+  useEffect(() => {
+    const getUserLocationAndDistance = async () => {
+      if (!item?.location) return;
+
+      try {
+        const location = await getCurrentLocation();
+        if (location) {
+          setUserLocation(location);
+
+          // Parse item location
+          const itemCoords = parsePointString(item.location);
+          if (itemCoords) {
+            const itemLocation: LocationCoords = {
+              latitude: itemCoords.latitude,
+              longitude: itemCoords.longitude,
+              address: item.location_name || 'Unknown location'
+            };
+
+            const dist = calculateDistance(location, itemLocation);
+            setDistance(formatDistance(dist));
+          }
+        }
+      } catch (error) {
+        console.error('Error getting user location:', error);
+      }
+    };
+
+    getUserLocationAndDistance();
   }, [item]);
 
   // Fetch signed URL for main image and owner profile
@@ -230,26 +266,47 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
         </View>
         {/* Last Seen Card */}
         <View style={styles.card}>
-          <Text style={styles.sectionLabel}>Last Seen</Text>
-          <View style={styles.lastSeenRow}><MaterialIcons name="location-pin" size={20} color="#ef4444" /><View><Text style={styles.lastSeenLoc}>{item.location_name || 'Unknown location'}</Text></View></View>
-          <View style={styles.lastSeenRow}><MaterialIcons name="calendar-today" size={18} color="#38bdf8" /><Text style={styles.lastSeenDate}>{formatDate(item.created_at)}</Text></View>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionLabel}>Last Seen</Text>
+            {distance && (
+              <Text style={styles.distanceText}>🚶 {distance} away</Text>
+            )}
+          </View>
+          <View style={styles.lastSeenRow}>
+            <MaterialIcons name="location-pin" size={20} color="#ef4444" />
+            <View>
+              <Text style={styles.lastSeenLoc}>{item.location_name || 'Unknown location'}</Text>
+            </View>
+          </View>
+          <View style={styles.lastSeenRow}>
+            <MaterialIcons name="calendar-today" size={18} color="#38bdf8" />
+            <Text style={styles.lastSeenDate}>{formatDate(item.created_at)}</Text>
+          </View>
+
           {/* Interactive map if coordinates available */}
           {coords ? (
-            <MapView
-              style={styles.mapImage}
-              initialRegion={{
-                latitude: coords.latitude,
-                longitude: coords.longitude,
-                latitudeDelta: 0.01,
-                longitudeDelta: 0.01,
-              }}
-              scrollEnabled={false}
-              zoomEnabled={false}
-              pitchEnabled={false}
-              rotateEnabled={false}
-            >
-              <Marker coordinate={coords} title={item.title} description={item.location_name} />
-            </MapView>
+            <TouchableOpacity onPress={() => setShowFullMap(true)}>
+              <MapView
+                style={styles.mapImage}
+                initialRegion={{
+                  latitude: coords.latitude,
+                  longitude: coords.longitude,
+                  latitudeDelta: 0.01,
+                  longitudeDelta: 0.01,
+                }}
+                scrollEnabled={false}
+                zoomEnabled={false}
+                pitchEnabled={false}
+                rotateEnabled={false}
+                pointerEvents="none"
+              >
+                <Marker coordinate={coords} title={item.title} description={item.location_name} />
+              </MapView>
+              <View style={styles.mapOverlay}>
+                <Feather name="maximize-2" size={20} color="#fff" />
+                <Text style={styles.mapOverlayText}>Tap to view full map</Text>
+              </View>
+            </TouchableOpacity>
           ) : (
             <View style={[styles.mapImage, { backgroundColor: '#f3f4f6', alignItems: 'center', justifyContent: 'center' }] }>
               <MaterialIcons name="map" size={32} color="#bbb" />
@@ -302,6 +359,29 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
           </View>
         )}
       </ScrollView>
+
+      {/* Full Map Modal */}
+      {coords && (
+        <Modal
+          visible={showFullMap}
+          animationType="slide"
+          presentationStyle="fullScreen"
+          onRequestClose={() => setShowFullMap(false)}
+        >
+          <ItemMapView
+            itemLocation={{
+              latitude: coords.latitude,
+              longitude: coords.longitude,
+              address: item.location_name || 'Unknown location'
+            }}
+            itemTitle={item.title}
+            itemStatus={item.status}
+            showUserLocation={true}
+            showApproximateArea={true}
+            onClose={() => setShowFullMap(false)}
+          />
+        </Modal>
+      )}
     </SafeAreaView>
   );
 };
@@ -337,6 +417,17 @@ const styles = StyleSheet.create({
   card: { backgroundColor: '#fff', borderRadius: 18, padding: 18, marginBottom: 16, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
   itemTitle: { fontWeight: 'bold', fontSize: 18, color: '#222', marginBottom: 6 },
   sectionLabel: { color: '#6b7280', fontWeight: 'bold', fontSize: 14, marginBottom: 4 },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8
+  },
+  distanceText: {
+    color: '#3b82f6',
+    fontSize: 14,
+    fontWeight: '600'
+  },
   itemDesc: { color: '#222', fontSize: 15, marginBottom: 10 },
   itemMetaRow: { flexDirection: 'row', marginTop: 8 },
   metaBox: { flexDirection: 'row', alignItems: 'center', marginRight: 18 },
@@ -346,7 +437,24 @@ const styles = StyleSheet.create({
   lastSeenDetails: { color: '#888', fontSize: 13 },
   lastSeenDate: { color: '#222', fontWeight: 'bold', fontSize: 14, marginLeft: 4 },
   lastSeenTime: { color: '#888', fontSize: 13, marginBottom: 8, marginLeft: 24 },
-  mapImage: { width: '100%', height: 80, borderRadius: 10, marginTop: 6 },
+  mapImage: { width: '100%', height: 80, borderRadius: 10, marginTop: 6, position: 'relative' },
+  mapOverlay: {
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  mapOverlayText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 4,
+  },
   ownerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   ownerAvatar: { width: 44, height: 44, borderRadius: 22, marginRight: 10 },
   ownerName: { color: '#222', fontWeight: 'bold', fontSize: 15 },

@@ -1,22 +1,44 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
-import { Item } from '../types';
+import { Item, LocationCoords } from '../types';
 import { getSignedImageUrl } from '../utils/uploadImage';
+import { calculateDistance, formatDistance } from '../utils/location';
+
+const COLORS = {
+  background: '#f8fafc',
+  card: '#fff',
+  primary: '#2563eb',
+  accent: '#fbbf24',
+  text: '#222',
+  muted: '#6b7280',
+  border: '#e5e7eb',
+  active: '#fee2e2',
+  matched: '#dcfce7',
+  resolved: '#e0e7ff',
+  activeText: '#fb7185',
+  matchedText: '#22c55e',
+  resolvedText: '#6366f1',
+};
 
 interface ItemCardProps {
   item: Item;
   onPress: () => void;
+  userLocation?: LocationCoords | null;
+  showDistance?: boolean;
 }
 
-export const ItemCard: React.FC<ItemCardProps> = ({ item, onPress }) => {
+export const ItemCard: React.FC<ItemCardProps> = ({ item, onPress, userLocation, showDistance = true }) => {
   const getStatusStyle = (status: string) => {
-    return status === 'lost' 
-      ? [styles.statusBadge, styles.statusLost] 
-      : [styles.statusBadge, styles.statusFound];
-  };
-
-  const getStatusTextStyle = (status: string) => {
-    return status === 'lost' ? styles.statusTextLost : styles.statusTextFound;
+    switch (status) {
+      case 'lost':
+        return { backgroundColor: COLORS.active, color: COLORS.activeText };
+      case 'found':
+        return { backgroundColor: COLORS.matched, color: COLORS.matchedText };
+      case 'returned':
+        return { backgroundColor: COLORS.resolved, color: COLORS.resolvedText };
+      default:
+        return { backgroundColor: COLORS.active, color: COLORS.activeText };
+    }
   };
 
   const getCategoryIcon = (category: string) => {
@@ -37,12 +59,22 @@ export const ItemCard: React.FC<ItemCardProps> = ({ item, onPress }) => {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-AU', {
-      day: 'numeric',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - date.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 1) {
+      return '1 day ago';
+    } else if (diffDays < 7) {
+      return `${diffDays} days ago`;
+    } else if (diffDays < 14) {
+      return '1 week ago';
+    } else {
+      return date.toLocaleDateString('en-AU', {
+        day: 'numeric',
+        month: 'short',
+      });
+    }
   };
 
   // Signed URLs for images
@@ -63,226 +95,235 @@ export const ItemCard: React.FC<ItemCardProps> = ({ item, onPress }) => {
   }, [item.image, item.user?.profile_pic]);
 
   // Type guard for location object
-  function isLocationObject(value: any): value is { address: string } {
+  function isLocationObject(value: any): value is { address: string; latitude: number; longitude: number } {
     return (
       typeof value === 'object' &&
       value !== null &&
-      typeof value.address === 'string'
+      typeof value.address === 'string' &&
+      typeof value.latitude === 'number' &&
+      typeof value.longitude === 'number'
     );
   }
 
-  return (
-    <TouchableOpacity onPress={onPress} style={styles.card}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <View style={styles.titleWrapper}>
-            <Text style={styles.title}>{item.title}</Text>
-            <View style={styles.categoryContainer}>
-              <Text style={styles.categoryIcon}>{getCategoryIcon(item.category)}</Text>
-              <Text style={styles.category}>{item.category}</Text>
-            </View>
-          </View>
-          <View style={getStatusStyle(item.status)}>
-            <Text style={[styles.statusText, getStatusTextStyle(item.status)]}>{item.status}</Text>
-          </View>
-        </View>
-      </View>
+  // Calculate distance if both locations are available
+  const getDistanceText = (): string | null => {
+    if (!showDistance || !userLocation || !isLocationObject(item.location)) {
+      return null;
+    }
 
-      {/* Image */}
-      {itemImageUrl ? (
-        <View style={styles.imageContainer}>
+    const distance = calculateDistance(userLocation, item.location);
+    return formatDistance(distance);
+  };
+
+  const distanceText = getDistanceText();
+  const statusStyle = getStatusStyle(item.status);
+
+  return (
+    <TouchableOpacity onPress={onPress} style={styles.itemCard}>
+      {/* Icon/Image Section */}
+      <View style={styles.itemIcon}>
+        {itemImageUrl ? (
           <Image
             source={{ uri: itemImageUrl }}
-            style={styles.image}
+            style={styles.iconImage}
             resizeMode="cover"
           />
-        </View>
-      ) : null}
+        ) : (
+          <Text style={styles.categoryEmoji}>{getCategoryIcon(item.category)}</Text>
+        )}
+      </View>
 
-      {/* Description */}
-      <View style={styles.descriptionContainer}>
-        <Text style={styles.description} numberOfLines={2}>
+      {/* Content Section */}
+      <View style={styles.itemContent}>
+        {/* Header Row */}
+        <View style={styles.itemHeaderRow}>
+          <Text style={styles.itemTitle} numberOfLines={1}>{item.title}</Text>
+          <View style={[styles.statusBadge, { backgroundColor: statusStyle.backgroundColor }]}>
+            <Text style={[styles.statusBadgeText, { color: statusStyle.color }]}>
+              {item.status}
+            </Text>
+          </View>
+        </View>
+
+        {/* Meta Row */}
+        <Text style={styles.itemMeta}>
+          {item.category} • {formatDate(item.created_at)}
+        </Text>
+
+        {/* Description */}
+        <Text style={styles.itemDesc} numberOfLines={2}>
           {item.description}
         </Text>
-      </View>
 
-      {/* Location and reward */}
-      <View style={styles.locationRewardContainer}>
-        {isLocationObject(item.location) && (
-          <Text style={styles.location}>
-            📍 {item.location.address}
-          </Text>
-        )}
-        {item.reward_amount && item.reward_amount > 0 && (
-          <Text style={styles.reward}>
-            💰 Reward: ${item.reward_amount}
-          </Text>
-        )}
-      </View>
-
-      {/* Footer */}
-      <View style={styles.footer}>
-        <View style={styles.userContainer}>
-          {userProfileUrl ? (
-            <Image
-              source={{ uri: userProfileUrl }}
-              style={styles.avatar}
-            />
-          ) : (
-            <View style={styles.avatarPlaceholder}>
-              <Text style={styles.avatarText}>
-                {item.user?.full_name?.charAt(0).toUpperCase()}
-              </Text>
-            </View>
+        {/* Location and Reward Row */}
+        <View style={styles.locationRewardRow}>
+          {isLocationObject(item.location) && (
+            <Text style={styles.locationText} numberOfLines={1}>
+              📍 {item.location.address}
+            </Text>
           )}
-          <Text style={styles.userInfo}>
-            {item.user?.full_name}
-          </Text>
+          {item.reward_amount && item.reward_amount > 0 && (
+            <Text style={styles.rewardText}>
+              💰 ${item.reward_amount}
+            </Text>
+          )}
         </View>
-        <Text style={styles.timestamp}>
-          {formatDate(item.created_at)}
-        </Text>
+
+        {/* Footer Row */}
+        <View style={styles.itemFooterRow}>
+          <View style={styles.itemFooterLeft}>
+            {userProfileUrl ? (
+              <Image
+                source={{ uri: userProfileUrl }}
+                style={styles.userAvatar}
+              />
+            ) : (
+              <View style={styles.userAvatarPlaceholder}>
+                <Text style={styles.userAvatarText}>
+                  {item.user?.full_name?.charAt(0).toUpperCase() || '?'}
+                </Text>
+              </View>
+            )}
+            <Text style={styles.userName}>
+              {item.user?.full_name || 'Unknown User'}
+            </Text>
+            {distanceText && (
+              <Text style={styles.distanceText}>
+                • {distanceText}
+              </Text>
+            )}
+          </View>
+        </View>
       </View>
     </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: '#ffffff',
-    borderRadius: 24,
-    marginHorizontal: 16,
-    marginBottom: 16,
-    borderColor: '#E5E7EB',
-    borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  header: {
-    padding: 16,
-    paddingBottom: 8,
-  },
-  headerContent: {
+  itemCard: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    marginHorizontal: 18,
+    marginBottom: 14,
+    padding: 12,
     alignItems: 'flex-start',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
+    elevation: 1,
   },
-  titleWrapper: {
+  itemIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: '#f3f4f6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+    marginTop: 2,
+  },
+  iconImage: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+  },
+  categoryEmoji: {
+    fontSize: 22,
+  },
+  itemContent: {
     flex: 1,
   },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  categoryContainer: {
+  itemHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  categoryIcon: {
-    fontSize: 24,
+  itemTitle: {
+    fontWeight: 'bold',
+    fontSize: 15,
+    color: COLORS.text,
+    flex: 1,
     marginRight: 8,
-  },
-  category: {
-    fontSize: 14,
-    color: '#6b7280',
   },
   statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 9999,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
   },
-  statusLost: {
-    backgroundColor: '#FEE2E2',
-  },
-  statusFound: {
-    backgroundColor: '#D1FAE5',
-  },
-  statusText: {
+  statusBadgeText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: 'bold',
     textTransform: 'capitalize',
   },
-  statusTextLost: {
-    color: '#EF4444',
-  },
-  statusTextFound: {
-    color: '#10B981',
-  },
-  imageContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-  },
-  image: {
-    width: '100%',
-    height: 192,
-    borderRadius: 20,
-  },
-  descriptionContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-  },
-  description: {
-    fontSize: 14,
-    color: '#374151',
-  },
-  locationRewardContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-  },
-  location: {
+  itemMeta: {
+    color: COLORS.muted,
     fontSize: 12,
-    color: '#9ca3af',
-    marginBottom: 4,
+    marginTop: 2,
   },
-  reward: {
+  itemDesc: {
+    color: COLORS.text,
+    fontSize: 13,
+    marginTop: 2,
+    lineHeight: 18,
+  },
+  locationRewardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 4,
+  },
+  locationText: {
+    fontSize: 12,
+    color: COLORS.muted,
+    flex: 1,
+    marginRight: 8,
+  },
+  rewardText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#10B981',
+    color: COLORS.matchedText,
   },
-  footer: {
-    borderTopWidth: 1,
-    borderColor: '#f3f4f6',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+  itemFooterRow: {
     flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
     justifyContent: 'space-between',
-    alignItems: 'center',
   },
-  userContainer: {
+  itemFooterLeft: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  avatar: {
-    width: 24,
-    height: 24,
-    borderRadius: 9999,
-    marginRight: 8,
+  userAvatar: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    marginRight: 6,
   },
-  avatarPlaceholder: {
-    width: 24,
-    height: 24,
-    borderRadius: 9999,
+  userAvatarPlaceholder: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
     backgroundColor: '#d1d5db',
-    marginRight: 8,
+    marginRight: 6,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: {
-    fontSize: 12,
-    color: '#9ca3af',
-  },
-  userInfo: {
-    fontSize: 12,
-    color: '#9ca3af',
-  },
-  timestamp: {
+  userAvatarText: {
     fontSize: 10,
-    color: '#9ca3af',
+    color: COLORS.muted,
+    fontWeight: '600',
+  },
+  userName: {
+    color: COLORS.muted,
+    fontSize: 12,
+  },
+  distanceText: {
+    color: COLORS.primary,
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 4,
   },
 });

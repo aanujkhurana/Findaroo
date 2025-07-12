@@ -135,3 +135,68 @@ export const calculateDistance = (coords1: LocationCoords, coords2: LocationCoor
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c; // Distance in km
 };
+
+// Format distance for display
+export const formatDistance = (distanceKm: number): string => {
+  if (distanceKm < 1) {
+    return `${Math.round(distanceKm * 1000)}m`;
+  } else if (distanceKm < 10) {
+    return `${distanceKm.toFixed(1)}km`;
+  } else {
+    return `${Math.round(distanceKm)}km`;
+  }
+};
+
+// Check if location is within radius
+export const isWithinRadius = (
+  userLocation: LocationCoords,
+  itemLocation: LocationCoords,
+  radiusKm: number
+): boolean => {
+  const distance = calculateDistance(userLocation, itemLocation);
+  return distance <= radiusKm;
+};
+
+// Filter items by distance
+export const filterItemsByDistance = <T extends { location?: LocationCoords }>(
+  items: T[],
+  userLocation: LocationCoords,
+  maxDistanceKm: number
+): T[] => {
+  return items.filter(item => {
+    if (!item.location) return false;
+    return isWithinRadius(userLocation, item.location, maxDistanceKm);
+  });
+};
+
+// Sort items by distance (closest first)
+export const sortItemsByDistance = <T extends { location?: LocationCoords }>(
+  items: T[],
+  userLocation: LocationCoords
+): (T & { distance?: number })[] => {
+  return items
+    .map(item => ({
+      ...item,
+      distance: item.location ? calculateDistance(userLocation, item.location) : undefined
+    }))
+    .sort((a, b) => {
+      if (a.distance === undefined) return 1;
+      if (b.distance === undefined) return -1;
+      return a.distance - b.distance;
+    });
+};
+
+// Get nearby items within different radius options
+export const getNearbyItems = <T extends { location?: LocationCoords }>(
+  items: T[],
+  userLocation: LocationCoords,
+  radiusKm: number = 10
+): (T & { distance: number })[] => {
+  return items
+    .filter(item => item.location && isWithinRadius(userLocation, item.location, radiusKm))
+    .map(item => ({
+      ...item,
+      distance: calculateDistance(userLocation, item.location!)
+    }))
+    .sort((a, b) => a.distance - b.distance);
+};

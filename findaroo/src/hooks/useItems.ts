@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../services/supabaseClient';
-import { Item, Category } from '../types';
+import { Item, Category, LocationCoords } from '../types';
+import { getCurrentLocation, filterItemsByDistance, sortItemsByDistance, formatDistance } from '../utils/location';
 
 interface ItemFilters {
   status?: 'lost' | 'found';
   category?: Category;
   search?: string;
   userId?: string;
+  maxDistance?: number; // in kilometers
+  sortByDistance?: boolean;
 }
 
 // Utility to parse PostGIS POINT string to { latitude, longitude, address }
@@ -27,11 +30,24 @@ export const useItems = (filters: ItemFilters = {}) => {
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [userLocation, setUserLocation] = useState<LocationCoords | null>(null);
+
+  // Get user location for distance calculations
+  useEffect(() => {
+    const getUserLocation = async () => {
+      if (filters.maxDistance || filters.sortByDistance) {
+        console.log('[useItems] Getting user location for distance filtering...');
+        const location = await getCurrentLocation();
+        setUserLocation(location);
+      }
+    };
+    getUserLocation();
+  }, [filters.maxDistance, filters.sortByDistance]);
 
   useEffect(() => {
     console.log('[useItems] Filters changed:', filters);
     fetchItems();
-  }, [filters]);
+  }, [filters, userLocation]);
 
   const fetchItems = async () => {
     console.log('[useItems] Fetching items with filters:', filters);
@@ -72,10 +88,29 @@ export const useItems = (filters: ItemFilters = {}) => {
       if (error) throw error;
 
       // Normalize location field for all items
-      setItems((data || []).map(item => ({
+      let processedItems = (data || []).map(item => ({
         ...item,
         location: parsePointString(item.location, item.location_name),
-      })));
+      }));
+
+      // Apply distance-based filtering and sorting if user location is available
+      if (userLocation && processedItems.length > 0) {
+        console.log('[useItems] Applying distance-based filtering/sorting...');
+
+        // Filter by distance if maxDistance is specified
+        if (filters.maxDistance) {
+          processedItems = filterItemsByDistance(processedItems, userLocation, filters.maxDistance);
+          console.log(`[useItems] Filtered to ${processedItems.length} items within ${filters.maxDistance}km`);
+        }
+
+        // Sort by distance if requested
+        if (filters.sortByDistance) {
+          processedItems = sortItemsByDistance(processedItems, userLocation);
+          console.log('[useItems] Sorted items by distance');
+        }
+      }
+
+      setItems(processedItems);
     } catch (err: any) {
       setError(err.message);
       console.error('[useItems] Error fetching items:', err);
@@ -182,6 +217,7 @@ export const useItems = (filters: ItemFilters = {}) => {
     items,
     loading,
     error,
+    userLocation,
     refetch: fetchItems,
     createItem,
     updateItem,

@@ -41,6 +41,15 @@ const CATEGORY_OPTIONS: { value: Category | undefined; label: string }[] = [
   { value: 'other', label: 'Other' },
 ];
 
+const DISTANCE_OPTIONS = [
+  { value: undefined, label: 'Any Distance', icon: '🌍' },
+  { value: 1, label: 'Within 1km', icon: '🚶' },
+  { value: 5, label: 'Within 5km', icon: '🚴' },
+  { value: 10, label: 'Within 10km', icon: '🚗' },
+  { value: 25, label: 'Within 25km', icon: '🚌' },
+  { value: 50, label: 'Within 50km', icon: '🚄' },
+];
+
 function parsePointString(pointStr: string | undefined) {
     if (!pointStr || typeof pointStr !== 'string') return null;
   const match = pointStr.match(/POINT\((-?\d+\.\d+) (-?\d+\.\d+)\)/);
@@ -71,14 +80,20 @@ export const HomeFeedScreen = ({ navigation }: any) => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryModalVisible, setCategoryModalVisible] = useState(false);
   const [pendingCategories, setPendingCategories] = useState<Category[]>([]);
+  // Distance filtering
+  const [maxDistance, setMaxDistance] = useState<number | undefined>(undefined);
+  const [sortByDistance, setSortByDistance] = useState(false);
+  const [distanceModalVisible, setDistanceModalVisible] = useState(false);
 
   const filters = useMemo(() => ({
     status,
     categories,
     search: search.trim() || undefined,
-  }), [status, categories, search]);
+    maxDistance,
+    sortByDistance,
+  }), [status, categories, search, maxDistance, sortByDistance]);
 
-  const { items, loading, error, refetch } = useItems(filters);
+  const { items, loading, error, userLocation, refetch } = useItems(filters);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -143,14 +158,30 @@ export const HomeFeedScreen = ({ navigation }: any) => {
           </TouchableOpacity>
         ))}
         <View style={{ flex: 1 }} />
+
+        {/* Distance Filter Button */}
         <TouchableOpacity
-          style={styles.filterIconBtn}
+          style={[styles.filterIconBtn, maxDistance && styles.filterIconBtnActive]}
+          onPress={() => setDistanceModalVisible(true)}
+        >
+          <Feather name="map-pin" size={20} color={maxDistance ? '#fff' : COLORS.primary} />
+          {maxDistance && (
+            <Text style={styles.filterBadgeText}>{maxDistance}km</Text>
+          )}
+        </TouchableOpacity>
+
+        {/* Category Filter Button */}
+        <TouchableOpacity
+          style={[styles.filterIconBtn, categories.length > 0 && styles.filterIconBtnActive]}
           onPress={() => {
             setPendingCategories(categories);
             setCategoryModalVisible(true);
           }}
         >
-          <Feather name="filter" size={20} color={COLORS.primary} />
+          <Feather name="filter" size={20} color={categories.length > 0 ? '#fff' : COLORS.primary} />
+          {categories.length > 0 && (
+            <Text style={styles.filterBadgeText}>{categories.length}</Text>
+          )}
         </TouchableOpacity>
       </View>
       {/* Category Filter Modal */}
@@ -189,6 +220,56 @@ export const HomeFeedScreen = ({ navigation }: any) => {
                 setCategories(pendingCategories);
                 setCategoryModalVisible(false);
               }}
+            >
+              <Text style={styles.modalCloseText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </RNModal>
+
+      {/* Distance Filter Modal */}
+      <RNModal
+        visible={distanceModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setDistanceModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Filter by Distance</Text>
+
+            {/* Sort by Distance Toggle */}
+            <TouchableOpacity
+              style={[styles.modalOption, sortByDistance && styles.modalOptionSelected]}
+              onPress={() => setSortByDistance(!sortByDistance)}
+            >
+              <Text style={[styles.modalOptionText, sortByDistance && styles.modalOptionTextSelected]}>
+                {sortByDistance ? '✓ ' : ''}Sort by Distance (Closest First)
+              </Text>
+            </TouchableOpacity>
+
+            <View style={styles.modalSeparator} />
+
+            {/* Distance Options */}
+            {DISTANCE_OPTIONS.map(option => {
+              const selected = maxDistance === option.value;
+              return (
+                <TouchableOpacity
+                  key={option.label}
+                  style={[styles.modalOption, selected && styles.modalOptionSelected]}
+                  onPress={() => setMaxDistance(option.value)}
+                >
+                  <Text style={styles.modalOptionIcon}>{option.icon}</Text>
+                  <Text style={[styles.modalOptionText, selected && styles.modalOptionTextSelected]}>
+                    {selected ? '✓ ' : ''}{option.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+
+            <TouchableOpacity
+              style={styles.modalCloseBtn}
+              onPress={() => setDistanceModalVisible(false)}
             >
               <Text style={styles.modalCloseText}>Done</Text>
             </TouchableOpacity>
@@ -236,66 +317,12 @@ export const HomeFeedScreen = ({ navigation }: any) => {
         data={filteredItems}
         keyExtractor={item => item.id}
         renderItem={({ item }) => (
-          <TouchableOpacity style={styles.itemCard} activeOpacity={0.85} onPress={() => navigation.navigate('ItemDetails', { itemId: item.id })}>
-            {item.image ? (
-              <Image source={{ uri: item.image }} style={styles.itemImage} />
-            ) : (
-              <View style={[styles.itemImage, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f3f4f6' }] }>
-                <Text style={{ fontSize: 28 }}>
-                  {(() => {
-                    const icons: Record<string, string> = {
-                      electronics: '📱',
-                      clothing: '👕',
-                      accessories: '👜',
-                      documents: '📄',
-                      keys: '🔑',
-                      bags: '🎒',
-                      pets: '🐕',
-                      jewelry: '💍',
-                      sports: '⚽',
-                      other: '📦',
-                    };
-                    return icons[item.category as string] || '📦';
-                  })()}
-                </Text>
-              </View>
-            )}
-            <View style={styles.itemInfo}>
-              <View style={styles.itemHeaderRow}>
-                <Text style={styles.itemTitle} numberOfLines={1}>{item.title}</Text>
-                <View style={[styles.statusBadge, item.status === 'lost' ? styles.statusLost : styles.statusFound]}>
-                  <Text style={styles.statusBadgeText}>{item.status}</Text>
-                </View>
-              </View>
-              <Text style={styles.itemCategory}>{item.category}</Text>
-              {/* Show tips for lost items if any */}
-              {item.status === 'lost' && Array.isArray(item.tips) && item.tips.length > 0 ? (() => {
-                const totalTips = item.tips
-                  .filter(tip => tip.amount && tip.amount > 0)
-                  .reduce((sum, tip) => sum + Number(tip.amount), 0);
-                if (totalTips > 0) {
-                  return (
-                    <Text style={styles.tipsText}>Tips: ${totalTips.toFixed(2)}</Text>
-                  );
-                }
-                return null;
-              })() : null}
-              {/* Show reward if any */}
-              {item.reward_amount && item.reward_amount > 0 && (
-                <Text style={styles.rewardText}>Reward: ${item.reward_amount.toFixed(2)}</Text>
-              )}
-              {/* Show location name if available */}
-              {item.location_name && (
-                <Text style={styles.locationNameText} numberOfLines={1}>📍 {item.location_name}</Text>
-              )}
-              {/* Show created date */}
-              <Text style={styles.itemDate}>{new Date(item.created_at).toLocaleDateString()}</Text>
-              {/* Show description, truncated */}
-              {item.description && (
-                <Text style={styles.itemDesc} numberOfLines={2}>{item.description}</Text>
-              )}
-            </View>
-          </TouchableOpacity>
+          <ItemCard
+            item={item}
+            onPress={() => navigation.navigate('ItemDetails', { itemId: item.id })}
+            userLocation={userLocation}
+            showDistance={true}
+          />
         )}
         contentContainerStyle={{ paddingBottom: 80, paddingTop: 8 }}
         refreshing={refreshing}
@@ -407,6 +434,17 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     justifyContent: 'center',
     alignItems: 'center',
+    flexDirection: 'row',
+  },
+  filterIconBtnActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  filterBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '600',
+    marginLeft: 4,
   },
   filterIconBtnSmall: {
     marginLeft: 8,
@@ -575,6 +613,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     borderRadius: 8,
     marginBottom: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  modalOptionIcon: {
+    fontSize: 20,
+    marginRight: 12,
+  },
+  modalSeparator: {
+    height: 1,
+    backgroundColor: COLORS.border,
+    marginVertical: 8,
   },
   modalOptionSelected: {
     backgroundColor: COLORS.primary,
