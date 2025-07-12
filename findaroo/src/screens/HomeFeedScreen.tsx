@@ -70,6 +70,7 @@ export const HomeFeedScreen = ({ navigation }: any) => {
   // Change category state to array
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryModalVisible, setCategoryModalVisible] = useState(false);
+  const [pendingCategories, setPendingCategories] = useState<Category[]>([]);
 
   const filters = useMemo(() => ({
     status,
@@ -142,8 +143,14 @@ export const HomeFeedScreen = ({ navigation }: any) => {
           </TouchableOpacity>
         ))}
         <View style={{ flex: 1 }} />
-        <TouchableOpacity style={styles.filterIconBtnSmall} onPress={() => setCategoryModalVisible(true)}>
-          <Feather name="filter" size={16} color={COLORS.primary} />
+        <TouchableOpacity
+          style={styles.filterIconBtn}
+          onPress={() => {
+            setPendingCategories(categories);
+            setCategoryModalVisible(true);
+          }}
+        >
+          <Feather name="filter" size={20} color={COLORS.primary} />
         </TouchableOpacity>
       </View>
       {/* Category Filter Modal */}
@@ -157,13 +164,13 @@ export const HomeFeedScreen = ({ navigation }: any) => {
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Select Categories</Text>
             {CATEGORY_OPTIONS.filter(opt => opt.value !== undefined).map(opt => {
-              const selected = categories.includes(opt.value as Category);
+              const selected = pendingCategories.includes(opt.value as Category);
               return (
                 <TouchableOpacity
                   key={opt.label}
                   style={[styles.modalOption, selected && styles.modalOptionSelected]}
                   onPress={() => {
-                    setCategories(prev =>
+                    setPendingCategories(prev =>
                       selected
                         ? prev.filter(c => c !== opt.value)
                         : [...prev, opt.value as Category]
@@ -176,7 +183,13 @@ export const HomeFeedScreen = ({ navigation }: any) => {
                 </TouchableOpacity>
               );
             })}
-            <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setCategoryModalVisible(false)}>
+            <TouchableOpacity
+              style={styles.modalCloseBtn}
+              onPress={() => {
+                setCategories(pendingCategories);
+                setCategoryModalVisible(false);
+              }}
+            >
               <Text style={styles.modalCloseText}>Done</Text>
             </TouchableOpacity>
           </View>

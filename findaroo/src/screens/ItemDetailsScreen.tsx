@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, FlatList } from 'react-native';
+import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, Share } from 'react-native';
+import MapView, { Marker } from 'react-native-maps';
 import { MaterialIcons, Feather } from '@expo/vector-icons';
 import { getImageUrl } from '../utils/uploadImage';
 import { supabase } from '../services/supabaseClient';
@@ -14,8 +15,31 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
   const [selectedImageIdx, setSelectedImageIdx] = useState(0);
   const [similarItems, setSimilarItems] = useState<Item[]>([]);
 
-  // For demo, assume item.image is a comma-separated string of image paths
-  const images = item?.image ? item.image.split(',').map((img: string) => img.trim()).filter(Boolean) : [];
+  // Parse coordinates from PostGIS POINT string
+  function parsePointString(pointStr: string | undefined) {
+    if (!pointStr || typeof pointStr !== 'string') return null;
+    const match = pointStr.match(/POINT\((-?\d+\.?\d*) (-?\d+\.?\d*)\)/);
+    if (match) {
+      return {
+        longitude: parseFloat(match[1]),
+        latitude: parseFloat(match[2]),
+      };
+    }
+    return null;
+  }
+  // These will be set after loading and item is not null
+  let firstImage: string | undefined = undefined;
+  let coords: { latitude: number; longitude: number } | null = null;
+
+  // Share handler
+  const handleShare = async () => {
+    try {
+      const message = `${item.title}\n\n${item.description || ''}\n\nLocation: ${item.location_name || ''}`;
+      await Share.share({ message });
+    } catch (error) {
+      console.error('Error sharing item:', error);
+    }
+  };
 
   useEffect(() => {
     const fetchItem = async () => {
@@ -72,9 +96,26 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
       </SafeAreaView>
     );
   }
-
+  // Only run this block if item is not null and not loading
+  // Move this block just before the JSX return, after all null/undefined checks
   // Calculate tips
   const totalTips = item.tips?.filter(tip => tip.amount && tip.amount > 0).reduce((sum, tip) => sum + Number(tip.amount), 0) || 0;
+
+  // Compute firstImage and coords here, after all null checks
+  firstImage = item.image ? item.image.split(',').map((img: string) => img.trim()).filter(Boolean)[0] : undefined;
+  if (firstImage) {
+    console.log('Item image path:', firstImage);
+    console.log('Image URL:', getImageUrl(firstImage));
+  } else {
+    console.log('No image for this item');
+  }
+  coords = parsePointString(item.location);
+  if (item.location) {
+    console.log('Item location string:', item.location);
+    console.log('Parsed coordinates:', coords);
+  } else {
+    console.log('No location for this item');
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -85,7 +126,7 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
             <Feather name="arrow-left" size={24} color="#222" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Item Details</Text>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={handleShare}>
             <Feather name="share-2" size={22} color="#222" />
           </TouchableOpacity>
         </View>
@@ -97,24 +138,14 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
           </View>
           <Text style={styles.statusTime}>{formatRelativeDate(item.created_at)}</Text>
         </View>
-        {/* Image Gallery */}
+        {/* Main Image */}
         <View style={styles.imageGallery}>
-          {images.length > 0 ? (
-            <>
-              <Image source={{ uri: getImageUrl(images[selectedImageIdx]) }} style={styles.mainImage} resizeMode="cover" />
-              <View style={styles.imageCount}><Text style={styles.imageCountText}>{selectedImageIdx + 1} / {images.length}</Text></View>
-              <View style={styles.thumbnailRow}>
-                {images.map((img, idx) => (
-                  <TouchableOpacity key={img + idx} onPress={() => setSelectedImageIdx(idx)}>
-                    <Image source={{ uri: getImageUrl(img) }} style={[styles.thumbnail, selectedImageIdx === idx && styles.thumbnailSelected]} />
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </>
+          {firstImage ? (
+            <Image source={{ uri: getImageUrl(firstImage) }} style={styles.mainImage} resizeMode="cover" />
           ) : (
             <View style={[styles.mainImage, { backgroundColor: '#f3f4f6', alignItems: 'center', justifyContent: 'center' }] }>
               <Feather name="image" size={48} color="#bbb" />
-              <Text style={{ color: '#bbb', marginTop: 8 }}>No image</Text>
+              <Text style={{ color: '#bbb', marginTop: 8 }}>No image available</Text>
             </View>
           )}
         </View>
@@ -144,8 +175,29 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
           <Text style={styles.sectionLabel}>Last Seen</Text>
           <View style={styles.lastSeenRow}><MaterialIcons name="location-pin" size={20} color="#ef4444" /><View><Text style={styles.lastSeenLoc}>{item.location_name || 'Unknown location'}</Text></View></View>
           <View style={styles.lastSeenRow}><MaterialIcons name="calendar-today" size={18} color="#38bdf8" /><Text style={styles.lastSeenDate}>{formatDate(item.created_at)}</Text></View>
-          {/* Map image placeholder (replace with real map if you have coordinates) */}
-          <Image source={{ uri: 'https://maps.googleapis.com/maps/api/staticmap?center=' + encodeURIComponent(item.location_name || '') + '&zoom=15&size=400x120&key=YOUR_GOOGLE_MAPS_API_KEY' }} style={styles.mapImage} resizeMode="cover" />
+          {/* Interactive map if coordinates available */}
+          {coords ? (
+            <MapView
+              style={styles.mapImage}
+              initialRegion={{
+                latitude: coords.latitude,
+                longitude: coords.longitude,
+                latitudeDelta: 0.01,
+                longitudeDelta: 0.01,
+              }}
+              scrollEnabled={false}
+              zoomEnabled={false}
+              pitchEnabled={false}
+              rotateEnabled={false}
+            >
+              <Marker coordinate={coords} title={item.title} description={item.location_name} />
+            </MapView>
+          ) : (
+            <View style={[styles.mapImage, { backgroundColor: '#f3f4f6', alignItems: 'center', justifyContent: 'center' }] }>
+              <MaterialIcons name="map" size={32} color="#bbb" />
+              <Text style={{ color: '#bbb', marginTop: 8 }}>No map available</Text>
+            </View>
+          )}
         </View>
         {/* Contact Owner Card */}
         {owner && (

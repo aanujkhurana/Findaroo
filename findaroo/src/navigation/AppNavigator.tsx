@@ -22,6 +22,7 @@ import { ChatScreen } from '../screens/ChatScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { CreateLostItemScreen } from '../screens/CreateLostItemScreen';
 import { CreateFoundItemScreen } from '../screens/CreateFoundItemScreen';
+import SuccessScreen from '../screens/SuccessScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -158,6 +159,7 @@ const MainStack = () => (
         headerShown: false,
       }}
     />
+    <Stack.Screen name="Success" component={SuccessScreen} options={{ headerShown: false }} />
   </Stack.Navigator>
 );
 

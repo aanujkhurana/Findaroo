@@ -153,11 +153,7 @@ export const CreateFoundItemScreen = ({ navigation }: any) => {
       };
       const newItem = await createItem(itemData);
       if (newItem) {
-        Alert.alert(
-          'Success!',
-          'Your found item has been posted. We\'ll notify you when someone claims it.',
-          [{ text: 'OK', onPress: () => navigation.navigate('HomeFeed') }]
-        );
+        navigation.navigate('Success');
       } else {
         Alert.alert('Error', 'Failed to post item. Please try again.');
         console.error('[FormSubmit] createItem returned null');
