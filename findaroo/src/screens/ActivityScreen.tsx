@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, ActivityIndicator, Alert, SafeAreaView, Platform } from 'react-native';
 import { Feather, MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../hooks/useAuth';
 import { useItems } from '../hooks/useItems';
 import { Item } from '../types';
@@ -116,6 +117,7 @@ export default function ActivityScreen() {
   const [filter, setFilter] = useState('all');
   const navigation: any = useNavigation();
   const { user, loading: authLoading } = useAuth();
+  const insets = useSafeAreaInsets();
 
   // Create stable filters object to prevent infinite re-renders
   const itemFilters = useMemo(() => ({
@@ -243,76 +245,87 @@ export default function ActivityScreen() {
 
   if (authLoading) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={[styles.headerTitle, { marginTop: 16 }]}>Authenticating...</Text>
-      </View>
+      <SafeAreaView style={styles.safeArea}>
+        <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+          <Text style={[styles.headerTitle, { marginTop: 16 }]}>Authenticating...</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
   if (!user) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
-        <Feather name="user-x" size={48} color={COLORS.muted} />
-        <Text style={[styles.headerTitle, { marginTop: 16, textAlign: 'center' }]}>Not authenticated</Text>
-        <Text style={[styles.statLabel, { textAlign: 'center', marginTop: 8 }]}>Please sign in to view your activity</Text>
-      </View>
+      <SafeAreaView style={styles.safeArea}>
+        <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
+          <Feather name="user-x" size={48} color={COLORS.muted} />
+          <Text style={[styles.headerTitle, { marginTop: 16, textAlign: 'center' }]}>Not authenticated</Text>
+          <Text style={[styles.statLabel, { textAlign: 'center', marginTop: 8 }]}>Please sign in to view your activity</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
   if (itemsLoading) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={[styles.headerTitle, { marginTop: 16 }]}>Loading your activity...</Text>
-      </View>
+      <SafeAreaView style={styles.safeArea}>
+        <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+          <Text style={[styles.headerTitle, { marginTop: 16 }]}>Loading your activity...</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
   if (error) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
-        <Feather name="alert-circle" size={48} color={COLORS.muted} />
-        <Text style={[styles.headerTitle, { marginTop: 16, textAlign: 'center' }]}>Error loading activity</Text>
-        <Text style={[styles.statLabel, { textAlign: 'center', marginTop: 8 }]}>{error}</Text>
-      </View>
+      <SafeAreaView style={styles.safeArea}>
+        <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
+          <Feather name="alert-circle" size={48} color={COLORS.muted} />
+          <Text style={[styles.headerTitle, { marginTop: 16, textAlign: 'center' }]}>Error loading activity</Text>
+          <Text style={[styles.statLabel, { textAlign: 'center', marginTop: 8 }]}>{error}</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.headerRow}>
-        <Feather name="arrow-left" size={22} color={COLORS.text} />
-        <Text style={styles.headerTitle}>My Activity</Text>
-        <Feather name="more-vertical" size={22} color={COLORS.text} />
-      </View>
-      {/* Stats Row */}
-      <View style={styles.statsRow}>
-        {stats.map(stat => (
-          <View key={stat.label} style={[styles.statCard, { backgroundColor: stat.color }] }>
-            <Text style={[styles.statValue, { color: stat.textColor }]}>{stat.value}</Text>
-            <Text style={styles.statLabel}>{stat.label}</Text>
-          </View>
-        ))}
-      </View>
-      {/* Filter Bar */}
-      <View style={styles.filterBar}>
-        {FILTERS.map(f => (
-          <TouchableOpacity
-            key={f.value}
-            style={[styles.filterPill, filter === f.value && styles.filterPillActive]}
-            onPress={() => setFilter(f.value)}
-          >
-            <Text style={[styles.filterPillText, filter === f.value && styles.filterPillTextActive]}>{f.label}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-      {/* Activity List */}
-      <FlatList
-        data={filteredItems}
-        keyExtractor={item => item.id}
-        contentContainerStyle={{ paddingBottom: 24 }}
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        {/* Header */}
+        <View style={styles.headerRow}>
+          <Feather name="arrow-left" size={22} color={COLORS.text} />
+          <Text style={styles.headerTitle}>My Activity</Text>
+          <Feather name="more-vertical" size={22} color={COLORS.text} />
+        </View>
+        {/* Stats Row */}
+        <View style={styles.statsRow}>
+          {stats.map(stat => (
+            <View key={stat.label} style={[styles.statCard, { backgroundColor: stat.color }] }>
+              <Text style={[styles.statValue, { color: stat.textColor }]}>{stat.value}</Text>
+              <Text style={styles.statLabel}>{stat.label}</Text>
+            </View>
+          ))}
+        </View>
+        {/* Filter Bar */}
+        <View style={styles.filterBar}>
+          {FILTERS.map(f => (
+            <TouchableOpacity
+              key={f.value}
+              style={[styles.filterPill, filter === f.value && styles.filterPillActive]}
+              onPress={() => setFilter(f.value)}
+            >
+              <Text style={[styles.filterPillText, filter === f.value && styles.filterPillTextActive]}>{f.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        {/* Activity List */}
+        <FlatList
+          data={filteredItems}
+          keyExtractor={item => item.id}
+          contentContainerStyle={{
+            paddingBottom: insets.bottom + (Platform.OS === 'ios' ? 88 : 72) + 24
+          }}
         ListEmptyComponent={() => (
           <View style={styles.emptyState}>
             <Feather name="inbox" size={48} color={COLORS.muted} />
@@ -378,18 +391,26 @@ export default function ActivityScreen() {
         )}
         showsVerticalScrollIndicator={false}
       />
-    </View>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background
+  },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 18,
-    paddingTop: 18,
+    paddingTop: Platform.OS === 'ios' ? 8 : 18,
     paddingBottom: 8,
     backgroundColor: COLORS.background,
   },

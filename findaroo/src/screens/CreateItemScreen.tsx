@@ -1,12 +1,15 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Platform } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export const CreateItemScreen = ({ navigation }: any) => {
+  const insets = useSafeAreaInsets();
+
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
+      <View style={[styles.container, { paddingBottom: insets.bottom + (Platform.OS === 'ios' ? 88 : 72) }]}>
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.iconContainer}>
@@ -90,20 +93,20 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 40,
-    paddingBottom: 24
+    paddingTop: Platform.OS === 'ios' ? 20 : 40,
+    justifyContent: 'space-between'
   },
   header: {
     alignItems: 'center',
-    marginBottom: 48
+    paddingTop: 20
   },
   iconContainer: {
-    marginBottom: 24
+    marginBottom: 20
   },
   iconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
     backgroundColor: '#EEF2FF',
     justifyContent: 'center',
     alignItems: 'center',
@@ -114,81 +117,82 @@ const styles = StyleSheet.create({
     elevation: 4
   },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '700',
     color: '#111827',
-    marginBottom: 12,
+    marginBottom: 10,
     textAlign: 'center',
-    lineHeight: 36
+    lineHeight: 32
   },
   subtitle: {
     fontSize: 16,
     color: '#6B7280',
     textAlign: 'center',
-    lineHeight: 24,
+    lineHeight: 22,
     paddingHorizontal: 20
   },
   cardContainer: {
     flex: 1,
     justifyContent: 'center',
-    gap: 20
+    gap: 16,
+    paddingVertical: 20
   },
   actionCard: {
-    borderRadius: 20,
+    borderRadius: 18,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 24,
-    elevation: 8
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 6
   },
   cardGradient: {
-    borderRadius: 20,
-    padding: 24
+    borderRadius: 18,
+    padding: 20
   },
   cardContent: {
     flexDirection: 'row',
     alignItems: 'center'
   },
   cardIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16
+    marginRight: 14
   },
   cardTextContainer: {
     flex: 1
   },
   cardTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
     color: '#fff',
-    marginBottom: 4,
-    lineHeight: 28
+    marginBottom: 3,
+    lineHeight: 24
   },
   cardSubtitle: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
-    lineHeight: 20
+    color: 'rgba(255, 255, 255, 0.85)',
+    lineHeight: 18
   },
   cardArrow: {
     opacity: 0.8
   },
   helpContainer: {
-    marginTop: 32,
     paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingVertical: 14,
     backgroundColor: '#F3F4F6',
-    borderRadius: 16,
-    alignItems: 'center'
+    borderRadius: 14,
+    alignItems: 'center',
+    marginBottom: 20
   },
   helpText: {
     fontSize: 14,
     color: '#6B7280',
     textAlign: 'center',
-    lineHeight: 20
+    lineHeight: 18
   }
 });
 
