@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../services/supabaseClient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User } from '../types';
@@ -112,7 +112,8 @@ export const useAuth = () => {
         // Use sessionUser passed as argument
         if (sessionUser && sessionUser.email) {
           const email = sessionUser.email;
-          const fullName = sessionUser.user_metadata?.full_name || '';
+          const fullName = sessionUser.user_metadata?.full_name || 'User';
+          console.log('Creating user profile with:', { userId, email, fullName });
           const newProfile = await createUserProfile(userId, email, fullName);
           if (newProfile.data) {
             setUser(newProfile.data);
@@ -136,6 +137,10 @@ export const useAuth = () => {
         options: {
           // This prevents the redirect to localhost
           emailRedirectTo: undefined,
+          // Store the full name in user metadata so it's available later
+          data: {
+            full_name: fullName,
+          },
         },
       });
 
@@ -171,7 +176,6 @@ export const useAuth = () => {
               email: data.user.email || email,
               full_name: fullName,
               created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
             },
           ]);
 
@@ -265,7 +269,7 @@ export const useAuth = () => {
       if (data.user && data.session) {
         // Call fetchUserProfile but don't check its return value since it doesn't return anything
         await fetchUserProfile(data.user.id);
-        
+
         // Instead, check if user is set after the fetchUserProfile call
         if (!user) {
           console.log('Creating user profile after email confirmation');
@@ -285,6 +289,41 @@ export const useAuth = () => {
     }
   };
 
+  const fetchReceivedTips = useCallback(async (userId: string) => {
+    try {
+      console.log('Fetching received tips for user:', userId);
+
+      // First, let's check if there are any tips at all for this user
+      const { data: allTips, error: allTipsError } = await supabase
+        .from('tips')
+        .select('amount, status, receiver_id')
+        .eq('receiver_id', userId);
+
+      console.log('All tips for user:', { allTips, allTipsError });
+
+      // Now get only the paid ones
+      const { data, error } = await supabase
+        .from('tips')
+        .select('amount, status')
+        .eq('receiver_id', userId)
+        .eq('status', 'paid');
+
+      console.log('Paid tips query result:', { data, error });
+
+      if (error) {
+        console.error('Error fetching received tips:', error);
+        return 0;
+      }
+
+      const totalTips = data?.reduce((sum, tip) => sum + Number(tip.amount || 0), 0) || 0;
+      console.log('Total received tips calculated:', totalTips);
+      return totalTips;
+    } catch (error) {
+      console.error('Error calculating received tips:', error);
+      return 0;
+    }
+  }, []);
+
   return {
     session,
     user,
@@ -295,5 +334,6 @@ export const useAuth = () => {
     updateProfile,
     createUserProfile,
     confirmEmail,
+    fetchReceivedTips,
   };
 };

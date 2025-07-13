@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Image, ScrollView, Alert, Platform, TouchableOpacity, Switch, StyleSheet } from 'react-native';
+import { View, Text, Image, ScrollView, Alert, Platform, TouchableOpacity, Switch, StyleSheet, TextInput, Modal } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import { useAuth } from '../hooks/useAuth';
@@ -9,12 +9,55 @@ import { uploadImage, deleteImage } from '../utils/uploadImage';
 import { getSignedImageUrl } from '../utils/uploadImage';
 
 export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
-  const { signOut, user, updateProfile } = useAuth();
+  const { signOut, user, updateProfile, fetchReceivedTips } = useAuth();
   const [pushNotifications, setPushNotifications] = useState(true);
   const [emailUpdates, setEmailUpdates] = useState(false);
   const [autoAccept, setAutoAccept] = useState(true);
   const [radius, setRadius] = useState(15);
   const [profilePicUrl, setProfilePicUrl] = useState('');
+  const [showEditNameModal, setShowEditNameModal] = useState(false);
+  const [editingName, setEditingName] = useState('');
+  const [receivedTips, setReceivedTips] = useState(0);
+  const [loadingTips, setLoadingTips] = useState(true);
+
+  // Fetch received tips when component mounts or user changes
+  useEffect(() => {
+    const loadReceivedTips = async () => {
+      if (user?.id) {
+        console.log('Loading received tips for user:', user.id);
+        setLoadingTips(true);
+
+        // Set a timeout to prevent infinite loading
+        const timeoutId = setTimeout(() => {
+          console.log('Tips loading timeout reached');
+          setLoadingTips(false);
+          setReceivedTips(0);
+        }, 10000); // 10 second timeout
+
+        try {
+          const tips = await fetchReceivedTips(user.id);
+          console.log('Received tips loaded:', tips);
+          clearTimeout(timeoutId);
+          setReceivedTips(tips);
+        } catch (error) {
+          console.error('Error loading received tips:', error);
+          clearTimeout(timeoutId);
+          setReceivedTips(0);
+        } finally {
+          setLoadingTips(false);
+        }
+      } else {
+        console.log('No user ID available for loading tips');
+        setReceivedTips(0);
+        setLoadingTips(false);
+      }
+    };
+
+    // Only run if we have a user or if user is explicitly null (not undefined)
+    if (user !== undefined) {
+      loadReceivedTips();
+    }
+  }, [user?.id, fetchReceivedTips]);
 
   const handleSignOut = async () => {
     const { error } = await signOut();
@@ -23,6 +66,46 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
     } else if (navigation) {
       navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
     }
+  };
+
+  const handleEditName = () => {
+    setEditingName(user?.full_name || '');
+    setShowEditNameModal(true);
+  };
+
+  const handleSaveName = async () => {
+    if (!user) {
+      Alert.alert('Error', 'You must be logged in to update your name');
+      return;
+    }
+
+    const trimmedName = editingName.trim();
+    if (!trimmedName) {
+      Alert.alert('Error', 'Please enter a valid name');
+      return;
+    }
+
+    try {
+      const { data, error } = await updateProfile({ full_name: trimmedName });
+
+      if (error) {
+        Alert.alert('Update Failed', error.message || 'Could not update your name');
+        console.error('[ProfileScreen] Name update failed:', error);
+        return;
+      }
+
+      console.log('[ProfileScreen] Name updated successfully:', data);
+      setShowEditNameModal(false);
+      Alert.alert('Success', 'Your name has been updated successfully');
+    } catch (error) {
+      console.error('[ProfileScreen] Unexpected error updating name:', error);
+      Alert.alert('Error', 'An unexpected error occurred. Please try again.');
+    }
+  };
+
+  const handleCancelEditName = () => {
+    setEditingName('');
+    setShowEditNameModal(false);
   };
 
   const handlePickProfileImage = async () => {
@@ -243,37 +326,41 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
               </View>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.profileName}>{user?.full_name || 'User'}</Text>
+              <TouchableOpacity onPress={handleEditName} style={styles.nameContainer}>
+                <Text style={styles.profileName}>
+                  {user?.full_name || 'Tap to add your name'}
+                </Text>
+                <MaterialIcons name="edit" size={16} color="#666" style={{ marginLeft: 8 }} />
+              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                <MaterialIcons name="email" size={16} color="#aaa" />
+                <Text style={styles.profileLocation}>{user?.email || 'No email'}</Text>
+              </View>
               {user?.phone && (
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
                   <MaterialIcons name="phone" size={16} color="#aaa" />
                   <Text style={styles.profileLocation}>{user.phone}</Text>
                 </View>
               )}
-              {/* Optionally display user location if available in user profile */}
-              {/* <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
-                <MaterialIcons name="location-pin" size={16} color="#aaa" />
-                <Text style={styles.profileLocation}>{user?.location || 'Location not set'}</Text>
-              </View> */}
             </View>
           </View>
           <View style={styles.profileStatsRow}>
-            <View style={styles.reputationCard}>
-              <Text style={styles.reputationLabel}>Reputation Score</Text>
-              <Text style={styles.reputationValue}>{user?.karma_points ? (user.karma_points / 100).toFixed(1) : 'N/A'}</Text>
-              {/* Optionally display stars and returns if you have this data */}
-            </View>
             <View style={styles.karmaCard}>
               <Text style={styles.karmaLabel}>Karma Points</Text>
               <Text style={styles.karmaValue}>{user?.karma_points ?? 'N/A'}</Text>
             </View>
+            <View style={styles.tipsCard}>
+              <Text style={styles.tipsLabel}>Received Tips</Text>
+              <Text style={styles.tipsValue}>
+                {loadingTips ? 'Loading...' : `$${receivedTips.toFixed(2)}`}
+              </Text>
+            </View>
           </View>
         </View>
-        {/* Account Settings Card */}
+        {/* Payment Methods Card */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Account Settings</Text>
           <View style={styles.rowBetween}>
-            <Text style={styles.subSectionTitle}>Payment Methods</Text>
+            <Text style={styles.sectionTitle}>Payment Methods</Text>
             <TouchableOpacity>
               <Text style={styles.addNew}>Add New</Text>
             </TouchableOpacity>
@@ -310,6 +397,22 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
             </View>
           </View>
         </View>
+
+        {/* Account Settings Card */}
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Account Settings</Text>
+          <TouchableOpacity style={styles.settingsRow}>
+            <View style={styles.settingsIconBox}>
+              <MaterialIcons name="edit" size={20} color="#2563eb" />
+            </View>
+            <View style={{ marginLeft: 12 }}>
+              <Text style={styles.settingsText}>Update Details</Text>
+              <Text style={styles.settingsSub}>Edit name, phone, and email</Text>
+            </View>
+            <MaterialIcons name="chevron-right" size={24} color="#bbb" style={{ marginLeft: 'auto' }} />
+          </TouchableOpacity>
+        </View>
+
         {/* Preferences Card */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Preferences</Text>
@@ -398,6 +501,56 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Edit Name Modal */}
+      <Modal
+        visible={showEditNameModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={handleCancelEditName}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Edit Your Name</Text>
+              <TouchableOpacity onPress={handleCancelEditName}>
+                <MaterialIcons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalBody}>
+              <Text style={styles.inputLabel}>Full Name</Text>
+              <TextInput
+                style={styles.nameInput}
+                value={editingName}
+                onChangeText={setEditingName}
+                placeholder="Enter your full name"
+                placeholderTextColor="#999"
+                autoFocus={true}
+                maxLength={50}
+              />
+              <Text style={styles.inputHint}>
+                This name will be visible to other users when you post items or send messages.
+              </Text>
+            </View>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={handleCancelEditName}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.saveButton}
+                onPress={handleSaveName}
+              >
+                <Text style={styles.saveButtonText}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -405,83 +558,100 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#F8FAFC',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 12,
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 16,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
   },
   headerTitle: {
-    fontWeight: 'bold',
-    fontSize: 18,
-    color: '#222',
+    fontWeight: '700',
+    fontSize: 20,
+    color: '#1E293B',
+    letterSpacing: -0.5,
   },
   scrollContent: {
-    padding: 20,
-    paddingBottom: 40,
+    padding: 24,
+    paddingBottom: 50,
   },
   card: {
-    backgroundColor: '#F7F8FA',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 20,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 24,
+    marginBottom: 24,
     shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
   },
   avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 3,
+    borderColor: '#E2E8F0',
   },
   avatarPlaceholder: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#2563eb',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#3B82F6',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 3,
+    borderColor: '#E2E8F0',
   },
   avatarInitial: {
     color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 28,
+    fontWeight: '700',
+    fontSize: 32,
   },
   avatarBadge: {
     position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#2563eb',
-    borderWidth: 2,
+    bottom: 2,
+    right: 2,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#3B82F6',
+    borderWidth: 3,
     borderColor: '#fff',
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   profileName: {
-    fontWeight: 'bold',
-    fontSize: 18,
-    color: '#222',
+    fontWeight: '700',
+    fontSize: 22,
+    color: '#1E293B',
+    letterSpacing: -0.5,
   },
   profileLocation: {
-    color: '#aaa',
-    fontSize: 14,
-    marginLeft: 4,
+    color: '#64748B',
+    fontSize: 15,
+    marginLeft: 6,
+    fontWeight: '500',
   },
   profileStatsRow: {
     flexDirection: 'row',
-    marginTop: 18,
-    gap: 12,
+    marginTop: 24,
+    gap: 16,
   },
   reputationCard: {
     flex: 1,
@@ -515,35 +685,68 @@ const styles = StyleSheet.create({
   },
   karmaCard: {
     flex: 1,
-    backgroundColor: '#2563eb',
-    borderRadius: 12,
-    padding: 12,
+    backgroundColor: '#3B82F6',
+    borderRadius: 16,
+    padding: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 6,
+    marginRight: 8,
+    shadowColor: '#3B82F6',
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   karmaLabel: {
-    color: '#fff',
-    fontSize: 12,
+    color: '#DBEAFE',
+    fontSize: 13,
     fontWeight: '600',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
   karmaValue: {
     color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 22,
-    marginTop: 2,
+    fontWeight: '800',
+    fontSize: 26,
+    marginTop: 4,
+  },
+  tipsCard: {
+    flex: 1,
+    backgroundColor: '#10B981',
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+    shadowColor: '#10B981',
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  tipsLabel: {
+    color: '#D1FAE5',
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  tipsValue: {
+    color: '#fff',
+    fontWeight: '800',
+    fontSize: 26,
+    marginTop: 4,
   },
   sectionTitle: {
-    fontWeight: 'bold',
-    fontSize: 16,
-    color: '#222',
-    marginBottom: 10,
+    fontWeight: '700',
+    fontSize: 20,
+    color: '#1E293B',
+    marginBottom: 16,
+    letterSpacing: -0.5,
   },
   subSectionTitle: {
     fontWeight: '600',
-    fontSize: 14,
-    color: '#222',
-    marginBottom: 8,
+    fontSize: 16,
+    color: '#475569',
+    marginBottom: 12,
   },
   rowBetween: {
     flexDirection: 'row',
@@ -552,39 +755,41 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   addNew: {
-    color: '#2563eb',
-    fontWeight: 'bold',
-    fontSize: 14,
+    color: '#3B82F6',
+    fontWeight: '700',
+    fontSize: 15,
   },
   paymentRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 10,
+    marginBottom: 12,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    padding: 16,
     shadowColor: '#000',
-    shadowOpacity: 0.03,
-    shadowRadius: 2,
-    elevation: 1,
-    marginTop: 2,
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+    marginTop: 4,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   paymentIconBox: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: '#E3EDFF',
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#DBEAFE',
     justifyContent: 'center',
     alignItems: 'center',
   },
   paymentText: {
-    color: '#222',
-    fontWeight: 'bold',
-    fontSize: 15,
+    color: '#1E293B',
+    fontWeight: '600',
+    fontSize: 16,
   },
   paymentSub: {
-    color: '#888',
-    fontSize: 12,
+    color: '#64748B',
+    fontSize: 14,
     marginTop: 2,
   },
   defaultBadge: {
@@ -682,27 +887,148 @@ const styles = StyleSheet.create({
   },
   signOutContainer: {
     paddingHorizontal: 0,
-    paddingTop: 20,
+    paddingTop: 24,
     paddingBottom: 0,
     backgroundColor: 'transparent',
   },
   signOutButton: {
     width: '100%',
-    borderRadius: 24,
-    paddingVertical: 14,
+    borderRadius: 16,
+    paddingVertical: 18,
     alignItems: 'center',
-    backgroundColor: '#FFF0F0',
-    borderWidth: 1,
-    borderColor: '#FFD6D6',
-    shadowColor: '#000',
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 2,
+    borderColor: '#FECACA',
+    shadowColor: '#EF4444',
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 2,
   },
   signOutText: {
-    color: '#FF3B30',
+    color: '#DC2626',
+    fontWeight: '700',
+    fontSize: 17,
+    letterSpacing: -0.3,
+  },
+  nameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    width: '100%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  modalTitle: {
+    fontSize: 18,
     fontWeight: 'bold',
+    color: '#222',
+  },
+  modalBody: {
+    padding: 20,
+  },
+  inputLabel: {
     fontSize: 16,
+    fontWeight: '600',
+    color: '#222',
+    marginBottom: 8,
+  },
+  nameInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    backgroundColor: '#f9f9f9',
+    marginBottom: 8,
+  },
+  inputHint: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 20,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+    gap: 12,
+  },
+  cancelButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: '#f5f5f5',
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#666',
+  },
+  saveButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: '#2563eb',
+    alignItems: 'center',
+  },
+  saveButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  settingsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  settingsIconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: '#DBEAFE',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  settingsText: {
+    color: '#1E293B',
+    fontWeight: '600',
+    fontSize: 17,
+  },
+  settingsSub: {
+    color: '#64748B',
+    fontSize: 15,
+    marginTop: 2,
   },
 });
 
