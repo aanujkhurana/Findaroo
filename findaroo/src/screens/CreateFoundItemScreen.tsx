@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, TextInput, ScrollView, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, Image, Switch, Modal } from 'react-native';
 import { Feather, MaterialIcons, FontAwesome, FontAwesome5 } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
 import { uploadImage, getSignedImageUrl } from '../utils/uploadImage';
@@ -11,17 +12,17 @@ import { supabase } from '../services/supabaseClient';
 import { getCurrentLocation, requestLocationPermissions } from '../utils/location';
 import { LocationPicker } from '../components/LocationPicker';
 
-const CATEGORIES: { key: Category; label: string; icon: React.ReactNode }[] = [
-  { key: 'electronics', label: 'Electronics', icon: <Feather name="smartphone" size={24} color="#6b7280" /> },
-  { key: 'clothing', label: 'Clothing', icon: <Feather name="shopping-bag" size={24} color="#6b7280" /> },
-  { key: 'accessories', label: 'Accessories', icon: <Feather name="eye" size={24} color="#6b7280" /> },
-  { key: 'keys', label: 'Keys', icon: <Feather name="key" size={24} color="#6b7280" /> },
-  { key: 'bags', label: 'Bags', icon: <Feather name="briefcase" size={24} color="#6b7280" /> },
-  { key: 'jewelry', label: 'Jewelry', icon: <FontAwesome5 name="gem" size={24} color="#6b7280" /> },
-  { key: 'sports', label: 'Sports', icon: <FontAwesome5 name="basketball-ball" size={24} color="#6b7280" /> },
-  { key: 'documents', label: 'Documents', icon: <Feather name="file-text" size={24} color="#6b7280" /> },
-  { key: 'pets', label: 'Pets', icon: <FontAwesome name="paw" size={24} color="#6b7280" /> },
-  { key: 'other', label: 'Other', icon: <Feather name="more-horizontal" size={24} color="#6b7280" /> },
+const CATEGORIES: { key: Category; label: string; icon: React.ReactNode; color: string }[] = [
+  { key: 'electronics', label: 'Electronics', icon: <Feather name="smartphone" size={16} color="#3A8DFF" />, color: '#F8FAFF' },
+  { key: 'clothing', label: 'Clothing', icon: <Feather name="shopping-bag" size={16} color="#33C48D" />, color: '#F8FDF9' },
+  { key: 'accessories', label: 'Accessories', icon: <Feather name="eye" size={16} color="#FFA930" />, color: '#FFFCF5' },
+  { key: 'keys', label: 'Keys', icon: <Feather name="key" size={16} color="#3A8DFF" />, color: '#F8FAFF' },
+  { key: 'bags', label: 'Bags', icon: <Feather name="briefcase" size={16} color="#33C48D" />, color: '#F8FDF9' },
+  { key: 'jewelry', label: 'Jewelry', icon: <FontAwesome5 name="gem" size={16} color="#FFA930" />, color: '#FFFCF5' },
+  { key: 'sports', label: 'Sports', icon: <FontAwesome5 name="basketball-ball" size={16} color="#3A8DFF" />, color: '#F8FAFF' },
+  { key: 'documents', label: 'Documents', icon: <Feather name="file-text" size={16} color="#33C48D" />, color: '#F8FDF9' },
+  { key: 'pets', label: 'Pets', icon: <FontAwesome name="paw" size={16} color="#FFA930" />, color: '#FFFCF5' },
+  { key: 'other', label: 'Other', icon: <Feather name="more-horizontal" size={16} color="#2E2E2E" />, color: '#F2F2F2' },
 ];
 
 interface FormData {
@@ -36,9 +37,9 @@ interface FormData {
 }
 
 const STEPS = [
-  { id: 1, title: 'What Did You Find?', subtitle: 'Describe the found item' },
-  { id: 2, title: 'Where & When?', subtitle: 'Where and when did you find it?' },
-  { id: 3, title: 'Help Return It', subtitle: 'Let us know if you want to help return it' },
+  { id: 1, title: 'Item Details', subtitle: 'Tell us what you found', icon: 'search' },
+  { id: 2, title: 'Location & Time', subtitle: 'Where and when did you find it?', icon: 'map-pin' },
+  { id: 3, title: 'Return Options', subtitle: 'Help us return it to the owner', icon: 'heart' },
 ];
 
 export const CreateFoundItemScreen = ({ navigation, route }: any) => {
@@ -330,40 +331,23 @@ export const CreateFoundItemScreen = ({ navigation, route }: any) => {
   // Step 1
   const renderStep1 = () => (
     <View style={styles.stepContainer}>
-      {/* Title */}
+      {/* Title Input */}
       <View style={styles.inputGroup}>
         <Text style={styles.inputLabel}>What did you find? *</Text>
-        <TextInput
-          style={styles.textInput}
-          placeholder="e.g., Found Black Wallet"
-          value={formData.title}
-          onChangeText={(text) => updateFormData('title', text)}
-          maxLength={100}
-        />
-        <Text style={styles.characterCount}>{formData.title.length}/100</Text>
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.textInput}
+            placeholder="e.g., Black leather wallet, iPhone 13..."
+            placeholderTextColor="#9CA3AF"
+            value={formData.title}
+            onChangeText={(text) => updateFormData('title', text)}
+            maxLength={100}
+          />
+          <Text style={styles.characterCount}>{formData.title.length}/100</Text>
+        </View>
       </View>
 
-      {/* Image Upload */}
-      <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>Add a Photo (Optional)</Text>
-        <TouchableOpacity style={styles.uploadButton} onPress={handlePickImage}>
-          <Feather name="camera" size={24} color="#6b7280" />
-          <Text style={styles.uploadButtonText}>Take Photo or Choose from Gallery</Text>
-        </TouchableOpacity>
-        {formData.image && (
-          <View style={{ alignItems: 'center', marginTop: 12 }}>
-            <Image source={{ uri: imagePreview || undefined }} style={{ width: 120, height: 120, borderRadius: 12 }} />
-            {/* Debug info */}
-            <View style={{ marginTop: 8, backgroundColor: '#f3f4f6', padding: 6, borderRadius: 6 }}>
-              <Text style={{ fontSize: 12, color: '#888' }}>Path: {formData.image}</Text>
-              <Text style={{ fontSize: 12, color: '#888' }}>URL: {debugSignedUrl}</Text>
-            </View>
-          </View>
-        )}
-        <Text style={styles.tipText}>📷 A photo (even from a distance) helps the owner confirm</Text>
-      </View>
-
-      {/* Categories */}
+      {/* Category Selection */}
       <View style={styles.inputGroup}>
         <Text style={styles.inputLabel}>Category *</Text>
         <View style={styles.categoryGrid}>
@@ -372,11 +356,15 @@ export const CreateFoundItemScreen = ({ navigation, route }: any) => {
               key={category.key}
               style={[
                 styles.categoryItem,
+                { backgroundColor: formData.category === category.key ? category.color : '#FFFFFF' },
                 formData.category === category.key && styles.categoryItemSelected
               ]}
               onPress={() => updateFormData('category', category.key)}
+              activeOpacity={0.7}
             >
-              {category.icon}
+              <View style={styles.categoryIconContainer}>
+                {category.icon}
+              </View>
               <Text style={[
                 styles.categoryLabel,
                 formData.category === category.key && styles.categoryLabelSelected
@@ -387,83 +375,149 @@ export const CreateFoundItemScreen = ({ navigation, route }: any) => {
           ))}
         </View>
       </View>
+
+      {/* Image Upload */}
+      <View style={styles.inputGroup}>
+        <Text style={styles.inputLabel}>Add a Photo (Optional)</Text>
+        <TouchableOpacity
+          style={styles.uploadButton}
+          onPress={handlePickImage}
+          activeOpacity={0.8}
+        >
+          <View style={styles.uploadIconContainer}>
+            <Feather name="camera" size={20} color="#4F46E5" />
+          </View>
+          <View style={styles.uploadTextContainer}>
+            <Text style={styles.uploadButtonText}>Take Photo or Choose from Gallery</Text>
+            <Text style={styles.uploadSubtext}>Helps the owner identify their item</Text>
+          </View>
+          <Feather name="chevron-right" size={16} color="#9CA3AF" />
+        </TouchableOpacity>
+
+        {formData.image && (
+          <View style={styles.imagePreviewContainer}>
+            <Image
+              source={{ uri: imagePreview || undefined }}
+              style={styles.imagePreview}
+            />
+            <TouchableOpacity
+              style={styles.removeImageButton}
+              onPress={() => updateFormData('image', undefined)}
+            >
+              <Feather name="x" size={16} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        )}
+
+        <View style={styles.tipContainer}>
+          <Feather name="info" size={14} color="#6B7280" />
+          <Text style={styles.tipText}>A photo helps the owner confirm it's their item</Text>
+        </View>
+      </View>
     </View>
   );
 
   // Step 2
   const renderStep2 = () => (
     <View style={styles.stepContainer}>
+      {/* Location */}
       <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>Location *</Text>
+        <Text style={styles.inputLabel}>Where did you find it? *</Text>
         <TouchableOpacity
-          style={styles.locationBox}
+          style={[styles.locationBox, locationError && styles.locationBoxError]}
           onPress={refreshLocation}
           disabled={locationLoading}
+          activeOpacity={0.8}
         >
-          <Feather
-            name="map-pin"
-            size={20}
-            color={locationError ? "#ef4444" : "#6b7280"}
-          />
-          <Text style={[
-            styles.locationText,
-            locationError && styles.locationTextError
-          ]}>
-            {locationLoading
-              ? 'Getting your location...'
-              : locationError
-                ? locationError
-                : formData.location?.address || 'Tap to detect location'
-            }
-          </Text>
-          {!locationLoading && (
-            <Feather name="refresh-cw" size={16} color="#6b7280" style={{ marginLeft: 8 }} />
+          <View style={styles.locationIconContainer}>
+            <Feather
+              name="map-pin"
+              size={18}
+              color={locationError ? "#EF4444" : "#4F46E5"}
+            />
+          </View>
+          <View style={styles.locationTextContainer}>
+            <Text style={[
+              styles.locationText,
+              locationError && styles.locationTextError
+            ]}>
+              {locationLoading
+                ? 'Getting your location...'
+                : locationError
+                  ? 'Unable to get location'
+                  : formData.location?.address || 'Tap to detect location'
+              }
+            </Text>
+            {!locationLoading && !locationError && (
+              <Text style={styles.locationSubtext}>Tap to refresh</Text>
+            )}
+          </View>
+          {locationLoading ? (
+            <ActivityIndicator size="small" color="#4F46E5" />
+          ) : (
+            <Feather name="refresh-cw" size={16} color="#9CA3AF" />
           )}
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.manualLocationButton}
           onPress={() => setShowLocationPicker(true)}
+          activeOpacity={0.8}
         >
-          <Feather name="edit-3" size={16} color="#3b82f6" />
+          <Feather name="edit-3" size={16} color="#4F46E5" />
           <Text style={styles.manualLocationText}>Choose Different Location</Text>
         </TouchableOpacity>
 
-        <Text style={styles.tipText}>
-          📍 Only an approximate location is shown publicly
-          {!locationLoading && '\n🔄 Tap to refresh location or choose manually'}
-        </Text>
-        {locationError && (
-          <Text style={styles.errorText}>
-            💡 Make sure location services are enabled in your device settings
-          </Text>
-        )}
+        <View style={styles.tipContainer}>
+          <Feather name="shield" size={14} color="#6B7280" />
+          <Text style={styles.tipText}>Only approximate location is shown publicly for privacy</Text>
+        </View>
       </View>
+
+      {/* Date Found */}
       <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>Date Found *</Text>
+        <Text style={styles.inputLabel}>When did you find it? *</Text>
         <TouchableOpacity
           style={styles.dateButton}
           onPress={() => setShowDatePicker(true)}
+          activeOpacity={0.8}
         >
-          <Feather name="calendar" size={20} color="#6b7280" />
+          <View style={styles.dateIconContainer}>
+            <Feather name="calendar" size={18} color="#4F46E5" />
+          </View>
           <Text style={styles.dateButtonText}>
-            {formData.dateFound.toLocaleDateString()}
+            {formData.dateFound.toLocaleDateString('en-US', {
+              weekday: 'short',
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric'
+            })}
           </Text>
+          <Feather name="chevron-right" size={16} color="#9CA3AF" />
         </TouchableOpacity>
       </View>
+
+      {/* Description */}
       <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>Description</Text>
-        <TextInput
-          style={[styles.textInput, styles.textArea]}
-          placeholder="Add details like brand, color, unique features, contents..."
-          value={formData.description}
-          onChangeText={(text) => updateFormData('description', text)}
-          multiline
-          numberOfLines={4}
-          maxLength={500}
-        />
-        <Text style={styles.characterCount}>{formData.description.length}/500</Text>
-        <Text style={styles.tipText}>💡 Tip: Be specific about identifiable features or contents</Text>
+        <Text style={styles.inputLabel}>Additional Details (Optional)</Text>
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={[styles.textInput, styles.textArea]}
+            placeholder="Describe the item's condition, brand, color, unique features..."
+            placeholderTextColor="#9CA3AF"
+            value={formData.description}
+            onChangeText={(text) => updateFormData('description', text)}
+            multiline
+            numberOfLines={4}
+            maxLength={500}
+            textAlignVertical="top"
+          />
+          <Text style={styles.characterCount}>{formData.description.length}/500</Text>
+        </View>
+        <View style={styles.tipContainer}>
+          <Feather name="eye" size={14} color="#6B7280" />
+          <Text style={styles.tipText}>Specific details help the owner identify their item</Text>
+        </View>
       </View>
     </View>
   );
@@ -530,20 +584,30 @@ export const CreateFoundItemScreen = ({ navigation, route }: any) => {
     <SafeAreaView style={styles.safeArea}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={handleBack}>
-          <Feather name="arrow-left" size={24} color="#222" />
+        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+          <Feather name="arrow-left" size={24} color="#111827" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{editMode ? 'Edit Found Item' : 'Report Found Item'}</Text>
-        <View style={{ width: 24 }} />
+        <Text style={styles.headerTitle}>
+          {editMode ? 'Edit Found Item' : 'Report Found Item'}
+        </Text>
+        <View style={{ width: 40 }} />
       </View>
-      {/* Progress Bar */}
+
+      {/* Progress Indicator */}
       <View style={styles.progressContainer}>
-        <View style={styles.progressRow}>
+        <View style={styles.progressHeader}>
           <Text style={styles.progressStep}>Step {currentStep} of 3</Text>
-          <Text style={styles.progressLabel}>{STEPS[currentStep - 1].title}</Text>
+          <Text style={styles.progressPercentage}>{Math.round((currentStep / 3) * 100)}%</Text>
         </View>
-        <View style={styles.progressBarBg}>
-          <View style={[styles.progressBarFill, { width: `${(currentStep / 3) * 100}%` }]} />
+        <View style={styles.progressBarContainer}>
+          <View style={styles.progressBarBg}>
+            <LinearGradient
+              colors={['#4F46E5', '#7C3AED']}
+              style={[styles.progressBarFill, { width: `${(currentStep / 3) * 100}%` }]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            />
+          </View>
         </View>
       </View>
       {/* Main Content */}
@@ -553,8 +617,13 @@ export const CreateFoundItemScreen = ({ navigation, route }: any) => {
       >
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
           <View style={styles.stepHeader}>
-            <View style={styles.iconCircle}>
-              <Feather name="search" size={28} color="#fbbf24" />
+            <View style={styles.stepIconContainer}>
+              <LinearGradient
+                colors={['#EEF2FF', '#E0E7FF']}
+                style={styles.stepIconCircle}
+              >
+                <Feather name={STEPS[currentStep - 1].icon as any} size={24} color="#3A8DFF" />
+              </LinearGradient>
             </View>
             <Text style={styles.stepTitle}>{STEPS[currentStep - 1].title}</Text>
             <Text style={styles.stepSubtitle}>{STEPS[currentStep - 1].subtitle}</Text>
@@ -563,31 +632,47 @@ export const CreateFoundItemScreen = ({ navigation, route }: any) => {
         </ScrollView>
       </KeyboardAvoidingView>
       {/* Footer */}
-      <View style={styles.footerRow}>
+      <View style={styles.footer}>
         <TouchableOpacity
-          style={styles.backBtn}
+          style={styles.footerBackButton}
           onPress={handleBack}
           disabled={createLoading}
+          activeOpacity={0.8}
         >
-          <Text style={styles.backBtnText}>
+          <Text style={styles.backButtonText}>
             {currentStep === 1 ? 'Cancel' : 'Back'}
           </Text>
         </TouchableOpacity>
+
         <TouchableOpacity
           style={[
-            styles.nextBtn,
-            (!canProceedToNext() || createLoading) && styles.nextBtnDisabled
+            styles.nextButton,
+            (!canProceedToNext() || createLoading) && styles.nextButtonDisabled
           ]}
           disabled={!canProceedToNext() || createLoading}
           onPress={handleNext}
+          activeOpacity={0.8}
         >
-          {createLoading ? (
-            <ActivityIndicator color="#fff" size="small" />
-          ) : (
-            <Text style={styles.nextBtnText}>
-              {currentStep === 3 ? (editMode ? 'Update Item' : 'Post Found Item') : 'Next Step'}
-            </Text>
-          )}
+          <LinearGradient
+            colors={(!canProceedToNext() || createLoading)
+              ? ['#E5E7EB', '#E5E7EB']
+              : ['#4F46E5', '#7C3AED']
+            }
+            style={styles.nextButtonGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          >
+            {createLoading ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <>
+                <Text style={styles.nextButtonText}>
+                  {currentStep === 3 ? (editMode ? 'Update Item' : 'Post Found Item') : 'Continue'}
+                </Text>
+                <Feather name="arrow-right" size={16} color="#fff" style={{ marginLeft: 8 }} />
+              </>
+            )}
+          </LinearGradient>
         </TouchableOpacity>
       </View>
       {/* Date Picker Modal */}
@@ -623,73 +708,507 @@ export const CreateFoundItemScreen = ({ navigation, route }: any) => {
 };
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#f6faff' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 18, paddingBottom: 8 },
-  headerTitle: { fontWeight: 'bold', fontSize: 20, color: '#222' },
-  progressContainer: { paddingHorizontal: 24, marginBottom: 2 },
-  progressRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 },
-  progressStep: { color: '#38bdf8', fontWeight: 'bold', fontSize: 15 },
-  progressLabel: { fontWeight: 'bold', fontSize: 15, color: '#222' },
-  progressPercent: { color: '#38bdf8', fontWeight: 'bold', fontSize: 15 },
-  progressBarBg: { height: 6, backgroundColor: '#e5e7eb', borderRadius: 3, marginHorizontal: 24, marginBottom: 18 },
-  progressBarFill: { width: '25%', height: 6, backgroundColor: '#38bdf8', borderRadius: 3 },
-  contentContainer: { flex: 1 },
-  scrollView: { flex: 1 },
-  stepHeader: { alignItems: 'center', marginBottom: 18 },
-  iconCircle: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
-  stepTitle: { fontWeight: 'bold', fontSize: 24, color: '#222', textAlign: 'center' },
-  stepSubtitle: { fontSize: 15, color: '#6b7280', textAlign: 'center', marginTop: 4 },
-  stepContainer: { backgroundColor: '#fff', borderRadius: 16, padding: 24, marginBottom: 18, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 3 },
-  inputGroup: { marginBottom: 18 },
-  inputLabel: { color: '#6b7280', fontSize: 14, marginBottom: 4 },
-  textInput: { borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, padding: 14, backgroundColor: '#fff', fontSize: 15, marginBottom: 8 },
-  textArea: { minHeight: 60, paddingTop: 0 },
-  characterCount: { color: '#b0b0b0', fontSize: 12, textAlign: 'right', marginTop: -8 },
-  tipText: { color: '#6b7280', fontSize: 13, marginTop: 8 },
-  categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: 8 },
-  categoryItem: { width: '48%', aspectRatio: 1.2, backgroundColor: '#f9fafb', borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginBottom: 10, borderWidth: 1, borderColor: '#e5e7eb' },
-  categoryItemSelected: { backgroundColor: '#e0f2fe', borderColor: '#38bdf8' },
-  categoryLabel: { fontWeight: 'bold', fontSize: 13, color: '#222', marginTop: 8 },
-  categoryLabelSelected: { color: '#38bdf8' },
-  locationBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f9fafb', borderRadius: 10, padding: 12, marginBottom: 8 },
-  locationText: { color: '#222', fontSize: 15, marginLeft: 10 },
-  locationTextError: { color: '#ef4444' },
-  errorText: { color: '#ef4444', fontSize: 12, marginTop: 4, fontStyle: 'italic' },
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#FAFBFC'
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6'
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F9FAFB',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  headerTitle: {
+    fontWeight: '700',
+    fontSize: 18,
+    color: '#111827',
+    flex: 1,
+    textAlign: 'center'
+  },
+  progressContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: '#FFFFFF'
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12
+  },
+  progressStep: {
+    color: '#4F46E5',
+    fontWeight: '600',
+    fontSize: 14
+  },
+  progressPercentage: {
+    color: '#6B7280',
+    fontWeight: '500',
+    fontSize: 14
+  },
+  progressBarContainer: {
+    paddingHorizontal: 4
+  },
+  progressBarBg: {
+    height: 4,
+    backgroundColor: '#E5E7EB',
+    borderRadius: 2,
+    overflow: 'hidden'
+  },
+  progressBarFill: {
+    height: 4,
+    borderRadius: 2
+  },
+  contentContainer: {
+    flex: 1
+  },
+  scrollView: {
+    flex: 1,
+    paddingHorizontal: 20
+  },
+  stepHeader: {
+    alignItems: 'center',
+    paddingVertical: 32
+  },
+  stepIconContainer: {
+    marginBottom: 16
+  },
+  stepIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4
+  },
+  stepTitle: {
+    fontWeight: '700',
+    fontSize: 24,
+    color: '#111827',
+    textAlign: 'center',
+    marginBottom: 8
+  },
+  stepSubtitle: {
+    fontSize: 16,
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 24
+  },
+  stepContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 24,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2
+  },
+  inputGroup: {
+    marginBottom: 20
+  },
+  inputLabel: {
+    color: '#374151',
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 12
+  },
+  inputContainer: {
+    position: 'relative'
+  },
+  textInput: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 16,
+    padding: 16,
+    backgroundColor: '#FFFFFF',
+    fontSize: 16,
+    color: '#111827',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.02,
+    shadowRadius: 4,
+    elevation: 1
+  },
+  textArea: {
+    minHeight: 100,
+    textAlignVertical: 'top',
+    paddingTop: 16
+  },
+  characterCount: {
+    color: '#9CA3AF',
+    fontSize: 12,
+    textAlign: 'right',
+    marginTop: 8,
+    position: 'absolute',
+    right: 0,
+    bottom: -20
+  },
+  tipContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginTop: 12,
+    paddingHorizontal: 4
+  },
+  tipText: {
+    color: '#6B7280',
+    fontSize: 13,
+    lineHeight: 18,
+    marginLeft: 8,
+    flex: 1
+  },
+  categoryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 8
+  },
+  categoryItem: {
+    width: '31%',
+    aspectRatio: 1.1,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    paddingVertical: 8,
+    paddingHorizontal: 4
+  },
+  categoryItemSelected: {
+    borderColor: '#3A8DFF',
+    shadowColor: '#3A8DFF',
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2
+  },
+  categoryIconContainer: {
+    marginBottom: 4
+  },
+  categoryLabel: {
+    fontWeight: '500',
+    fontSize: 11,
+    color: '#2E2E2E',
+    textAlign: 'center',
+    lineHeight: 14
+  },
+  categoryLabelSelected: {
+    color: '#3A8DFF',
+    fontWeight: '600'
+  },
+  uploadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    borderStyle: 'dashed'
+  },
+  uploadIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#EEF2FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12
+  },
+  uploadTextContainer: {
+    flex: 1
+  },
+  uploadButtonText: {
+    color: '#374151',
+    fontSize: 15,
+    fontWeight: '600',
+    marginBottom: 2
+  },
+  uploadSubtext: {
+    color: '#9CA3AF',
+    fontSize: 13
+  },
+  imagePreviewContainer: {
+    alignItems: 'center',
+    marginTop: 16,
+    position: 'relative'
+  },
+  imagePreview: {
+    width: 120,
+    height: 120,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6'
+  },
+  removeImageButton: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#EF4444',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  locationBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.02,
+    shadowRadius: 4,
+    elevation: 1
+  },
+  locationBoxError: {
+    borderColor: '#FCA5A5',
+    backgroundColor: '#FEF2F2'
+  },
+  locationIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#EEF2FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12
+  },
+  locationTextContainer: {
+    flex: 1
+  },
+  locationText: {
+    color: '#374151',
+    fontSize: 15,
+    fontWeight: '500',
+    marginBottom: 2
+  },
+  locationSubtext: {
+    color: '#9CA3AF',
+    fontSize: 12
+  },
+  locationTextError: {
+    color: '#EF4444'
+  },
   manualLocationButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f0f9ff',
-    borderRadius: 8,
+    backgroundColor: '#F0F9FF',
+    borderRadius: 12,
     padding: 12,
-    marginTop: 8,
+    marginTop: 12,
     borderWidth: 1,
-    borderColor: '#bfdbfe',
+    borderColor: '#BFDBFE',
   },
   manualLocationText: {
-    color: '#3b82f6',
+    color: '#1D4ED8',
     fontSize: 14,
     fontWeight: '600',
     marginLeft: 6,
   },
-  dateButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f9fafb', borderRadius: 10, padding: 12, marginBottom: 8 },
-  dateButtonText: { color: '#222', fontSize: 15, marginLeft: 10 },
-  uploadButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f9fafb', borderRadius: 10, padding: 12, marginBottom: 8 },
-  uploadButtonText: { color: '#222', fontSize: 15, marginLeft: 10 },
-  uploadedImage: { width: '100%', height: 100, borderRadius: 10 },
-  previewContainer: { marginTop: 18 },
-  previewTitle: { fontWeight: 'bold', fontSize: 17, color: '#222', marginBottom: 10 },
-  previewCard: { backgroundColor: '#f9fafb', borderRadius: 12, padding: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 3 },
-  previewItemTitle: { fontWeight: 'bold', fontSize: 16, color: '#222', marginBottom: 4 },
-  previewCategory: { color: '#6b7280', fontSize: 13, marginBottom: 4 },
-  previewDescription: { color: '#6b7280', fontSize: 13, marginBottom: 4 },
-  previewLocation: { color: '#6b7280', fontSize: 13 },
-  toggleRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
-  toggleLabel: { color: '#6b7280', fontSize: 13, marginLeft: 10 },
-  footerRow: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 24, paddingBottom: 24 },
-  backBtn: { paddingVertical: 12, paddingHorizontal: 16 },
-  backBtnText: { color: '#6b7280', fontSize: 15 },
-  nextBtn: { backgroundColor: '#22c55e', borderRadius: 12, paddingVertical: 16, alignItems: 'center' },
-  nextBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 17 },
-  nextBtnDisabled: { backgroundColor: '#e5e7eb', opacity: 0.7 },
-}); 
+  dateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.02,
+    shadowRadius: 4,
+    elevation: 1
+  },
+  dateIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#EEF2FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12
+  },
+  dateButtonText: {
+    color: '#374151',
+    fontSize: 15,
+    fontWeight: '500',
+    flex: 1
+  },
+  optionCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.02,
+    shadowRadius: 4,
+    elevation: 1
+  },
+  optionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center'
+  },
+  optionIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F9FAFB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12
+  },
+  optionTextContainer: {
+    flex: 1
+  },
+  optionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 2
+  },
+  optionSubtitle: {
+    fontSize: 13,
+    color: '#6B7280',
+    lineHeight: 18
+  },
+  previewContainer: {
+    marginTop: 24
+  },
+  previewTitle: {
+    fontWeight: '700',
+    fontSize: 18,
+    color: '#374151',
+    marginBottom: 16
+  },
+  previewCard: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#E5E7EB'
+  },
+  previewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16
+  },
+  previewIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#DCFCE7',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12
+  },
+  previewItemTitle: {
+    fontWeight: '700',
+    fontSize: 16,
+    color: '#374151',
+    flex: 1
+  },
+  previewDetails: {
+    gap: 12
+  },
+  previewRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start'
+  },
+  previewText: {
+    color: '#6B7280',
+    fontSize: 14,
+    marginLeft: 8,
+    flex: 1,
+    lineHeight: 20
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6'
+  },
+  footerBackButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12
+  },
+  backButtonText: {
+    color: '#6B7280',
+    fontSize: 16,
+    fontWeight: '600'
+  },
+  nextButton: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    flex: 1,
+    marginLeft: 16
+  },
+  nextButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 24
+  },
+  nextButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 16
+  },
+  nextButtonDisabled: {
+    opacity: 0.6
+  },
+  // Legacy styles for Step 3 (to be replaced)
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8
+  },
+  toggleLabel: {
+    color: '#6B7280',
+    fontSize: 13,
+    marginLeft: 10
+  },
+  previewCategory: {
+    color: '#6B7280',
+    fontSize: 13,
+    marginBottom: 4
+  },
+  previewDescription: {
+    color: '#6B7280',
+    fontSize: 13,
+    marginBottom: 4
+  },
+  previewLocation: {
+    color: '#6B7280',
+    fontSize: 13
+  },
+});
