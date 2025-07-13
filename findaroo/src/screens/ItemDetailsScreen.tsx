@@ -439,7 +439,10 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
             </View>
             <View style={styles.noImageContent}>
               <Text style={styles.noImageTitle}>{item.title}</Text>
-              <Text style={styles.noImageCategory}>{item.category}</Text>
+              <View style={styles.noImageMeta}>
+                <Text style={styles.noImageCategory}>{item.category}</Text>
+                <Text style={styles.noImageTime}>{formatRelativeDate(item.created_at)}</Text>
+              </View>
             </View>
             <View style={[styles.statusBadge, getStatusBadgeStyle(item.status)]}>
               <Feather name={getStatusIcon(item.status)} size={14} color={getStatusColor(item.status)} />
@@ -451,27 +454,33 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
         )}
         {/* Combined Item Details Card */}
         <View style={styles.card}>
-          <View style={styles.itemHeader}>
-            <Text style={styles.itemTitle}>{item.title}</Text>
-            <View style={styles.statusRow}>
-              <View style={[styles.statusBadge, getStatusBadgeStyle(item.status)]}>
-                <Feather name={getStatusIcon(item.status)} size={14} color={getStatusColor(item.status)} />
-                <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
-                  {getStatusLabel(item.status)}
-                </Text>
+          {/* Only show header if there's an image (to avoid duplication with no-image row) */}
+          {mainImageUrl && (
+            <View style={styles.itemHeader}>
+              <Text style={styles.itemTitle}>{item.title}</Text>
+              <View style={styles.statusRow}>
+                <View style={[styles.statusBadge, getStatusBadgeStyle(item.status)]}>
+                  <Feather name={getStatusIcon(item.status)} size={14} color={getStatusColor(item.status)} />
+                  <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
+                    {getStatusLabel(item.status)}
+                  </Text>
+                </View>
+                <Text style={styles.statusTime}>{formatRelativeDate(item.created_at)}</Text>
               </View>
-              <Text style={styles.statusTime}>{formatRelativeDate(item.created_at)}</Text>
             </View>
-          </View>
+          )}
 
           <Text style={styles.sectionLabel}>Description</Text>
           <Text style={styles.itemDesc}>{item.description || 'No description provided.'}</Text>
 
           <View style={styles.itemMetaRow}>
-            <View style={styles.metaBox}>
-              {getCategoryIcon(item.category, 18, COLORS.secondary)}
-              <Text style={styles.metaText}>{item.category}</Text>
-            </View>
+            {/* Only show category if there's an image (to avoid duplication) */}
+            {mainImageUrl && (
+              <View style={styles.metaBox}>
+                {getCategoryIcon(item.category, 18, COLORS.secondary)}
+                <Text style={styles.metaText}>{item.category}</Text>
+              </View>
+            )}
             {item.reward_amount && (
               <View style={styles.metaBox}>
                 <Feather name="gift" size={18} color={COLORS.success} />
@@ -487,6 +496,35 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
                   Tips: ${totalTips.toFixed(2)}
                 </Text>
               </View>
+            )}
+          </View>
+
+          {/* Call to Action Button */}
+          <View style={styles.ctaContainer}>
+            {item.status === 'lost' ? (
+              <TouchableOpacity
+                style={[styles.ctaButton, styles.ctaButtonPrimary]}
+                onPress={() => navigation.navigate('Chat', {
+                  itemId: item.id,
+                  otherUserId: owner?.id,
+                  otherUserName: owner?.full_name,
+                })}
+              >
+                <Feather name="message-circle" size={20} color="#fff" />
+                <Text style={styles.ctaButtonText}>I Found This Item!</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={[styles.ctaButton, styles.ctaButtonSecondary]}
+                onPress={() => navigation.navigate('Chat', {
+                  itemId: item.id,
+                  otherUserId: owner?.id,
+                  otherUserName: owner?.full_name,
+                })}
+              >
+                <Feather name="user-check" size={20} color="#fff" />
+                <Text style={styles.ctaButtonText}>This Is Mine!</Text>
+              </TouchableOpacity>
             )}
           </View>
         </View>
@@ -854,10 +892,20 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     marginBottom: 4,
   },
+  noImageMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   noImageCategory: {
     fontSize: 14,
     color: COLORS.muted,
     textTransform: 'capitalize',
+  },
+  noImageTime: {
+    fontSize: 12,
+    color: COLORS.muted,
+    opacity: 0.8,
   },
 
   // Card
@@ -932,6 +980,40 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginLeft: 6,
     textTransform: 'capitalize',
+  },
+
+  // Call to Action Button
+  ctaContainer: {
+    marginTop: 20,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  ctaButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+    gap: 12,
+  },
+  ctaButtonPrimary: {
+    backgroundColor: COLORS.success,
+  },
+  ctaButtonSecondary: {
+    backgroundColor: COLORS.primary,
+  },
+  ctaButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
   },
 
   // Location Section
