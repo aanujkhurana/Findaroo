@@ -18,8 +18,8 @@ import { MaterialIcons, Feather, FontAwesome5 } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useCreateItem } from '../hooks/useCreateItem';
 import { useAuth } from '../hooks/useAuth';
-import { useItems } from '../hooks/useItems';
 import { Category, LocationCoords } from '../types';
+import { supabase } from '../services/supabaseClient';
 import * as ImagePicker from 'expo-image-picker';
 import { uploadImage, getSignedImageUrl } from '../utils/uploadImage';
 import { getCurrentLocation, requestLocationPermissions } from '../utils/location';
@@ -59,11 +59,39 @@ const STEPS = [
 export const CreateLostItemScreen = ({ navigation, route }: any) => {
   const { user } = useAuth();
   const { createItem, loading: createLoading } = useCreateItem();
-  const { updateItem } = useItems();
 
   // Check if we're in edit mode
   const editMode = route?.params?.editMode || false;
   const itemData = route?.params?.itemData || null;
+  const originalLocationName = editMode && itemData ? itemData.location_name : null;
+
+  // Create dedicated update function
+  const updateItem = async (id: string, updates: any) => {
+    try {
+      // Convert location to PostGIS format if it exists
+      let processedUpdates = { ...updates };
+      if (updates.location && updates.location.latitude && updates.location.longitude) {
+        // Convert to PostGIS POINT format: POINT(longitude latitude)
+        processedUpdates.location = `POINT(${updates.location.longitude} ${updates.location.latitude})`;
+      }
+
+      const { data, error } = await supabase
+        .from('items')
+        .update(processedUpdates)
+        .eq('id', id)
+        .select(`
+          *,
+          user:users(id, full_name, profile_pic)
+        `)
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error: any) {
+      console.error('Error updating item:', error);
+      throw error;
+    }
+  };
   const [currentStep, setCurrentStep] = useState(1);
   // Remove the local loading state since we're using the hook's loading state
 const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -77,7 +105,7 @@ const [formData, setFormData] = useState<FormData>(() => {
       title: itemData.title || '',
       category: itemData.category || null,
       description: itemData.description || '',
-      location: itemData.location || null,
+      location: null, // Don't set location from itemData - let user re-select if needed
       dateLost: itemData.created_at ? new Date(itemData.created_at) : new Date(),
       timeRange: '',
       image: itemData.image || undefined,
@@ -241,14 +269,19 @@ useEffect(() => {
     try {
       if (editMode && itemData) {
         // Update existing item
-        const updates = {
+        const updates: any = {
           title: formData.title.trim(),
           description: formData.description.trim(),
           category: formData.category,
-          location: formData.location,
           image: formData.image,
           reward_amount: formData.offerReward ? formData.rewardAmount : undefined,
         };
+
+        // Only include location if it has been set (user selected a new location)
+        if (formData.location && formData.location.latitude && formData.location.longitude) {
+          updates.location = formData.location;
+          updates.location_name = formData.location.address || null;
+        }
 
         const updatedItem = await updateItem(itemData.id, updates);
 
@@ -392,7 +425,7 @@ useEffect(() => {
               ? 'Getting your location...'
               : locationError
                 ? locationError
-                : formData.location?.address || 'Tap to detect location'
+                : formData.location?.address || originalLocationName || 'Tap to detect location'
             }
           </Text>
           {!locationLoading && (
@@ -489,7 +522,7 @@ useEffect(() => {
             <Text style={styles.previewDescription}>{formData.description}</Text>
           )}
           <Text style={styles.previewLocation}>
-            📍 {formData.location?.address || 'Location'}
+            📍 {formData.location?.address || originalLocationName || 'Location'}
           </Text>
           {formData.offerReward && formData.rewardAmount && (
             <Text style={styles.previewReward}>

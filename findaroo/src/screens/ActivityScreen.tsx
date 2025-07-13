@@ -141,8 +141,12 @@ export default function ActivityScreen() {
     return userItems.map(item => {
       const statusInfo = getStatusInfo(item);
       return {
-        ...item,
-        ...statusInfo,
+        ...item, // Keep all original item properties
+        // Add display properties with different names to avoid conflicts
+        displayStatus: statusInfo.status,
+        statusLabel: statusInfo.statusLabel,
+        statusColor: statusInfo.statusColor,
+        statusTextColor: statusInfo.statusTextColor,
         icon: getCategoryIcon(item.category, statusInfo.statusTextColor),
         type: item.status === 'lost' ? 'Lost' : 'Found',
         date: formatRelativeDate(item.created_at),
@@ -173,30 +177,43 @@ export default function ActivityScreen() {
     if (filter === 'all') {
       return allUserItems;
     }
-    return allUserItems.filter(item => item.status === filter);
+    return allUserItems.filter(item => item.displayStatus === filter);
   }, [allUserItems, filter]);
 
   // Handle edit item
-  const handleEditItem = (item: Item) => {
-    console.log('[ActivityScreen] Edit button pressed for item:', item.title, 'Status:', item.status);
-    if (item.status === 'lost') {
-      console.log('[ActivityScreen] Navigating to CreateLostItem with edit mode');
+  const handleEditItem = (originalItem: Item) => {
+    // Clean the item data to remove non-serializable properties
+    const cleanItemData = {
+      id: originalItem.id,
+      title: originalItem.title,
+      description: originalItem.description,
+      category: originalItem.category,
+      status: originalItem.status,
+      location_name: originalItem.location_name,
+      reward_amount: originalItem.reward_amount,
+      image: originalItem.image,
+      resolved: originalItem.resolved,
+      created_at: originalItem.created_at,
+      user_id: originalItem.user_id,
+      // Add any other needed properties but exclude display-only ones like icon
+    };
+
+    // Use the original database status, not the transformed display status
+    if (originalItem.status === 'lost') {
       navigation.navigate('CreateLostItem', {
         editMode: true,
-        itemData: item
+        itemData: cleanItemData
       });
-    } else if (item.status === 'found') {
-      console.log('[ActivityScreen] Navigating to CreateFoundItem with edit mode');
+    } else if (originalItem.status === 'found') {
       navigation.navigate('CreateFoundItem', {
         editMode: true,
-        itemData: item
+        itemData: cleanItemData
       });
     }
   };
 
   // Handle delete item
   const handleDeleteItem = (item: Item) => {
-    console.log('[ActivityScreen] Delete button pressed for item:', item.title);
     Alert.alert(
       'Delete Item',
       `Are you sure you want to delete "${item.title}"? This action cannot be undone.`,
