@@ -43,12 +43,12 @@ const CATEGORY_OPTIONS: { value: Category | undefined; label: string }[] = [
 ];
 
 const DISTANCE_OPTIONS = [
-  { value: undefined, label: 'Any Distance', icon: '🌍' },
-  { value: 1, label: 'Within 1km', icon: '🚶' },
-  { value: 5, label: 'Within 5km', icon: '🚴' },
-  { value: 10, label: 'Within 10km', icon: '🚗' },
-  { value: 25, label: 'Within 25km', icon: '🚌' },
-  { value: 50, label: 'Within 50km', icon: '🚄' },
+  { value: undefined, label: 'Any Distance', icon: <Feather name="globe" size={16} color={COLORS.muted} /> },
+  { value: 1, label: 'Within 1km', icon: <Feather name="user" size={16} color={COLORS.muted} /> },
+  { value: 5, label: 'Within 5km', icon: <Feather name="zap" size={16} color={COLORS.muted} /> },
+  { value: 10, label: 'Within 10km', icon: <Feather name="truck" size={16} color={COLORS.muted} /> },
+  { value: 25, label: 'Within 25km', icon: <Feather name="navigation" size={16} color={COLORS.muted} /> },
+  { value: 50, label: 'Within 50km', icon: <Feather name="navigation-2" size={16} color={COLORS.muted} /> },
 ];
 
 function parsePointString(pointStr: string | undefined) {
@@ -292,7 +292,7 @@ export const HomeFeedScreen = ({ navigation }: any) => {
                   style={[styles.modalOption, selected && styles.modalOptionSelected]}
                   onPress={() => setMaxDistance(option.value)}
                 >
-                  <Text style={styles.modalOptionIcon}>{option.icon}</Text>
+                  <View style={styles.modalOptionIcon}>{option.icon}</View>
                   <Text style={[styles.modalOptionText, selected && styles.modalOptionTextSelected]}>
                     {selected ? '✓ ' : ''}{option.label}
                   </Text>
@@ -580,6 +580,74 @@ const styles = StyleSheet.create({
   },
   errorContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
   errorText: { color: '#ef4444', fontSize: 16, marginBottom: 12 },
+
+  // Distance Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: COLORS.background,
+    borderRadius: 16,
+    padding: 20,
+    marginHorizontal: 20,
+    maxHeight: '80%',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  modalOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.card,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: 8,
+  },
+  modalOptionSelected: {
+    backgroundColor: `${COLORS.primary}10`,
+    borderColor: COLORS.primary,
+  },
+  modalOptionIcon: {
+    marginRight: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalOptionText: {
+    fontSize: 16,
+    color: COLORS.text,
+    flex: 1,
+  },
+  modalOptionTextSelected: {
+    color: COLORS.primary,
+    fontWeight: '500',
+  },
+  modalSeparator: {
+    height: 1,
+    backgroundColor: COLORS.border,
+    marginVertical: 12,
+  },
+  modalCloseBtn: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 16,
+    alignItems: 'center',
+  },
+  modalCloseText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 16,
+  },
 
   // Category Modal styles
   categoryModalContainer: {

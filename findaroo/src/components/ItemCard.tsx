@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { Item, LocationCoords } from '../types';
 import { getSignedImageUrl } from '../utils/uploadImage';
 import { calculateDistance, formatDistance } from '../utils/location';
@@ -49,20 +50,26 @@ export const ItemCard: React.FC<ItemCardProps> = ({ item, onPress, userLocation,
     }
   };
 
-  const getCategoryIcon = (category: string) => {
-    const icons: { [key: string]: string } = {
-      electronics: '📱',
-      clothing: '👕',
-      accessories: '👜',
-      documents: '📄',
-      keys: '🔑',
-      bags: '🎒',
-      pets: '🐕',
-      jewelry: '💍',
-      sports: '⚽',
-      other: '📦',
+  const getCategoryIcon = (category: string, color: string = COLORS.muted) => {
+    const iconMap: { [key: string]: string } = {
+      electronics: 'smartphone',
+      phone: 'smartphone',
+      keys: 'key',
+      wallet: 'credit-card',
+      bags: 'briefcase',
+      bag: 'briefcase',
+      clothing: 'shopping-bag',
+      accessories: 'eye',
+      jewelry: 'star',
+      documents: 'file-text',
+      pets: 'heart',
+      pet: 'heart',
+      sports: 'activity',
+      other: 'package',
     };
-    return icons[category] || '📦';
+
+    const iconName = iconMap[category?.toLowerCase()] || 'package';
+    return <Feather name={iconName as any} size={22} color={color} />;
   };
 
   const formatDate = (dateString: string) => {
@@ -141,7 +148,9 @@ export const ItemCard: React.FC<ItemCardProps> = ({ item, onPress, userLocation,
             resizeMode="cover"
           />
         ) : (
-          <Text style={styles.categoryEmoji}>{getCategoryIcon(item.category)}</Text>
+          <View style={styles.categoryIconContainer}>
+            {getCategoryIcon(item.category)}
+          </View>
         )}
       </View>
 
@@ -169,22 +178,31 @@ export const ItemCard: React.FC<ItemCardProps> = ({ item, onPress, userLocation,
 
         {/* Reward Row */}
         {item.reward_amount && item.reward_amount > 0 && (
-          <Text style={styles.rewardText}>
-            💰 Reward: ${item.reward_amount}
-          </Text>
+          <View style={styles.rewardRow}>
+            <Feather name="dollar-sign" size={14} color={COLORS.matchedText} />
+            <Text style={styles.rewardText}>
+              Reward: ${item.reward_amount}
+            </Text>
+          </View>
         )}
 
         {/* Footer Row */}
         <View style={styles.itemFooterRow}>
           <View style={styles.itemFooterLeft}>
             {isLocationObject(item.location) ? (
-              <Text style={styles.itemFooterText} numberOfLines={1}>
-                📍 {item.location.address || 'Location available'}
-              </Text>
+              <View style={styles.locationRow}>
+                <Feather name="map-pin" size={12} color={COLORS.muted} />
+                <Text style={styles.itemFooterText} numberOfLines={1}>
+                  {item.location.address || 'Location available'}
+                </Text>
+              </View>
             ) : item.location_name ? (
-              <Text style={styles.itemFooterText} numberOfLines={1}>
-                📍 {item.location_name}
-              </Text>
+              <View style={styles.locationRow}>
+                <Feather name="map-pin" size={12} color={COLORS.muted} />
+                <Text style={styles.itemFooterText} numberOfLines={1}>
+                  {item.location_name}
+                </Text>
+              </View>
             ) : null}
             {distanceText && (
               <Text style={[styles.itemFooterText, { color: COLORS.primary, fontWeight: '600', marginLeft: 8 }]}>
@@ -232,8 +250,9 @@ const styles = StyleSheet.create({
     height: 38,
     borderRadius: 12,
   },
-  categoryEmoji: {
-    fontSize: 22,
+  categoryIconContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   itemContent: {
     flex: 1,
@@ -271,11 +290,20 @@ const styles = StyleSheet.create({
     marginTop: 2,
     lineHeight: 18,
   },
+  rewardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
   rewardText: {
     fontSize: 12,
     fontWeight: '600',
     color: COLORS.matchedText,
-    marginTop: 4,
+    marginLeft: 4,
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   itemFooterRow: {
     flexDirection: 'row',
@@ -291,5 +319,6 @@ const styles = StyleSheet.create({
   itemFooterText: {
     color: COLORS.muted,
     fontSize: 12,
+    marginLeft: 4,
   },
 });
