@@ -14,7 +14,7 @@ import {
   Image,
   Modal
 } from 'react-native';
-import { MaterialIcons, Feather, FontAwesome5 } from '@expo/vector-icons';
+import { Feather, FontAwesome5 } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useCreateItem } from '../hooks/useCreateItem';
@@ -35,7 +35,7 @@ const CATEGORIES: { key: Category; label: string; icon: React.ReactNode; color: 
   { key: 'jewelry', label: 'Jewelry', icon: <FontAwesome5 name="gem" size={16} color="#FFA930" />, color: '#FFFCF5' },
   { key: 'sports', label: 'Sports', icon: <FontAwesome5 name="basketball-ball" size={16} color="#3A8DFF" />, color: '#F8FAFF' },
   { key: 'documents', label: 'Documents', icon: <Feather name="file-text" size={16} color="#33C48D" />, color: '#F8FDF9' },
-  { key: 'pets', label: 'Pets', icon: <FontAwesome name="paw" size={16} color="#FFA930" />, color: '#FFFCF5' },
+  { key: 'pets', label: 'Pets', icon: <Feather name="heart" size={16} color="#FFA930" />, color: '#FFFCF5' },
   { key: 'other', label: 'Other', icon: <Feather name="more-horizontal" size={16} color="#2E2E2E" />, color: '#F2F2F2' },
 ];
 
