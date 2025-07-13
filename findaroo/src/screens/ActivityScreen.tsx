@@ -494,12 +494,6 @@ export default function ActivityScreen() {
                 <View style={styles.itemMetaLeft}>
                   <Feather name="clock" size={12} color={COLORS.muted} />
                   <Text style={styles.itemMeta}>{item.date}</Text>
-                  {item.location_name && (
-                    <>
-                      <Feather name="map-pin" size={12} color={COLORS.muted} style={{ marginLeft: 8 }} />
-                      <Text style={styles.itemLocation} numberOfLines={1}>{item.location_name}</Text>
-                    </>
-                  )}
                 </View>
                 {item.hasReward && (
                   <View style={styles.rewardBadge}>
@@ -508,6 +502,13 @@ export default function ActivityScreen() {
                   </View>
                 )}
               </View>
+
+              {item.location_name && (
+                <View style={styles.locationRow}>
+                  <Feather name="map-pin" size={12} color={COLORS.muted} />
+                  <Text style={styles.itemLocation} numberOfLines={1}>{item.location_name}</Text>
+                </View>
+              )}
 
               <Text style={styles.itemDesc} numberOfLines={2}>{item.desc}</Text>
 
@@ -713,6 +714,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
     marginLeft: 4,
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
   },
   itemLocation: {
     color: COLORS.muted,
