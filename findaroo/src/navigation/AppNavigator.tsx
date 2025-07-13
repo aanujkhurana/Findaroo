@@ -28,6 +28,111 @@ import SuccessScreen from '../screens/SuccessScreen';
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
+// Animated Tab Icon Component
+const AnimatedTabIcon = ({
+  iconName,
+  focused,
+  size = 24
+}: {
+  iconName: string;
+  focused: boolean;
+  size?: number;
+}) => {
+  const [bounceValue] = useState(new Animated.Value(1));
+  const [rotateValue] = useState(new Animated.Value(0));
+  const [pulseValue] = useState(new Animated.Value(1));
+
+  useEffect(() => {
+    if (focused) {
+      // Bounce animation
+      Animated.sequence([
+        Animated.timing(bounceValue, {
+          toValue: 1.2,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+        Animated.timing(bounceValue, {
+          toValue: 1,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+      ]).start();
+
+      // Subtle rotation for some icons
+      if (iconName === 'plus-circle') {
+        Animated.timing(rotateValue, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }).start();
+      }
+
+      // Pulse effect
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseValue, {
+            toValue: 1.05,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseValue, {
+            toValue: 1,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    } else {
+      // Reset animations when not focused
+      bounceValue.setValue(1);
+      rotateValue.setValue(0);
+      pulseValue.setValue(1);
+    }
+  }, [focused, bounceValue, rotateValue, pulseValue, iconName]);
+
+  const rotation = rotateValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '180deg'],
+  });
+
+  return (
+    <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+      <Animated.View
+        style={{
+          transform: [
+            { scale: focused ? Animated.multiply(bounceValue, pulseValue) : bounceValue },
+            { rotate: iconName === 'plus-circle' ? rotation : '0deg' },
+          ],
+        }}
+      >
+        <Feather
+          name={iconName as any}
+          size={focused ? size + 2 : size}
+          color={focused ? '#000000' : '#64748B'}
+          style={{
+            textShadowColor: focused ? 'rgba(0, 0, 0, 0.1)' : 'transparent',
+            textShadowOffset: { width: 0, height: 1 },
+            textShadowRadius: 2,
+          }}
+        />
+      </Animated.View>
+      {focused && (
+        <Animated.View
+          style={{
+            position: 'absolute',
+            bottom: -8,
+            width: 4,
+            height: 4,
+            borderRadius: 2,
+            backgroundColor: '#000000',
+            transform: [{ scale: pulseValue }],
+          }}
+        />
+      )}
+    </View>
+  );
+};
+
 // Auth Stack - for login/signup
 const AuthStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -59,32 +164,27 @@ const MainTabs = () => (
         elevation: Platform.OS === 'android' ? 20 : 0,
         shadowColor: '#000000',
         shadowOffset: { width: 0, height: -4 },
-        shadowOpacity: 0.12,
-        shadowRadius: 16,
-        height: Platform.OS === 'ios' ? 88 : 72,
-        paddingBottom: Platform.OS === 'ios' ? 24 : 12,
+        shadowOpacity: 0.15,
+        shadowRadius: 20,
+        height: Platform.OS === 'ios' ? 70 : 60,
+        paddingBottom: Platform.OS === 'ios' ? 20 : 12,
         paddingTop: 12,
-        paddingHorizontal: 8,
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
+        paddingHorizontal: 12,
+        borderTopLeftRadius: 28,
+        borderTopRightRadius: 28,
         position: 'absolute',
         bottom: 0,
         left: 0,
         right: 0,
       },
-      tabBarLabelStyle: {
-        fontSize: 11,
-        fontWeight: '600',
-        marginTop: 4,
-        letterSpacing: 0.5,
-        textTransform: 'uppercase',
-      },
-      tabBarActiveTintColor: '#6366F1',
+      tabBarShowLabel: false,
+      tabBarActiveTintColor: '#000000',
       tabBarInactiveTintColor: '#64748B',
       tabBarItemStyle: {
-        paddingVertical: 4,
-        borderRadius: 16,
-        marginHorizontal: 2,
+        paddingVertical: 6,
+        borderRadius: 20,
+        marginHorizontal: 4,
+        backgroundColor: 'transparent',
       },
     }}
   >
@@ -92,16 +192,11 @@ const MainTabs = () => (
       name="Home"
       component={HomeFeedScreen}
       options={{
-        tabBarLabel: 'Explore',
         tabBarIcon: ({ focused, size }) => (
-          <Feather
-            name="map-pin"
-            size={focused ? 26 : 24}
-            color={focused ? '#6366F1' : '#64748B'}
-            style={{
-              transform: [{ scale: focused ? 1.1 : 1 }],
-              opacity: focused ? 1 : 0.8
-            }}
+          <AnimatedTabIcon
+            iconName="map-pin"
+            focused={focused}
+            size={24}
           />
         ),
       }}
@@ -110,16 +205,11 @@ const MainTabs = () => (
       name="Activity"
       component={ActivityScreen}
       options={{
-        tabBarLabel: 'Activity',
         tabBarIcon: ({ focused, size }) => (
-          <Feather
-            name="bell"
-            size={focused ? 26 : 24}
-            color={focused ? '#6366F1' : '#64748B'}
-            style={{
-              transform: [{ scale: focused ? 1.1 : 1 }],
-              opacity: focused ? 1 : 0.8
-            }}
+          <AnimatedTabIcon
+            iconName="bell"
+            focused={focused}
+            size={24}
           />
         ),
       }}
@@ -128,16 +218,11 @@ const MainTabs = () => (
       name="My Items"
       component={CreateItemScreen}
       options={{
-        tabBarLabel: 'Post',
         tabBarIcon: ({ focused, size }) => (
-          <Feather
-            name="plus-circle"
-            size={focused ? 26 : 24}
-            color={focused ? '#6366F1' : '#64748B'}
-            style={{
-              transform: [{ scale: focused ? 1.1 : 1 }],
-              opacity: focused ? 1 : 0.8
-            }}
+          <AnimatedTabIcon
+            iconName="plus-circle"
+            focused={focused}
+            size={24}
           />
         ),
       }}
@@ -146,16 +231,11 @@ const MainTabs = () => (
       name="Chat"
       component={ChatListScreen}
       options={{
-        tabBarLabel: 'Message',
         tabBarIcon: ({ focused, size }) => (
-          <Feather
-            name="message-circle"
-            size={focused ? 26 : 24}
-            color={focused ? '#6366F1' : '#64748B'}
-            style={{
-              transform: [{ scale: focused ? 1.1 : 1 }],
-              opacity: focused ? 1 : 0.8
-            }}
+          <AnimatedTabIcon
+            iconName="message-circle"
+            focused={focused}
+            size={24}
           />
         ),
       }}
@@ -164,16 +244,11 @@ const MainTabs = () => (
       name="Profile"
       component={ProfileScreen}
       options={{
-        tabBarLabel: 'Profile',
         tabBarIcon: ({ focused, size }) => (
-          <Feather
-            name="user"
-            size={focused ? 26 : 24}
-            color={focused ? '#6366F1' : '#64748B'}
-            style={{
-              transform: [{ scale: focused ? 1.1 : 1 }],
-              opacity: focused ? 1 : 0.8
-            }}
+          <AnimatedTabIcon
+            iconName="user"
+            focused={focused}
+            size={24}
           />
         ),
       }}
