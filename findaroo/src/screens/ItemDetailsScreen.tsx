@@ -1,12 +1,50 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, Share, Modal } from 'react-native';
+import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, Share, Modal, Alert, Linking } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
-import { MaterialIcons, Feather } from '@expo/vector-icons';
+import { MaterialIcons, Feather, FontAwesome5 } from '@expo/vector-icons';
 import { getSignedImageUrl } from '../utils/uploadImage';
 import { supabase } from '../services/supabaseClient';
-import { Item, User, LocationCoords } from '../types';
+import { Item, User, LocationCoords, Category } from '../types';
 import { ItemMapView } from '../components/ItemMapView';
 import { calculateDistance, formatDistance, getCurrentLocation } from '../utils/location';
+
+// Findaroo UI Style Guide Colors
+const COLORS = {
+  primary: '#3A8DFF',
+  secondary: '#FFA930',
+  success: '#33C48D',
+  error: '#FF4C4C',
+  neutral: '#F2F2F2',
+  dark: '#2E2E2E',
+  background: '#f8fafc',
+  card: '#ffffff',
+  text: '#222222',
+  muted: '#6b7280',
+  border: '#e5e7eb',
+};
+
+// Category icon mapping with proper Feather icons
+const getCategoryIcon = (category: string, size: number = 20, color: string = COLORS.primary) => {
+  const iconMap: { [key: string]: string } = {
+    electronics: 'smartphone',
+    phone: 'smartphone',
+    keys: 'key',
+    wallet: 'credit-card',
+    bags: 'briefcase',
+    bag: 'briefcase',
+    clothing: 'shopping-bag',
+    accessories: 'eye',
+    jewelry: 'star',
+    documents: 'file-text',
+    pets: 'heart',
+    pet: 'heart',
+    sports: 'activity',
+    other: 'package',
+  };
+
+  const iconName = iconMap[category?.toLowerCase()] || 'package';
+  return <Feather name={iconName as any} size={size} color={color} />;
+};
 
 export const ItemDetailsScreen = ({ navigation, route }: any) => {
   const { itemId } = route.params;
@@ -21,44 +59,45 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
   const [similarImages, setSimilarImages] = useState<{ [id: string]: string }>({});
   const [showFullMap, setShowFullMap] = useState(false);
   const [userLocation, setUserLocation] = useState<LocationCoords | null>(null);
+  const [distance, setDistance] = useState<string | null>(null);
 
-  // Helper functions for status styling
+  // Helper functions for status styling with Findaroo colors
   const getStatusBadgeStyle = (status: string) => {
     switch (status) {
-      case 'lost': return { backgroundColor: '#fee2e2' };
-      case 'found': return { backgroundColor: '#d1fae5' };
-      case 'returned': return { backgroundColor: '#e0e7ff' };
-      case 'claimed': return { backgroundColor: '#dbeafe' };
-      case 'kept': return { backgroundColor: '#fef3c7' };
-      case 'flagged': return { backgroundColor: '#fecaca' };
-      case 'duplicate': return { backgroundColor: '#f3f4f6' };
-      default: return { backgroundColor: '#fee2e2' };
+      case 'lost': return { backgroundColor: '#FFE8E8' };
+      case 'found': return { backgroundColor: '#E8F5E8' };
+      case 'returned': return { backgroundColor: '#E8F0FF' };
+      case 'claimed': return { backgroundColor: '#E8F0FF' };
+      case 'kept': return { backgroundColor: '#FFF4E8' };
+      case 'flagged': return { backgroundColor: '#FFE8E8' };
+      case 'duplicate': return { backgroundColor: COLORS.neutral };
+      default: return { backgroundColor: '#FFE8E8' };
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'lost': return '#f87171';
-      case 'found': return '#22c55e';
-      case 'returned': return '#6366f1';
-      case 'claimed': return '#3b82f6';
-      case 'kept': return '#f59e0b';
-      case 'flagged': return '#ef4444';
-      case 'duplicate': return '#6b7280';
-      default: return '#f87171';
+      case 'lost': return COLORS.error;
+      case 'found': return COLORS.success;
+      case 'returned': return COLORS.primary;
+      case 'claimed': return COLORS.primary;
+      case 'kept': return COLORS.secondary;
+      case 'flagged': return COLORS.error;
+      case 'duplicate': return COLORS.muted;
+      default: return COLORS.error;
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'lost': return 'error-outline';
+      case 'lost': return 'alert-circle';
       case 'found': return 'check-circle';
-      case 'returned': return 'sync';
-      case 'claimed': return 'handshake';
-      case 'kept': return 'inventory';
+      case 'returned': return 'rotate-ccw';
+      case 'claimed': return 'user-check';
+      case 'kept': return 'archive';
       case 'flagged': return 'flag';
-      case 'duplicate': return 'content-copy';
-      default: return 'error-outline';
+      case 'duplicate': return 'copy';
+      default: return 'alert-circle';
     }
   };
 
@@ -74,52 +113,131 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
       default: return 'Unknown Status';
     }
   };
-  const [distance, setDistance] = useState<string | null>(null);
 
-  // Parse coordinates from PostGIS POINT string
-  function parsePointString(pointStr: string | undefined) {
-    if (!pointStr || typeof pointStr !== 'string') return null;
-    const match = pointStr.match(/POINT\((-?\d+\.?\d*) (-?\d+\.?\d*)\)/);
-    if (match) {
+  // Parse coordinates from PostGIS WKB (Well-Known Binary) format
+  function parsePostGISLocation(locationData: string | undefined) {
+    if (!locationData || typeof locationData !== 'string') {
+      return null;
+    }
+
+    // First try the simple POINT format (for backward compatibility)
+    const pointMatch = locationData.match(/POINT\((-?\d+\.\d+) (-?\d+\.\d+)\)/);
+    if (pointMatch) {
       return {
-        longitude: parseFloat(match[1]),
-        latitude: parseFloat(match[2]),
+        longitude: parseFloat(pointMatch[1]),
+        latitude: parseFloat(pointMatch[2]),
       };
     }
+
+    // Handle PostGIS WKB format (hex string)
+    if (locationData.length > 20 && locationData.match(/^[0-9A-Fa-f]+$/)) {
+      try {
+        // This is a simplified parser for PostGIS WKB POINT format
+        // The format is: endianness(1) + type(4) + SRID(4) + x(8) + y(8) bytes in hex
+
+        // Skip the first 18 characters (endianness + type + SRID = 9 bytes = 18 hex chars)
+        const coordsHex = locationData.substring(18);
+
+        if (coordsHex.length >= 32) { // Need at least 16 bytes (32 hex chars) for x,y coordinates
+          // Extract X coordinate (longitude) - first 8 bytes (16 hex chars)
+          const xHex = coordsHex.substring(0, 16);
+          // Extract Y coordinate (latitude) - next 8 bytes (16 hex chars)
+          const yHex = coordsHex.substring(16, 32);
+
+          // Convert hex to IEEE 754 double precision float
+          const longitude = hexToDouble(xHex);
+          const latitude = hexToDouble(yHex);
+
+          if (!isNaN(longitude) && !isNaN(latitude)) {
+            return { longitude, latitude };
+          }
+        }
+      } catch (error) {
+        console.error('[ItemDetailsScreen] Error parsing WKB format:', error);
+      }
+    }
+
     return null;
   }
-  // Only declare and use firstImage and coords if item is not null
-  let firstImage: string | undefined = undefined;
-  let coords: { latitude: number; longitude: number } | null = null;
-  if (item) {
-    firstImage = item.image ? item.image.split(',').map((img: string) => img.trim()).filter(Boolean)[0] : undefined;
-    if (firstImage) {
-      console.log('Item image path:', firstImage);
-      console.log('Image URL:', getSignedImageUrl(firstImage, 'item-images'));
-    } else {
-      console.log('No image for this item');
+
+  // Helper function to convert hex string to IEEE 754 double
+  function hexToDouble(hex: string): number {
+    // Reverse byte order for little-endian
+    const reversedHex = hex.match(/.{2}/g)?.reverse().join('') || hex;
+
+    // Convert to ArrayBuffer and then to Float64
+    const buffer = new ArrayBuffer(8);
+    const view = new DataView(buffer);
+
+    for (let i = 0; i < 8; i++) {
+      const byte = parseInt(reversedHex.substr(i * 2, 2), 16);
+      view.setUint8(i, byte);
     }
-    coords = parsePointString(item.location);
-    if (item.location) {
-      console.log('Item location string:', item.location);
-      console.log('Parsed coordinates:', coords);
+
+    return view.getFloat64(0, false); // false = big-endian
+  }
+
+  // Helper function to format relative date
+  function formatRelativeDate(dateString: string): string {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInMs = now.getTime() - date.getTime();
+    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+    const diffInDays = Math.floor(diffInHours / 24);
+
+    if (diffInHours < 1) {
+      return 'Just now';
+    } else if (diffInHours < 24) {
+      return `${diffInHours}h ago`;
+    } else if (diffInDays < 7) {
+      return `${diffInDays}d ago`;
     } else {
-      console.log('No location for this item');
+      return date.toLocaleDateString();
     }
   }
 
-  // Share handler
+  // Handle phone call functionality
+  const handleCall = async () => {
+    if (!owner?.phone) {
+      Alert.alert('No Phone Number', 'This user has not provided a phone number.');
+      return;
+    }
+
+    const phoneUrl = `tel:${owner.phone}`;
+    const canOpen = await Linking.canOpenURL(phoneUrl);
+
+    if (canOpen) {
+      Linking.openURL(phoneUrl);
+    } else {
+      Alert.alert('Error', 'Unable to make phone calls on this device.');
+    }
+  };
+
+  // Get computed values only when item exists
+  const firstImage = item?.image ? item.image.split(',').map((img: string) => img.trim()).filter(Boolean)[0] : undefined;
+  const coords = item ? parsePostGISLocation(item.location) : null;
+
+  // Enhanced share handler
   const handleShare = async () => {
     try {
       if (!item) {
         console.error('Cannot share: item is null');
         return;
       }
-      
-      const message = `${item.title}\n\n${item.description || ''}\n\nLocation: ${item.location_name || ''}`;
-      await Share.share({ message });
+
+      const statusText = getStatusLabel(item.status);
+      const locationText = item.location_name || 'Location not specified';
+      const rewardText = item.reward_amount ? `\n💰 Reward: $${item.reward_amount}` : '';
+
+      const message = `🔍 ${statusText}: ${item.title}\n\n📝 ${item.description || 'No description provided'}\n\n📍 ${locationText}${rewardText}\n\nFound on Findaroo - The Lost & Found Network`;
+
+      await Share.share({
+        message,
+        title: `${statusText}: ${item.title}`
+      });
     } catch (error) {
       console.error('Error sharing item:', error);
+      Alert.alert('Error', 'Unable to share this item. Please try again.');
     }
   };
 
@@ -130,7 +248,11 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
       try {
         const { data, error } = await supabase
           .from('items')
-          .select(`*, user:users(id, full_name, profile_pic, created_at, karma_points), tips:tips(id, amount, status, created_at, sender_id, receiver_id, payment_intent_id)`)
+          .select(`
+            *,
+            user:users(id, full_name, profile_pic, created_at, karma_points),
+            tips:tips(id, amount, status, created_at, sender_id, receiver_id, payment_intent_id)
+          `)
           .eq('id', itemId)
           .single();
         if (error) throw error;
@@ -171,7 +293,7 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
           setUserLocation(location);
 
           // Parse item location
-          const itemCoords = parsePointString(item.location);
+          const itemCoords = parsePostGISLocation(item.location);
           if (itemCoords) {
             const itemLocation: LocationCoords = {
               latitude: itemCoords.latitude,
@@ -245,18 +367,26 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
   if (loading) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <ActivityIndicator size="large" color="#2563eb" style={{ marginTop: 40 }} />
-        <Text style={{ textAlign: 'center', marginTop: 16 }}>Loading item details...</Text>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+          <Text style={styles.loadingText}>Loading item details...</Text>
+        </View>
       </SafeAreaView>
     );
   }
+
   if (error || !item) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <Text style={{ color: '#ef4444', textAlign: 'center', marginTop: 40 }}>Error: {error || 'Item not found.'}</Text>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginTop: 24, alignSelf: 'center' }}>
-          <Text style={{ color: '#2563eb', fontWeight: 'bold' }}>Go Back</Text>
-        </TouchableOpacity>
+        <View style={styles.errorContainer}>
+          <Feather name="alert-circle" size={48} color={COLORS.error} />
+          <Text style={styles.errorTitle}>Oops! Something went wrong</Text>
+          <Text style={styles.errorMessage}>{error || 'Item not found.'}</Text>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.errorButton}>
+            <Feather name="arrow-left" size={20} color={COLORS.primary} />
+            <Text style={styles.errorButtonText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
       </SafeAreaView>
     );
   }
@@ -284,39 +414,80 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
         {/* Status Badge and Date */}
         <View style={styles.statusRow}>
           <View style={[styles.statusBadge, getStatusBadgeStyle(item.status)]}>
-            <MaterialIcons name={getStatusIcon(item.status)} size={16} color={getStatusColor(item.status)} style={{ marginRight: 4 }} />
+            <Feather name={getStatusIcon(item.status)} size={16} color={getStatusColor(item.status)} style={{ marginRight: 4 }} />
             <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>{getStatusLabel(item.status)}</Text>
           </View>
           <Text style={styles.statusTime}>{formatRelativeDate(item.created_at)}</Text>
         </View>
-        {/* Main Image */}
-        <View style={styles.imageGallery}>
-          {mainImageUrl ? (
+        {/* Main Image or Icon Row */}
+        {mainImageUrl ? (
+          <View style={styles.imageContainer}>
             <Image source={{ uri: mainImageUrl }} style={styles.mainImage} resizeMode="cover" />
-          ) : (
-            <View style={[styles.mainImage, { backgroundColor: '#f3f4f6', alignItems: 'center', justifyContent: 'center' }] }>
-              <Feather name="image" size={48} color="#bbb" />
-              <Text style={{ color: '#bbb', marginTop: 8 }}>No image available</Text>
+            <View style={styles.imageOverlay}>
+              <View style={styles.statusBadgeOverlay}>
+                <Feather name={getStatusIcon(item.status)} size={14} color={getStatusColor(item.status)} />
+                <Text style={[styles.statusOverlayText, { color: getStatusColor(item.status) }]}>
+                  {getStatusLabel(item.status)}
+                </Text>
+              </View>
             </View>
-          )}
-        </View>
+          </View>
+        ) : (
+          <View style={styles.noImageRow}>
+            <View style={styles.noImageIconContainer}>
+              {getCategoryIcon(item.category, 32, COLORS.muted)}
+            </View>
+            <View style={styles.noImageContent}>
+              <Text style={styles.noImageTitle}>{item.title}</Text>
+              <Text style={styles.noImageCategory}>{item.category}</Text>
+            </View>
+            <View style={[styles.statusBadge, getStatusBadgeStyle(item.status)]}>
+              <Feather name={getStatusIcon(item.status)} size={14} color={getStatusColor(item.status)} />
+              <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
+                {getStatusLabel(item.status)}
+              </Text>
+            </View>
+          </View>
+        )}
         {/* Item Details Card */}
         <View style={styles.card}>
-          <Text style={styles.itemTitle}>{item.title}</Text>
-          <Text style={styles.sectionLabel}>Description</Text>
-          <Text style={styles.itemDesc}>{item.description}</Text>
-          <View style={styles.itemMetaRow}>
-            <View style={styles.metaBox}><MaterialIcons name="category" size={18} color="#fbbf24" /><Text style={styles.metaText}>{item.category}</Text></View>
-            {item.reward_amount ? (
-              <View style={styles.metaBox}>
-                <MaterialIcons name="attach-money" size={18} color="#22c55e" />
-                <Text style={[styles.metaText, { color: '#22c55e', fontWeight: 'bold' }]}>{'$'}{item.reward_amount}</Text>
+          {mainImageUrl && (
+            <>
+              <Text style={styles.itemTitle}>{item.title}</Text>
+              <View style={styles.statusRow}>
+                <View style={[styles.statusBadge, getStatusBadgeStyle(item.status)]}>
+                  <Feather name={getStatusIcon(item.status)} size={14} color={getStatusColor(item.status)} />
+                  <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
+                    {getStatusLabel(item.status)}
+                  </Text>
+                </View>
+                <Text style={styles.statusTime}>{formatRelativeDate(item.created_at)}</Text>
               </View>
-            ) : null}
+            </>
+          )}
+
+          <Text style={styles.sectionLabel}>Description</Text>
+          <Text style={styles.itemDesc}>{item.description || 'No description provided.'}</Text>
+
+          <View style={styles.itemMetaRow}>
+            <View style={styles.metaBox}>
+              {getCategoryIcon(item.category, 18, COLORS.secondary)}
+              <Text style={styles.metaText}>{item.category}</Text>
+            </View>
+            {item.reward_amount && (
+              <View style={styles.metaBox}>
+                <Feather name="dollar-sign" size={18} color={COLORS.success} />
+                <Text style={[styles.metaText, { color: COLORS.success, fontWeight: 'bold' }]}>
+                  ${item.reward_amount}
+                </Text>
+              </View>
+            )}
             {totalTips > 0 && (
               <View style={styles.metaBox}>
-                <MaterialIcons name="tips-and-updates" size={18} color="#fbbf24" />
-                <Text style={[styles.metaText, { color: '#fbbf24', fontWeight: 'bold' }]}>Tips: ${totalTips.toFixed(2)}</Text>
+                <Feather name="gift" size={18} color={COLORS.secondary} />
+                <Text style={[styles.metaText, { color: COLORS.secondary, fontWeight: 'bold' }]}>
+                  Tips: ${totalTips.toFixed(2)}
+                </Text>
               </View>
             )}
           </View>
@@ -342,32 +513,49 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
 
           {/* Interactive map if coordinates available */}
           {coords ? (
-            <TouchableOpacity onPress={() => setShowFullMap(true)}>
+            <View style={styles.mapContainer}>
               <MapView
                 style={styles.mapImage}
                 initialRegion={{
                   latitude: coords.latitude,
                   longitude: coords.longitude,
-                  latitudeDelta: 0.01,
-                  longitudeDelta: 0.01,
+                  latitudeDelta: 0.02,
+                  longitudeDelta: 0.02,
                 }}
                 scrollEnabled={false}
                 zoomEnabled={false}
                 pitchEnabled={false}
                 rotateEnabled={false}
-                pointerEvents="none"
+                mapType="standard"
+                showsUserLocation={false}
+                showsMyLocationButton={false}
+                showsCompass={false}
+                showsScale={false}
               >
-                <Marker coordinate={coords} title={item.title} description={item.location_name} />
+                <Marker
+                  coordinate={{
+                    latitude: coords.latitude,
+                    longitude: coords.longitude,
+                  }}
+                  title={item.title}
+                  description={item.location_name}
+                />
               </MapView>
-              <View style={styles.mapOverlay}>
-                <Feather name="maximize-2" size={20} color="#fff" />
-                <Text style={styles.mapOverlayText}>Tap to view full map</Text>
-              </View>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.mapTouchOverlay}
+                onPress={() => setShowFullMap(true)}
+                activeOpacity={0.8}
+              >
+                <View style={styles.mapOverlay}>
+                  <Feather name="maximize-2" size={16} color="#fff" />
+                  <Text style={styles.mapOverlayText}>Tap to expand</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
           ) : (
-            <View style={[styles.mapImage, { backgroundColor: '#f3f4f6', alignItems: 'center', justifyContent: 'center' }] }>
-              <MaterialIcons name="map" size={32} color="#bbb" />
-              <Text style={{ color: '#bbb', marginTop: 8 }}>No map available</Text>
+            <View style={styles.noMapContainer}>
+              <Feather name="map-pin" size={24} color={COLORS.muted} />
+              <Text style={styles.noMapText}>Location not available</Text>
             </View>
           )}
         </View>
@@ -407,10 +595,20 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
                   otherUserName: owner.full_name,
                 })}
               >
-                <MaterialIcons name="message" size={18} color="#38bdf8" />
+                <Feather name="message-circle" size={18} color={COLORS.primary} />
                 <Text style={styles.messageBtnText}>Message</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.callBtn}><MaterialIcons name="call" size={18} color="#22c55e" /><Text style={styles.callBtnText}>Call</Text></TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.callBtn}
+                onPress={handleCall}
+                disabled={!owner.phone}
+              >
+                <Feather name="phone" size={18} color={owner.phone ? COLORS.success : COLORS.muted} />
+                <Text style={[styles.callBtnText, { color: owner.phone ? COLORS.success : COLORS.muted }]}>
+                  {owner.phone ? 'Call' : 'No Phone'}
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
         )}
@@ -477,53 +675,301 @@ function formatRelativeDate(date: string) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#f6faff' },
-  scrollContent: { padding: 16, paddingBottom: 32 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-  headerTitle: { fontWeight: 'bold', fontSize: 18, color: '#222' },
-  statusRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
-  statusBadge: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },
-  statusText: { fontWeight: 'bold', fontSize: 13 },
-  statusTime: { color: '#888', fontSize: 13 },
-  imageGallery: { position: 'relative', alignItems: 'center', marginBottom: 8 },
-  mainImage: { width: '100%', height: 200, borderRadius: 16 },
-  imageCount: { position: 'absolute', top: 10, right: 18, backgroundColor: '#222', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 2 },
-  imageCountText: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
-  thumbnailRow: { flexDirection: 'row', justifyContent: 'center', marginBottom: 14, marginTop: 4 },
-  thumbnail: { width: 44, height: 44, borderRadius: 8, marginHorizontal: 4, borderWidth: 2, borderColor: 'transparent' },
-  thumbnailSelected: { borderColor: '#38bdf8' },
-  card: { backgroundColor: '#fff', borderRadius: 18, padding: 18, marginBottom: 16, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
-  itemTitle: { fontWeight: 'bold', fontSize: 18, color: '#222', marginBottom: 6 },
-  sectionLabel: { color: '#6b7280', fontWeight: 'bold', fontSize: 14, marginBottom: 4 },
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.background
+  },
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 32
+  },
+
+  // Loading and Error States
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: COLORS.muted,
+    textAlign: 'center',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.text,
+    marginTop: 16,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  errorMessage: {
+    fontSize: 16,
+    color: COLORS.muted,
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  errorButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.card,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  errorButtonText: {
+    marginLeft: 8,
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.primary,
+  },
+
+  // Header
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16
+  },
+  headerTitle: {
+    fontWeight: 'bold',
+    fontSize: 20,
+    color: COLORS.text
+  },
+
+  // Status
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6
+  },
+  statusText: {
+    fontWeight: '600',
+    fontSize: 13,
+    marginLeft: 4
+  },
+  statusTime: {
+    color: COLORS.muted,
+    fontSize: 13
+  },
+
+  // Image Styles
+  imageContainer: {
+    position: 'relative',
+    marginBottom: 16,
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  mainImage: {
+    width: '100%',
+    height: 240,
+    backgroundColor: COLORS.neutral
+  },
+  imageOverlay: {
+    position: 'absolute',
+    top: 16,
+    left: 16,
+    right: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  statusBadgeOverlay: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  statusOverlayText: {
+    fontWeight: '600',
+    fontSize: 13,
+    marginLeft: 4,
+  },
+
+  // No Image Row
+  noImageRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  noImageIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: COLORS.neutral,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  noImageContent: {
+    flex: 1,
+  },
+  noImageTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.text,
+    marginBottom: 4,
+  },
+  noImageCategory: {
+    fontSize: 14,
+    color: COLORS.muted,
+    textTransform: 'capitalize',
+  },
+
+  // Card
+  card: {
+    backgroundColor: COLORS.card,
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2
+  },
+  itemTitle: {
+    fontWeight: 'bold',
+    fontSize: 22,
+    color: COLORS.text,
+    marginBottom: 8
+  },
+  sectionLabel: {
+    color: COLORS.muted,
+    fontWeight: '600',
+    fontSize: 14,
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8
+    marginBottom: 12
   },
   distanceText: {
-    color: '#3b82f6',
+    color: COLORS.primary,
     fontSize: 14,
     fontWeight: '600'
   },
-  itemDesc: { color: '#222', fontSize: 15, marginBottom: 10 },
-  itemMetaRow: { flexDirection: 'row', marginTop: 8 },
-  metaBox: { flexDirection: 'row', alignItems: 'center', marginRight: 18 },
-  metaText: { color: '#222', fontSize: 14, marginLeft: 4 },
-  lastSeenRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
-  lastSeenLoc: { color: '#222', fontWeight: 'bold', fontSize: 15 },
-  lastSeenDetails: { color: '#888', fontSize: 13 },
-  lastSeenDate: { color: '#222', fontWeight: 'bold', fontSize: 14, marginLeft: 4 },
-  lastSeenTime: { color: '#888', fontSize: 13, marginBottom: 8, marginLeft: 24 },
-  mapImage: { width: '100%', height: 80, borderRadius: 10, marginTop: 6, position: 'relative' },
-  mapOverlay: {
+  itemDesc: {
+    color: COLORS.text,
+    fontSize: 16,
+    lineHeight: 24,
+    marginBottom: 16
+  },
+  itemMetaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 8
+  },
+  metaBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.neutral,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginRight: 12,
+    marginBottom: 8,
+  },
+  metaText: {
+    color: COLORS.text,
+    fontSize: 14,
+    fontWeight: '500',
+    marginLeft: 6,
+    textTransform: 'capitalize',
+  },
+
+  // Location Section
+  lastSeenRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8
+  },
+  lastSeenLoc: {
+    color: COLORS.text,
+    fontWeight: '600',
+    fontSize: 16,
+    marginLeft: 8,
+  },
+  lastSeenDate: {
+    color: COLORS.text,
+    fontWeight: '500',
+    fontSize: 15,
+    marginLeft: 8
+  },
+
+  // Map Styles
+  mapContainer: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginTop: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  mapImage: {
+    width: '100%',
+    height: 120,
+    backgroundColor: COLORS.neutral
+  },
+  mapTouchOverlay: {
     position: 'absolute',
-    bottom: 8,
-    right: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'flex-end',
+    alignItems: 'flex-end',
+    padding: 8,
+  },
+  mapOverlay: {
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
     borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -533,29 +979,126 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 4,
   },
-  ownerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-  ownerAvatar: { width: 44, height: 44, borderRadius: 22, marginRight: 10 },
+  noMapContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.neutral,
+    borderRadius: 12,
+    paddingVertical: 32,
+    marginTop: 12,
+  },
+  noMapText: {
+    color: COLORS.muted,
+    fontSize: 14,
+    marginTop: 8,
+  },
+
+
+  // Owner Section
+  ownerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16
+  },
+  ownerAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    marginRight: 12
+  },
   ownerAvatarFallback: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center'
   },
   ownerAvatarText: {
     color: '#fff',
     fontWeight: 'bold',
-    fontSize: 18
+    fontSize: 20
   },
-  ownerName: { color: '#222', fontWeight: 'bold', fontSize: 15 },
-  ownerSince: { color: '#888', fontSize: 13 },
-  ownerRating: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fef9c3', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2 },
-  ownerRatingText: { color: '#fbbf24', fontWeight: 'bold', fontSize: 14, marginLeft: 3 },
-  ownerActions: { flexDirection: 'row', marginTop: 6 },
-  messageBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#e0f2fe', borderRadius: 10, paddingVertical: 8, paddingHorizontal: 18, marginRight: 10 },
-  messageBtnText: { color: '#38bdf8', fontWeight: 'bold', fontSize: 15, marginLeft: 6 },
-  callBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#d1fae5', borderRadius: 10, paddingVertical: 8, paddingHorizontal: 18 },
-  callBtnText: { color: '#22c55e', fontWeight: 'bold', fontSize: 15, marginLeft: 6 },
-  similarRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8 },
-  similarImg: { width: 44, height: 44, borderRadius: 8, marginRight: 10 },
-  similarTitle: { color: '#222', fontWeight: 'bold', fontSize: 15 },
-  similarLoc: { color: '#888', fontSize: 13 },
+  ownerName: {
+    color: COLORS.text,
+    fontWeight: 'bold',
+    fontSize: 16
+  },
+  ownerSince: {
+    color: COLORS.muted,
+    fontSize: 13,
+    marginTop: 2,
+  },
+  ownerRating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF4E8',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4
+  },
+  ownerRatingText: {
+    color: COLORS.secondary,
+    fontWeight: 'bold',
+    fontSize: 14,
+    marginLeft: 4
+  },
+  ownerActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  messageBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E8F0FF',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  messageBtnText: {
+    color: COLORS.primary,
+    fontWeight: '600',
+    fontSize: 15,
+    marginLeft: 8
+  },
+  callBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E8F5E8',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  callBtnText: {
+    fontWeight: '600',
+    fontSize: 15,
+    marginLeft: 8
+  },
+
+  // Similar Items
+  similarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  similarImg: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    marginRight: 12,
+    backgroundColor: COLORS.neutral,
+  },
+  similarTitle: {
+    color: COLORS.text,
+    fontWeight: '600',
+    fontSize: 15
+  },
+  similarLoc: {
+    color: COLORS.muted,
+    fontSize: 13,
+    marginTop: 2,
+  },
 });
