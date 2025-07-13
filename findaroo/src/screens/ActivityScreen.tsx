@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, ActivityIndicator, Alert } from 'react-native';
 import { Feather, MaterialIcons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../hooks/useAuth';
 import { useItems } from '../hooks/useItems';
 import { Item } from '../types';
@@ -113,6 +114,7 @@ const getStatusInfo = (item: Item) => {
 
 export default function ActivityScreen() {
   const [filter, setFilter] = useState('all');
+  const navigation: any = useNavigation();
   const { user, loading: authLoading } = useAuth();
 
   // Create stable filters object to prevent infinite re-renders
@@ -121,7 +123,7 @@ export default function ActivityScreen() {
   }), [user?.id]);
 
   // Only fetch user's items when we have a valid user ID
-  const { items: userItems, loading: itemsLoading, error } = useItems(
+  const { items: userItems, loading: itemsLoading, error, deleteItem, updateItem } = useItems(
     user?.id ? itemFilters : {}
   );
 
@@ -173,6 +175,51 @@ export default function ActivityScreen() {
     }
     return allUserItems.filter(item => item.status === filter);
   }, [allUserItems, filter]);
+
+  // Handle edit item
+  const handleEditItem = (item: Item) => {
+    console.log('[ActivityScreen] Edit button pressed for item:', item.title, 'Status:', item.status);
+    if (item.status === 'lost') {
+      console.log('[ActivityScreen] Navigating to CreateLostItem with edit mode');
+      navigation.navigate('CreateLostItem', {
+        editMode: true,
+        itemData: item
+      });
+    } else if (item.status === 'found') {
+      console.log('[ActivityScreen] Navigating to CreateFoundItem with edit mode');
+      navigation.navigate('CreateFoundItem', {
+        editMode: true,
+        itemData: item
+      });
+    }
+  };
+
+  // Handle delete item
+  const handleDeleteItem = (item: Item) => {
+    console.log('[ActivityScreen] Delete button pressed for item:', item.title);
+    Alert.alert(
+      'Delete Item',
+      `Are you sure you want to delete "${item.title}"? This action cannot be undone.`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            const success = await deleteItem(item.id);
+            if (success) {
+              Alert.alert('Success', 'Item deleted successfully');
+            } else {
+              Alert.alert('Error', 'Failed to delete item. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
 
   // Combined loading state - wait for both auth and items
   const loading = authLoading || (shouldFetchItems && itemsLoading);
@@ -293,8 +340,20 @@ export default function ActivityScreen() {
                   )}
                 </View>
                 <View style={styles.itemFooterRight}>
-                  <Feather name="edit-2" size={16} color={COLORS.muted} style={{ marginRight: 12 }} />
-                  <Feather name="trash-2" size={16} color={COLORS.muted} />
+                  <TouchableOpacity
+                    onPress={() => handleEditItem(item)}
+                    style={styles.actionButton}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Feather name="edit-2" size={16} color={COLORS.primary} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => handleDeleteItem(item)}
+                    style={styles.actionButton}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Feather name="trash-2" size={16} color="#ef4444" />
+                  </TouchableOpacity>
                 </View>
               </View>
             </View>
@@ -420,6 +479,12 @@ const styles = StyleSheet.create({
   itemFooterRight: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  actionButton: {
+    padding: 8,
+    marginLeft: 4,
+    borderRadius: 8,
+    backgroundColor: 'rgba(0,0,0,0.05)',
   },
   emptyState: {
     alignItems: 'center',

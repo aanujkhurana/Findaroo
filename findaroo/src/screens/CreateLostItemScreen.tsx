@@ -18,6 +18,7 @@ import { MaterialIcons, Feather, FontAwesome5 } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useCreateItem } from '../hooks/useCreateItem';
 import { useAuth } from '../hooks/useAuth';
+import { useItems } from '../hooks/useItems';
 import { Category, LocationCoords } from '../types';
 import * as ImagePicker from 'expo-image-picker';
 import { uploadImage, getSignedImageUrl } from '../utils/uploadImage';
@@ -55,9 +56,14 @@ const STEPS = [
   { id: 3, title: 'Final Details', subtitle: 'Add any extras and post your item' },
 ];
 
-export const CreateLostItemScreen = ({ navigation }: any) => {
+export const CreateLostItemScreen = ({ navigation, route }: any) => {
   const { user } = useAuth();
   const { createItem, loading: createLoading } = useCreateItem();
+  const { updateItem } = useItems();
+
+  // Check if we're in edit mode
+  const editMode = route?.params?.editMode || false;
+  const itemData = route?.params?.itemData || null;
   const [currentStep, setCurrentStep] = useState(1);
   // Remove the local loading state since we're using the hook's loading state
 const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -65,16 +71,31 @@ const [debugSignedUrl, setDebugSignedUrl] = useState<string>('');
 const [locationLoading, setLocationLoading] = useState(false);
 const [locationError, setLocationError] = useState<string | null>(null);
 const [showLocationPicker, setShowLocationPicker] = useState(false);
-const [formData, setFormData] = useState<FormData>({
-  title: '',
-  category: null,
-  description: '',
-  location: null,
-  dateLost: new Date(),
-  timeRange: '',
-  image: undefined,
-  rewardAmount: undefined,
-  offerReward: false,
+const [formData, setFormData] = useState<FormData>(() => {
+  if (editMode && itemData) {
+    return {
+      title: itemData.title || '',
+      category: itemData.category || null,
+      description: itemData.description || '',
+      location: itemData.location || null,
+      dateLost: itemData.created_at ? new Date(itemData.created_at) : new Date(),
+      timeRange: '',
+      image: itemData.image || undefined,
+      rewardAmount: itemData.reward_amount || undefined,
+      offerReward: !!itemData.reward_amount,
+    };
+  }
+  return {
+    title: '',
+    category: null,
+    description: '',
+    location: null,
+    dateLost: new Date(),
+    timeRange: '',
+    image: undefined,
+    rewardAmount: undefined,
+    offerReward: false,
+  };
 });
 
 // Fetch signed URL for preview when image changes
@@ -218,25 +239,48 @@ useEffect(() => {
     }
 
     try {
-      const itemData = {
-        title: formData.title.trim(),
-        description: formData.description.trim(),
-        category: formData.category,
-        status: 'lost' as const,
-        location: formData.location,
-        image: formData.image,
-        reward_amount: formData.offerReward ? formData.rewardAmount : undefined,
-        user_id: user.id,
-        resolved: false,
-      };
+      if (editMode && itemData) {
+        // Update existing item
+        const updates = {
+          title: formData.title.trim(),
+          description: formData.description.trim(),
+          category: formData.category,
+          location: formData.location,
+          image: formData.image,
+          reward_amount: formData.offerReward ? formData.rewardAmount : undefined,
+        };
 
-      const newItem = await createItem(itemData);
-      
-      if (newItem) {
-        navigation.navigate('Success');
+        const updatedItem = await updateItem(itemData.id, updates);
+
+        if (updatedItem) {
+          Alert.alert('Success', 'Item updated successfully', [
+            { text: 'OK', onPress: () => navigation.goBack() }
+          ]);
+        } else {
+          Alert.alert('Error', 'Failed to update item. Please try again.');
+        }
       } else {
-        Alert.alert('Error', 'Failed to post item. Please try again.');
-        console.error('[FormSubmit] createItem returned null');
+        // Create new item
+        const newItemData = {
+          title: formData.title.trim(),
+          description: formData.description.trim(),
+          category: formData.category,
+          status: 'lost' as const,
+          location: formData.location,
+          image: formData.image,
+          reward_amount: formData.offerReward ? formData.rewardAmount : undefined,
+          user_id: user.id,
+          resolved: false,
+        };
+
+        const newItem = await createItem(newItemData);
+
+        if (newItem) {
+          navigation.navigate('Success');
+        } else {
+          Alert.alert('Error', 'Failed to post item. Please try again.');
+          console.error('[FormSubmit] createItem returned null');
+        }
       }
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Something went wrong. Please try again.');
@@ -477,7 +521,7 @@ useEffect(() => {
         <TouchableOpacity onPress={handleBack}>
           <Feather name="arrow-left" size={24} color="#222" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Report Lost Item</Text>
+        <Text style={styles.headerTitle}>{editMode ? 'Edit Lost Item' : 'Report Lost Item'}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -534,7 +578,7 @@ useEffect(() => {
             <ActivityIndicator color="#fff" size="small" />
           ) : (
             <Text style={styles.nextBtnText}>
-              {currentStep === 3 ? 'Post Lost Item' : 'Next Step'}
+              {currentStep === 3 ? (editMode ? 'Update Item' : 'Post Lost Item') : 'Next Step'}
             </Text>
           )}
         </TouchableOpacity>

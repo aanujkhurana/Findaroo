@@ -6,6 +6,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { uploadImage, getSignedImageUrl } from '../utils/uploadImage';
 import { useCreateItem } from '../hooks/useCreateItem';
 import { useAuth } from '../hooks/useAuth';
+import { useItems } from '../hooks/useItems';
 import { Category, LocationCoords } from '../types';
 import { getCurrentLocation, requestLocationPermissions } from '../utils/location';
 import { LocationPicker } from '../components/LocationPicker';
@@ -40,20 +41,39 @@ const STEPS = [
   { id: 3, title: 'Help Return It', subtitle: 'Let us know if you want to help return it' },
 ];
 
-export const CreateFoundItemScreen = ({ navigation }: any) => {
+export const CreateFoundItemScreen = ({ navigation, route }: any) => {
   const { user } = useAuth();
   const { createItem, loading: createLoading } = useCreateItem();
+  const { updateItem } = useItems();
+
+  // Check if we're in edit mode
+  const editMode = route?.params?.editMode || false;
+  const itemData = route?.params?.itemData || null;
   const [currentStep, setCurrentStep] = useState(1);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [formData, setFormData] = useState<FormData>({
-    category: null,
-    title: '',
-    description: '',
-    location: null,
-    dateFound: new Date(),
-    image: undefined,
-    willingToReturn: true,
-    acceptTip: false,
+  const [formData, setFormData] = useState<FormData>(() => {
+    if (editMode && itemData) {
+      return {
+        category: itemData.category || null,
+        title: itemData.title || '',
+        description: itemData.description || '',
+        location: itemData.location || null,
+        dateFound: itemData.created_at ? new Date(itemData.created_at) : new Date(),
+        image: itemData.image || undefined,
+        willingToReturn: true,
+        acceptTip: false,
+      };
+    }
+    return {
+      category: null,
+      title: '',
+      description: '',
+      location: null,
+      dateFound: new Date(),
+      image: undefined,
+      willingToReturn: true,
+      acceptTip: false,
+    };
   });
   const [showImagePicker, setShowImagePicker] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -226,25 +246,47 @@ export const CreateFoundItemScreen = ({ navigation }: any) => {
       return;
     }
     try {
-      const itemData = {
-        title: formData.title.trim(),
-        description: formData.description.trim(),
-        category: formData.category,
-        status: 'found' as const,
-        location: formData.location,
-        image: formData.image,
-        willing_to_return: formData.willingToReturn,
-        accept_tip: formData.acceptTip,
-        date_found: formData.dateFound.toISOString(),
-        resolved: false,
-        user_id: user.id,
-      };
-      const newItem = await createItem(itemData);
-      if (newItem) {
-        navigation.navigate('Success');
+      if (editMode && itemData) {
+        // Update existing item
+        const updates = {
+          title: formData.title.trim(),
+          description: formData.description.trim(),
+          category: formData.category,
+          location: formData.location,
+          image: formData.image,
+        };
+
+        const updatedItem = await updateItem(itemData.id, updates);
+
+        if (updatedItem) {
+          Alert.alert('Success', 'Item updated successfully', [
+            { text: 'OK', onPress: () => navigation.goBack() }
+          ]);
+        } else {
+          Alert.alert('Error', 'Failed to update item. Please try again.');
+        }
       } else {
-        Alert.alert('Error', 'Failed to post item. Please try again.');
-        console.error('[FormSubmit] createItem returned null');
+        // Create new item
+        const newItemData = {
+          title: formData.title.trim(),
+          description: formData.description.trim(),
+          category: formData.category,
+          status: 'found' as const,
+          location: formData.location,
+          image: formData.image,
+          willing_to_return: formData.willingToReturn,
+          accept_tip: formData.acceptTip,
+          date_found: formData.dateFound.toISOString(),
+          resolved: false,
+          user_id: user.id,
+        };
+        const newItem = await createItem(newItemData);
+        if (newItem) {
+          navigation.navigate('Success');
+        } else {
+          Alert.alert('Error', 'Failed to post item. Please try again.');
+          console.error('[FormSubmit] createItem returned null');
+        }
       }
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Something went wrong. Please try again.');
@@ -458,7 +500,7 @@ export const CreateFoundItemScreen = ({ navigation }: any) => {
         <TouchableOpacity onPress={handleBack}>
           <Feather name="arrow-left" size={24} color="#222" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Report Found Item</Text>
+        <Text style={styles.headerTitle}>{editMode ? 'Edit Found Item' : 'Report Found Item'}</Text>
         <View style={{ width: 24 }} />
       </View>
       {/* Progress Bar */}
@@ -510,7 +552,7 @@ export const CreateFoundItemScreen = ({ navigation }: any) => {
             <ActivityIndicator color="#fff" size="small" />
           ) : (
             <Text style={styles.nextBtnText}>
-              {currentStep === 3 ? 'Post Found Item' : 'Next Step'}
+              {currentStep === 3 ? (editMode ? 'Update Item' : 'Post Found Item') : 'Next Step'}
             </Text>
           )}
         </TouchableOpacity>
