@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { View, Text, FlatList, RefreshControl, ScrollView, TouchableOpacity, StyleSheet, Image, TextInput, Modal, Dimensions } from 'react-native';
+import { View, Text, FlatList, ScrollView, TouchableOpacity, StyleSheet, TextInput, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useItems } from '../hooks/useItems';
 import { ItemCard } from '../components/ItemCard';
@@ -51,6 +51,12 @@ const DISTANCE_OPTIONS = [
   { value: 50, label: 'Within 50km', icon: <Feather name="navigation-2" size={16} color={COLORS.muted} /> },
 ];
 
+const SEARCH_SUGGESTIONS = [
+  'iPhone', 'wallet', 'keys', 'backpack', 'laptop', 'sunglasses',
+  'watch', 'headphones', 'phone', 'bag', 'jacket', 'book',
+  'umbrella', 'charger', 'earbuds', 'glasses', 'ring', 'necklace'
+];
+
 function parsePointString(pointStr: string | undefined) {
     if (!pointStr || typeof pointStr !== 'string') return null;
   const match = pointStr.match(/POINT\((-?\d+\.\d+) (-?\d+\.\d+)\)/);
@@ -74,7 +80,9 @@ function isLocationObject(value: any): value is { address: string } {
 
 export const HomeFeedScreen = ({ navigation }: any) => {
   const [status, setStatus] = useState<'lost' | 'found' | undefined>(undefined);
-  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState(''); // Input text
+  const [search, setSearch] = useState(''); // Actual search query
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [mapExpanded, setMapExpanded] = useState(false);
   // Change category state to array
@@ -102,6 +110,33 @@ export const HomeFeedScreen = ({ navigation }: any) => {
     await refetch();
     setRefreshing(false);
   }, [refetch]);
+
+  // Handle search submission
+  const handleSearchSubmit = useCallback(() => {
+    setSearch(searchInput.trim());
+    setShowSuggestions(false);
+  }, [searchInput]);
+
+  // Handle search input change
+  const handleSearchInputChange = useCallback((text: string) => {
+    setSearchInput(text);
+    setShowSuggestions(text.length > 0);
+  }, []);
+
+  // Handle suggestion selection
+  const handleSuggestionSelect = useCallback((suggestion: string) => {
+    setSearchInput(suggestion);
+    setSearch(suggestion);
+    setShowSuggestions(false);
+  }, []);
+
+  // Filter suggestions based on input
+  const filteredSuggestions = useMemo(() => {
+    if (!searchInput.trim()) return SEARCH_SUGGESTIONS.slice(0, 6);
+    return SEARCH_SUGGESTIONS.filter(suggestion =>
+      suggestion.toLowerCase().includes(searchInput.toLowerCase())
+    ).slice(0, 6);
+  }, [searchInput]);
 
   // Update filtering logic for items
   const filteredItems = useMemo(() => {
@@ -136,15 +171,54 @@ export const HomeFeedScreen = ({ navigation }: any) => {
       </View>
 
       {/* Search Bar */}
-      <View style={styles.searchBar}>
-        <Feather name="search" size={18} color={COLORS.muted} style={{ marginLeft: 10 }} />
-        <TextInput
-          style={styles.searchInput}
-          value={search}
-          onChangeText={setSearch}
-          placeholder="Search lost & found items…"
-          placeholderTextColor={COLORS.muted}
-        />
+      <View style={styles.searchContainer}>
+        <View style={styles.searchBar}>
+          <Feather name="search" size={18} color={COLORS.muted} style={{ marginLeft: 10 }} />
+          <TextInput
+            style={styles.searchInput}
+            value={searchInput}
+            onChangeText={handleSearchInputChange}
+            onSubmitEditing={handleSearchSubmit}
+            onFocus={() => setShowSuggestions(searchInput.length > 0)}
+            placeholder="Search lost & found items…"
+            placeholderTextColor={COLORS.muted}
+            returnKeyType="search"
+          />
+          {searchInput.length > 0 && (
+            <TouchableOpacity
+              onPress={() => {
+                setSearchInput('');
+                setSearch('');
+                setShowSuggestions(false);
+              }}
+              style={styles.clearButton}
+            >
+              <Feather name="x" size={16} color={COLORS.muted} />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Search Suggestions */}
+        {showSuggestions && (
+          <View style={styles.suggestionsContainer}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.suggestionsContent}
+            >
+              {filteredSuggestions.map((suggestion, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.suggestionPill}
+                  onPress={() => handleSuggestionSelect(suggestion)}
+                >
+                  <Feather name="search" size={14} color={COLORS.muted} />
+                  <Text style={styles.suggestionText}>{suggestion}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
       </View>
 
       {/* Pill Filter Bar (no scroll, 3 pills + filter icon) */}
@@ -163,7 +237,7 @@ export const HomeFeedScreen = ({ navigation }: any) => {
 
         {/* Distance Filter Button */}
         <TouchableOpacity
-          style={[styles.filterIconBtn, maxDistance && styles.filterIconBtnActive]}
+          style={[styles.filterIconBtn, maxDistance ? styles.filterIconBtnActive : null]}
           onPress={() => setLocationFilterModalVisible(true)}
         >
           <Feather name="map-pin" size={20} color={maxDistance ? '#fff' : COLORS.primary} />
@@ -413,17 +487,45 @@ const styles = StyleSheet.create({
   headerIcons: { flexDirection: 'row', alignItems: 'center' },
   headerIconBtn: { marginLeft: 12 },
   avatarCircle: { width: 34, height: 34, borderRadius: 17, backgroundColor: COLORS.card, alignItems: 'center', justifyContent: 'center', marginLeft: 8 },
+  searchContainer: {
+    marginHorizontal: 18,
+    marginBottom: 10,
+  },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.card,
     borderRadius: 16,
-    marginHorizontal: 18,
-    marginBottom: 10,
     paddingVertical: 8,
     paddingHorizontal: 8,
     borderWidth: 1,
     borderColor: COLORS.border,
+  },
+  clearButton: {
+    padding: 4,
+    marginRight: 4,
+  },
+  suggestionsContainer: {
+    marginTop: 8,
+  },
+  suggestionsContent: {
+    paddingHorizontal: 4,
+  },
+  suggestionPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.card,
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  suggestionText: {
+    fontSize: 14,
+    color: COLORS.text,
+    marginLeft: 6,
   },
   searchInput: {
     flex: 1,
