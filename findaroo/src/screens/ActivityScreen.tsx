@@ -206,42 +206,34 @@ export default function ActivityScreen() {
     });
   }, [userItems, shouldFetchItems, messageCounts]);
 
-  // Calculate enhanced statistics
+  // Calculate compact statistics
   const stats = useMemo(() => {
     const totalPosts = allUserItems.length;
     const activeCount = allUserItems.filter(item => item.displayStatus === 'active').length;
     const matchedCount = allUserItems.filter(item => item.displayStatus === 'matched').length;
     const resolvedCount = allUserItems.filter(item => item.displayStatus === 'resolved').length;
-    const totalRewards = allUserItems.reduce((sum, item) => sum + (item.rewardAmount || 0), 0);
 
     return [
       {
-        label: 'Total Posts',
+        label: 'Total',
         value: totalPosts,
-        color: COLORS.resolved,
-        textColor: COLORS.resolvedText,
+        color: '#F0F4FF',
+        textColor: COLORS.primary,
         icon: 'list'
       },
       {
         label: 'Active',
         value: activeCount,
-        color: COLORS.active,
-        textColor: COLORS.activeText,
+        color: '#FFF8E6',
+        textColor: '#E67E00',
         icon: 'clock'
       },
       {
         label: 'Matched',
         value: matchedCount,
-        color: COLORS.matched,
-        textColor: COLORS.matchedText,
+        color: '#F0FDF4',
+        textColor: COLORS.success,
         icon: 'message-circle'
-      },
-      {
-        label: 'Resolved',
-        value: resolvedCount,
-        color: COLORS.resolved,
-        textColor: COLORS.resolvedText,
-        icon: 'check'
       },
     ];
   }, [allUserItems]);
@@ -398,48 +390,29 @@ export default function ActivityScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Enhanced Stats Row */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.statsScrollContainer}
-          style={styles.statsScrollView}
-        >
+        {/* Compact Stats Row */}
+        <View style={styles.statsContainer}>
           {stats.map((stat, index) => (
             <View key={stat.label} style={[styles.statCard, { backgroundColor: stat.color }]}>
-              <View style={styles.statHeader}>
-                <Feather name={stat.icon as any} size={16} color={stat.textColor} />
-                <Text style={[styles.statValue, { color: stat.textColor }]}>{stat.value}</Text>
-              </View>
+              <Text style={[styles.statValue, { color: stat.textColor }]}>{stat.value}</Text>
               <Text style={styles.statLabel}>{stat.label}</Text>
             </View>
           ))}
-        </ScrollView>
-        {/* Enhanced Filter Bar */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterScrollContainer}
-          style={styles.filterScrollView}
-        >
+        </View>
+        {/* Compact Filter Bar */}
+        <View style={styles.filterContainer}>
           {FILTERS.map(f => (
             <TouchableOpacity
               key={f.value}
               style={[styles.filterPill, filter === f.value && styles.filterPillActive]}
               onPress={() => setFilter(f.value)}
             >
-              <Feather
-                name={f.icon as any}
-                size={14}
-                color={filter === f.value ? '#fff' : COLORS.muted}
-                style={styles.filterIcon}
-              />
               <Text style={[styles.filterPillText, filter === f.value && styles.filterPillTextActive]}>
                 {f.label}
               </Text>
             </TouchableOpacity>
           ))}
-        </ScrollView>
+        </View>
         {/* Enhanced Activity List */}
         <FlatList
           data={filteredItems}
@@ -489,9 +462,28 @@ export default function ActivityScreen() {
             <View style={styles.itemIcon}>{item.icon}</View>
             <View style={styles.itemContent}>
               <View style={styles.itemHeaderRow}>
-                <Text style={styles.itemTitle} numberOfLines={1}>{item.title}</Text>
+                <View style={styles.itemTitleContainer}>
+                  <Text style={styles.itemTitle} numberOfLines={1}>{item.title}</Text>
+                  <View style={styles.itemTypeContainer}>
+                    <View style={[
+                      styles.typeBadge,
+                      { backgroundColor: item.status === 'lost' ? '#FFF0F0' : '#F0FFF0' }
+                    ]}>
+                      <Feather
+                        name={item.status === 'lost' ? 'search' : 'check-circle'}
+                        size={10}
+                        color={item.status === 'lost' ? '#DC2626' : '#16A34A'}
+                      />
+                      <Text style={[
+                        styles.typeText,
+                        { color: item.status === 'lost' ? '#DC2626' : '#16A34A' }
+                      ]}>
+                        {item.type}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
                 <View style={[styles.statusBadge, { backgroundColor: item.statusColor }]}>
-                  <Feather name={item.statusIcon as any} size={10} color={item.statusTextColor} />
                   <Text style={[styles.statusBadgeText, { color: item.statusTextColor }]}>
                     {item.statusLabel}
                   </Text>
@@ -499,11 +491,20 @@ export default function ActivityScreen() {
               </View>
 
               <View style={styles.itemMetaRow}>
-                <Text style={styles.itemMeta}>{item.type} • {item.date}</Text>
+                <View style={styles.itemMetaLeft}>
+                  <Feather name="clock" size={12} color={COLORS.muted} />
+                  <Text style={styles.itemMeta}>{item.date}</Text>
+                  {item.location_name && (
+                    <>
+                      <Feather name="map-pin" size={12} color={COLORS.muted} style={{ marginLeft: 8 }} />
+                      <Text style={styles.itemLocation} numberOfLines={1}>{item.location_name}</Text>
+                    </>
+                  )}
+                </View>
                 {item.hasReward && (
                   <View style={styles.rewardBadge}>
-                    <Feather name="gift" size={12} color={COLORS.secondary} />
-                    <Text style={styles.rewardText}>${item.rewardAmount}</Text>
+                    <Feather name="dollar-sign" size={10} color="#B45309" />
+                    <Text style={styles.rewardText}>{item.rewardAmount}</Text>
                   </View>
                 )}
               </View>
@@ -513,18 +514,18 @@ export default function ActivityScreen() {
               <View style={styles.itemFooterRow}>
                 <View style={styles.itemFooterLeft}>
                   {item.messageCount > 0 && (
-                    <>
-                      <Feather name="message-circle" size={14} color={COLORS.matchedText} />
-                      <Text style={[styles.itemFooterText, { color: COLORS.matchedText }]}>
-                        {item.messageCount} message{item.messageCount !== 1 ? 's' : ''}
+                    <View style={styles.messageIndicator}>
+                      <Feather name="message-circle" size={12} color={COLORS.success} />
+                      <Text style={[styles.itemFooterText, { color: COLORS.success }]}>
+                        {item.messageCount}
                       </Text>
-                    </>
+                    </View>
                   )}
                   {item.returned && (
-                    <>
-                      <Feather name="check" size={14} color={COLORS.resolvedText} style={{ marginLeft: item.messageCount > 0 ? 8 : 0 }} />
-                      <Text style={[styles.itemFooterText, { color: COLORS.resolvedText }]}>Returned</Text>
-                    </>
+                    <View style={styles.returnedIndicator}>
+                      <Feather name="check" size={12} color={COLORS.primary} />
+                      <Text style={[styles.itemFooterText, { color: COLORS.primary }]}>Returned</Text>
+                    </View>
                   )}
                 </View>
                 <View style={styles.itemFooterRight}>
@@ -536,17 +537,17 @@ export default function ActivityScreen() {
                     style={styles.actionButton}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   >
-                    <Feather name="edit-2" size={15} color={COLORS.primary} />
+                    <Feather name="edit-2" size={14} color={COLORS.primary} />
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={(e) => {
                       e.stopPropagation();
                       handleDeleteItem(item);
                     }}
-                    style={[styles.actionButton, { backgroundColor: 'rgba(255, 76, 76, 0.1)' }]}
+                    style={[styles.actionButton, styles.deleteButton]}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   >
-                    <Feather name="trash-2" size={15} color={COLORS.error} />
+                    <Feather name="trash-2" size={14} color={COLORS.error} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -580,122 +581,119 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontWeight: 'bold', fontSize: 20, color: COLORS.text },
 
-  // Enhanced Stats Styles
-  statsScrollView: {
+  // Compact Stats Styles
+  statsContainer: {
+    flexDirection: 'row',
+    marginHorizontal: 18,
     marginBottom: 16,
-  },
-  statsScrollContainer: {
-    paddingHorizontal: 18,
-    gap: 12,
+    gap: 8,
   },
   statCard: {
-    minWidth: 100,
-    borderRadius: 16,
+    flex: 1,
+    borderRadius: 12,
     alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
   },
-  statHeader: {
+  statValue: { fontWeight: 'bold', fontSize: 16 },
+  statLabel: { color: COLORS.muted, fontSize: 11, textAlign: 'center', fontWeight: '500', marginTop: 2 },
+  // Compact Filter Styles
+  filterContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 4,
-  },
-  statValue: { fontWeight: 'bold', fontSize: 18 },
-  statLabel: { color: COLORS.muted, fontSize: 12, textAlign: 'center', fontWeight: '500' },
-  // Enhanced Filter Styles
-  filterScrollView: {
+    marginHorizontal: 18,
     marginBottom: 16,
-  },
-  filterScrollContainer: {
-    paddingHorizontal: 18,
     gap: 8,
   },
   filterPill: {
+    flex: 1,
     backgroundColor: COLORS.card,
-    borderRadius: 24,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    borderRadius: 20,
+    paddingVertical: 8,
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: COLORS.border,
-    flexDirection: 'row',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
-    elevation: 1,
   },
   filterPillActive: {
     backgroundColor: COLORS.primary,
     borderColor: COLORS.primary,
   },
-  filterIcon: {
-    marginRight: 6,
-  },
   filterPillText: {
     color: COLORS.text,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
   },
   filterPillTextActive: {
     color: '#fff',
   },
-  // Enhanced Item Card Styles
+  // Compact Item Card Styles
   itemCard: {
     flexDirection: 'row',
     backgroundColor: COLORS.card,
-    borderRadius: 16,
+    borderRadius: 12,
     marginHorizontal: 18,
-    marginBottom: 16,
-    padding: 16,
+    marginBottom: 12,
+    padding: 12,
     alignItems: 'flex-start',
     borderWidth: 1,
     borderColor: COLORS.border,
     shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOpacity: 0.03,
+    shadowRadius: 2,
+    elevation: 1,
   },
   itemIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     backgroundColor: COLORS.neutral,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 14,
-    marginTop: 2,
+    marginRight: 12,
+    marginTop: 1,
   },
   itemContent: {
     flex: 1,
   },
   itemHeaderRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
-    marginBottom: 6,
+    marginBottom: 4,
   },
-  itemTitle: {
-    fontWeight: 'bold',
-    fontSize: 16,
-    color: COLORS.text,
+  itemTitleContainer: {
     flex: 1,
     marginRight: 8,
   },
-  statusBadge: {
+  itemTitle: {
+    fontWeight: 'bold',
+    fontSize: 15,
+    color: COLORS.text,
+    marginBottom: 2,
+  },
+  itemTypeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    gap: 4,
+  },
+  typeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    gap: 3,
+  },
+  typeText: {
+    fontSize: 10,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  statusBadge: {
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
   statusBadgeText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '600',
     textTransform: 'capitalize'
   },
@@ -705,30 +703,43 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 6,
   },
+  itemMetaLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
   itemMeta: {
     color: COLORS.muted,
-    fontSize: 13,
-    fontWeight: '500'
+    fontSize: 12,
+    fontWeight: '500',
+    marginLeft: 4,
+  },
+  itemLocation: {
+    color: COLORS.muted,
+    fontSize: 12,
+    fontWeight: '500',
+    marginLeft: 4,
+    flex: 1,
   },
   rewardBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF8E1',
-    borderRadius: 8,
-    paddingHorizontal: 6,
+    backgroundColor: '#FEF3C7',
+    borderRadius: 6,
+    paddingHorizontal: 5,
     paddingVertical: 2,
-    gap: 3,
+    gap: 2,
   },
   rewardText: {
-    color: COLORS.secondary,
-    fontSize: 11,
-    fontWeight: '600',
+    color: '#B45309',
+    fontSize: 10,
+    fontWeight: '700',
   },
   itemDesc: {
     color: COLORS.text,
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 12,
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 8,
   },
   itemFooterRow: {
     flexDirection: 'row',
@@ -739,24 +750,44 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    gap: 8,
+  },
+  messageIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0FDF4',
+    borderRadius: 6,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    gap: 3,
+  },
+  returnedIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    borderRadius: 6,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    gap: 3,
   },
   itemFooterText: {
-    color: COLORS.muted,
-    fontSize: 12,
-    marginLeft: 4,
-    fontWeight: '500',
+    fontSize: 10,
+    fontWeight: '600',
   },
   itemFooterRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   actionButton: {
-    padding: 10,
-    borderRadius: 10,
+    padding: 6,
+    borderRadius: 8,
     backgroundColor: 'rgba(58, 141, 255, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  deleteButton: {
+    backgroundColor: 'rgba(255, 76, 76, 0.1)',
   },
   // Enhanced Empty State Styles
   emptyState: {
