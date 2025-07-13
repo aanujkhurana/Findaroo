@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList } from 'react-native';
+import React, { useState, useEffect, useMemo } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
 import { Feather, MaterialIcons } from '@expo/vector-icons';
+import { useAuth } from '../hooks/useAuth';
+import { useItems } from '../hooks/useItems';
+import { Item } from '../types';
 
 const COLORS = {
   background: '#f8fafc',
@@ -18,12 +21,6 @@ const COLORS = {
   resolvedText: '#6366f1',
 };
 
-const STATS = [
-  { label: 'Total Posts', value: 12, color: '#e0edff', textColor: COLORS.primary },
-  { label: 'Matched', value: 3, color: '#e7fbe7', textColor: COLORS.matchedText },
-  { label: 'Resolved', value: 7, color: '#fbe7e7', textColor: COLORS.accent },
-];
-
 const FILTERS = [
   { label: 'All Items', value: 'all' },
   { label: 'Active', value: 'active' },
@@ -31,79 +28,192 @@ const FILTERS = [
   { label: 'Resolved', value: 'resolved' },
 ];
 
-const MOCK_ITEMS = [
-  {
-    id: '1',
-    icon: <Feather name="smartphone" size={22} color={COLORS.primary} />, // iPhone
-    title: 'iPhone 14 Pro',
-    status: 'active',
-    statusLabel: 'Active',
-    statusColor: COLORS.active,
-    statusTextColor: COLORS.activeText,
-    type: 'Lost',
-    date: '2 days ago',
-    desc: 'Lost at Central Station, Sydney. Black case with blue pop socket.',
-    views: 24,
-    saves: 3,
-    match: false,
-    returned: false,
-  },
-  {
-    id: '2',
-    icon: <Feather name="key" size={22} color={COLORS.matchedText} />, // House Keys
-    title: 'House Keys',
-    status: 'matched',
-    statusLabel: 'Matched',
-    statusColor: COLORS.matched,
-    statusTextColor: COLORS.matchedText,
-    type: 'Found',
-    date: '5 days ago',
-    desc: 'Found near Bondi Beach. Set of 4 keys with koala keychain.',
-    views: 18,
-    saves: 0,
-    match: true,
-    returned: false,
-  },
-  {
-    id: '3',
-    icon: <Feather name="credit-card" size={22} color={COLORS.resolvedText} />, // Brown Wallet
-    title: 'Brown Wallet',
-    status: 'resolved',
-    statusLabel: 'Resolved',
-    statusColor: COLORS.resolved,
-    statusTextColor: COLORS.resolvedText,
-    type: 'Lost',
-    date: '1 week ago',
-    desc: 'Lost at Queen Victoria Building. Leather wallet with cards.',
-    views: 31,
-    saves: 0,
-    match: false,
-    returned: true,
-  },
-  {
-    id: '4',
-    icon: <Feather name="headphones" size={22} color={COLORS.primary} />, // AirPods Pro
-    title: 'AirPods Pro',
-    status: 'active',
-    statusLabel: 'Active',
-    statusColor: COLORS.active,
-    statusTextColor: COLORS.activeText,
-    type: 'Found',
-    date: '1 day ago',
-    desc: 'Found at Circular Quay. White AirPods in case.',
-    views: 12,
-    saves: 1,
-    match: false,
-    returned: false,
-  },
-];
+// Helper function to get category icon
+const getCategoryIcon = (category: string, color: string = COLORS.primary) => {
+  const iconMap: { [key: string]: string } = {
+    electronics: 'smartphone',
+    phone: 'smartphone',
+    keys: 'key',
+    wallet: 'credit-card',
+    bags: 'briefcase',
+    bag: 'briefcase',
+    clothing: 'shopping-bag',
+    accessories: 'eye',
+    jewelry: 'star',
+    documents: 'file-text',
+    pets: 'heart',
+    pet: 'heart',
+    sports: 'activity',
+    other: 'package',
+  };
+
+  const iconName = iconMap[category?.toLowerCase()] || 'package';
+  return <Feather name={iconName as any} size={22} color={color} />;
+};
+
+// Helper function to format date to relative time
+const formatRelativeDate = (dateString: string) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffTime = Math.abs(now.getTime() - date.getTime());
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 1) {
+    return '1 day ago';
+  } else if (diffDays < 7) {
+    return `${diffDays} days ago`;
+  } else if (diffDays < 14) {
+    return '1 week ago';
+  } else if (diffDays < 30) {
+    const weeks = Math.floor(diffDays / 7);
+    return `${weeks} week${weeks > 1 ? 's' : ''} ago`;
+  } else {
+    return date.toLocaleDateString('en-AU', {
+      day: 'numeric',
+      month: 'short',
+    });
+  }
+};
+
+// Helper function to get status display info
+const getStatusInfo = (item: Item) => {
+  const hasMessages = false; // TODO: Add message count logic when available
+  const isResolved = item.resolved;
+
+  if (isResolved) {
+    return {
+      status: 'resolved',
+      statusLabel: 'Resolved',
+      statusColor: COLORS.resolved,
+      statusTextColor: COLORS.resolvedText,
+    };
+  } else if (item.status === 'returned') {
+    return {
+      status: 'resolved',
+      statusLabel: 'Returned',
+      statusColor: COLORS.resolved,
+      statusTextColor: COLORS.resolvedText,
+    };
+  } else if (hasMessages) {
+    return {
+      status: 'matched',
+      statusLabel: 'Matched',
+      statusColor: COLORS.matched,
+      statusTextColor: COLORS.matchedText,
+    };
+  } else {
+    return {
+      status: 'active',
+      statusLabel: 'Active',
+      statusColor: COLORS.active,
+      statusTextColor: COLORS.activeText,
+    };
+  }
+};
 
 export default function ActivityScreen() {
   const [filter, setFilter] = useState('all');
-  const filteredItems =
-    filter === 'all'
-      ? MOCK_ITEMS
-      : MOCK_ITEMS.filter(item => item.status === filter);
+  const { user, loading: authLoading } = useAuth();
+
+  // Create stable filters object to prevent infinite re-renders
+  const itemFilters = useMemo(() => ({
+    userId: user?.id
+  }), [user?.id]);
+
+  // Only fetch user's items when we have a valid user ID
+  const { items: userItems, loading: itemsLoading, error } = useItems(
+    user?.id ? itemFilters : {}
+  );
+
+  // Don't fetch items if user is not authenticated
+  const shouldFetchItems = !!user?.id;
+
+
+
+  // Transform items for display
+  const allUserItems = useMemo(() => {
+    if (!shouldFetchItems || !userItems) {
+      return [];
+    }
+
+    return userItems.map(item => {
+      const statusInfo = getStatusInfo(item);
+      return {
+        ...item,
+        ...statusInfo,
+        icon: getCategoryIcon(item.category, statusInfo.statusTextColor),
+        type: item.status === 'lost' ? 'Lost' : 'Found',
+        date: formatRelativeDate(item.created_at),
+        desc: item.description,
+        views: 0, // TODO: Add view tracking when available
+        saves: 0, // TODO: Add save tracking when available
+        match: false, // TODO: Add message/match logic when available
+        returned: item.status === 'returned' || item.resolved,
+      };
+    });
+  }, [userItems, shouldFetchItems]);
+
+  // Calculate statistics
+  const stats = useMemo(() => {
+    const totalPosts = allUserItems.length;
+    const matchedCount = allUserItems.filter(item => item.match).length;
+    const resolvedCount = allUserItems.filter(item => item.returned).length;
+
+    return [
+      { label: 'Total Posts', value: totalPosts, color: '#e0edff', textColor: COLORS.primary },
+      { label: 'Matched', value: matchedCount, color: '#e7fbe7', textColor: COLORS.matchedText },
+      { label: 'Resolved', value: resolvedCount, color: '#fbe7e7', textColor: COLORS.accent },
+    ];
+  }, [allUserItems]);
+
+  // Filter items based on selected filter
+  const filteredItems = useMemo(() => {
+    if (filter === 'all') {
+      return allUserItems;
+    }
+    return allUserItems.filter(item => item.status === filter);
+  }, [allUserItems, filter]);
+
+  // Combined loading state - wait for both auth and items
+  const loading = authLoading || (shouldFetchItems && itemsLoading);
+
+  if (authLoading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={[styles.headerTitle, { marginTop: 16 }]}>Authenticating...</Text>
+      </View>
+    );
+  }
+
+  if (!user) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
+        <Feather name="user-x" size={48} color={COLORS.muted} />
+        <Text style={[styles.headerTitle, { marginTop: 16, textAlign: 'center' }]}>Not authenticated</Text>
+        <Text style={[styles.statLabel, { textAlign: 'center', marginTop: 8 }]}>Please sign in to view your activity</Text>
+      </View>
+    );
+  }
+
+  if (itemsLoading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={[styles.headerTitle, { marginTop: 16 }]}>Loading your activity...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
+        <Feather name="alert-circle" size={48} color={COLORS.muted} />
+        <Text style={[styles.headerTitle, { marginTop: 16, textAlign: 'center' }]}>Error loading activity</Text>
+        <Text style={[styles.statLabel, { textAlign: 'center', marginTop: 8 }]}>{error}</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -115,7 +225,7 @@ export default function ActivityScreen() {
       </View>
       {/* Stats Row */}
       <View style={styles.statsRow}>
-        {STATS.map(stat => (
+        {stats.map(stat => (
           <View key={stat.label} style={[styles.statCard, { backgroundColor: stat.color }] }>
             <Text style={[styles.statValue, { color: stat.textColor }]}>{stat.value}</Text>
             <Text style={styles.statLabel}>{stat.label}</Text>
@@ -139,6 +249,20 @@ export default function ActivityScreen() {
         data={filteredItems}
         keyExtractor={item => item.id}
         contentContainerStyle={{ paddingBottom: 24 }}
+        ListEmptyComponent={() => (
+          <View style={styles.emptyState}>
+            <Feather name="inbox" size={48} color={COLORS.muted} />
+            <Text style={styles.emptyStateTitle}>
+              {filter === 'all' ? 'No items posted yet' : `No ${filter} items`}
+            </Text>
+            <Text style={styles.emptyStateText}>
+              {filter === 'all'
+                ? 'Start by posting a lost or found item to help your community!'
+                : `You don't have any ${filter} items at the moment.`
+              }
+            </Text>
+          </View>
+        )}
         renderItem={({ item }) => (
           <View style={styles.itemCard}>
             <View style={styles.itemIcon}>{item.icon}</View>
@@ -297,4 +421,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-}); 
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 20,
+  },
+  emptyStateTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.text,
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  emptyStateText: {
+    fontSize: 14,
+    color: COLORS.muted,
+    marginTop: 8,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+});
