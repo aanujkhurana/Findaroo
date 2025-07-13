@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, Image, ScrollView, Alert, Platform, TouchableOpacity, Switch, StyleSheet, TextInput, Modal } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons, Feather } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import { useAuth } from '../hooks/useAuth';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -359,12 +359,24 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
     <SafeAreaView style={styles.safeArea}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity>
-          <MaterialIcons name="arrow-back" size={28} color="#222" />
+        <TouchableOpacity
+          style={styles.headerButton}
+          onPress={() => navigation?.goBack()}
+        >
+          <Feather name="arrow-left" size={22} color="#64748B" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Profile & Settings</Text>
-        <TouchableOpacity>
-          <MaterialIcons name="more-vert" size={28} color="#222" />
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle}>Profile</Text>
+          <Text style={styles.headerSubtitle}>Manage your account</Text>
+        </View>
+        <TouchableOpacity
+          style={styles.headerButton}
+          onPress={() => {
+            // Future: Open app settings or preferences
+            Alert.alert('Settings', 'App settings coming soon!');
+          }}
+        >
+          <Feather name="settings" size={22} color="#64748B" />
         </TouchableOpacity>
       </View>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -698,32 +710,67 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F9FAFB',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    paddingTop: 20,
-    paddingBottom: 16,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 20,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 0,
     shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 3,
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+  },
+  headerButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#F8FAFC',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+  },
+  headerCenter: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
     fontWeight: '700',
-    fontSize: 20,
+    fontSize: 22,
     color: '#1E293B',
-    letterSpacing: -0.5,
+    letterSpacing: -0.8,
+    textAlign: 'center',
+  },
+  headerSubtitle: {
+    fontWeight: '500',
+    fontSize: 14,
+    color: '#64748B',
+    marginTop: 2,
+    textAlign: 'center',
   },
   scrollContent: {
-    padding: 24,
-    paddingBottom: 50,
+    padding: 20,
+    paddingTop: 8,
+    paddingBottom: 100,
   },
   card: {
     backgroundColor: '#FFFFFF',
@@ -790,8 +837,8 @@ const styles = StyleSheet.create({
   },
   profileStatsRow: {
     flexDirection: 'row',
-    marginTop: 24,
-    gap: 16,
+    marginTop: 16,
+    gap: 12,
   },
   reputationCard: {
     flex: 1,
@@ -825,55 +872,47 @@ const styles = StyleSheet.create({
   },
   karmaCard: {
     flex: 1,
-    backgroundColor: '#3B82F6',
-    borderRadius: 16,
-    padding: 20,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 8,
-    shadowColor: '#3B82F6',
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+    marginRight: 6,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   karmaLabel: {
-    color: '#DBEAFE',
-    fontSize: 13,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
+    color: '#64748B',
+    fontSize: 11,
+    fontWeight: '500',
+    marginBottom: 2,
   },
   karmaValue: {
-    color: '#fff',
-    fontWeight: '800',
-    fontSize: 26,
-    marginTop: 4,
+    color: '#1E293B',
+    fontWeight: '600',
+    fontSize: 16,
   },
   tipsCard: {
     flex: 1,
-    backgroundColor: '#10B981',
-    borderRadius: 16,
-    padding: 20,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 8,
-    shadowColor: '#10B981',
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+    marginLeft: 6,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   tipsLabel: {
-    color: '#D1FAE5',
-    fontSize: 13,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
+    color: '#64748B',
+    fontSize: 11,
+    fontWeight: '500',
+    marginBottom: 2,
   },
   tipsValue: {
-    color: '#fff',
-    fontWeight: '800',
-    fontSize: 26,
-    marginTop: 4,
+    color: '#059669',
+    fontWeight: '600',
+    fontSize: 16,
   },
   sectionTitle: {
     fontWeight: '700',
