@@ -227,9 +227,9 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
 
       const statusText = getStatusLabel(item.status);
       const locationText = item.location_name || 'Location not specified';
-      const rewardText = item.reward_amount ? `\n💰 Reward: $${item.reward_amount}` : '';
+      const rewardText = item.reward_amount ? `\nReward: $${item.reward_amount}` : '';
 
-      const message = `🔍 ${statusText}: ${item.title}\n\n📝 ${item.description || 'No description provided'}\n\n📍 ${locationText}${rewardText}\n\nFound on Findaroo - The Lost & Found Network`;
+      const message = `${statusText}: ${item.title}\n\n${item.description || 'No description provided'}\n\nLocation: ${locationText}${rewardText}\n\nFound on Findaroo - The Lost & Found Network`;
 
       await Share.share({
         message,
@@ -449,22 +449,20 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
             </View>
           </View>
         )}
-        {/* Item Details Card */}
+        {/* Combined Item Details Card */}
         <View style={styles.card}>
-          {mainImageUrl && (
-            <>
-              <Text style={styles.itemTitle}>{item.title}</Text>
-              <View style={styles.statusRow}>
-                <View style={[styles.statusBadge, getStatusBadgeStyle(item.status)]}>
-                  <Feather name={getStatusIcon(item.status)} size={14} color={getStatusColor(item.status)} />
-                  <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
-                    {getStatusLabel(item.status)}
-                  </Text>
-                </View>
-                <Text style={styles.statusTime}>{formatRelativeDate(item.created_at)}</Text>
+          <View style={styles.itemHeader}>
+            <Text style={styles.itemTitle}>{item.title}</Text>
+            <View style={styles.statusRow}>
+              <View style={[styles.statusBadge, getStatusBadgeStyle(item.status)]}>
+                <Feather name={getStatusIcon(item.status)} size={14} color={getStatusColor(item.status)} />
+                <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
+                  {getStatusLabel(item.status)}
+                </Text>
               </View>
-            </>
-          )}
+              <Text style={styles.statusTime}>{formatRelativeDate(item.created_at)}</Text>
+            </View>
+          </View>
 
           <Text style={styles.sectionLabel}>Description</Text>
           <Text style={styles.itemDesc}>{item.description || 'No description provided.'}</Text>
@@ -476,7 +474,7 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
             </View>
             {item.reward_amount && (
               <View style={styles.metaBox}>
-                <Feather name="dollar-sign" size={18} color={COLORS.success} />
+                <Feather name="gift" size={18} color={COLORS.success} />
                 <Text style={[styles.metaText, { color: COLORS.success, fontWeight: 'bold' }]}>
                   ${item.reward_amount}
                 </Text>
@@ -497,18 +495,21 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionLabel}>Last Seen</Text>
             {distance && (
-              <Text style={styles.distanceText}>🚶 {distance} away</Text>
+              <View style={styles.distanceContainer}>
+                <Feather name="navigation" size={14} color={COLORS.primary} />
+                <Text style={styles.distanceText}>{distance} away</Text>
+              </View>
             )}
           </View>
           <View style={styles.lastSeenRow}>
-            <MaterialIcons name="location-pin" size={20} color="#ef4444" />
+            <Feather name="map-pin" size={20} color={COLORS.error} />
             <View>
               <Text style={styles.lastSeenLoc}>{item.location_name || 'Unknown location'}</Text>
             </View>
           </View>
           <View style={styles.lastSeenRow}>
-            <MaterialIcons name="calendar-today" size={18} color="#38bdf8" />
-            <Text style={styles.lastSeenDate}>{formatDate(item.created_at)}</Text>
+            <Feather name="clock" size={18} color={COLORS.primary} />
+            <Text style={styles.lastSeenDate}>{formatRelativeDate(item.created_at)}</Text>
           </View>
 
           {/* Interactive map if coordinates available */}
@@ -584,7 +585,12 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
                 <Text style={styles.ownerName}>{owner.full_name}</Text>
                 <Text style={styles.ownerSince}>Member since {new Date(owner.created_at).getFullYear()}</Text>
               </View>
-              <View style={styles.ownerRating}><MaterialIcons name="star" size={16} color="#fbbf24" /><Text style={styles.ownerRatingText}>{(owner.karma_points ? (owner.karma_points / 100).toFixed(1) : '4.8')}</Text></View>
+              <View style={styles.ownerRating}>
+                <Feather name="star" size={16} color={COLORS.secondary} />
+                <Text style={styles.ownerRatingText}>
+                  {(owner.karma_points ? (owner.karma_points / 100).toFixed(1) : '4.8')}
+                </Text>
+              </View>
             </View>
             <View style={styles.ownerActions}>
               <TouchableOpacity
@@ -866,6 +872,9 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2
   },
+  itemHeader: {
+    marginBottom: 16,
+  },
   itemTitle: {
     fontWeight: 'bold',
     fontSize: 22,
@@ -885,6 +894,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12
+  },
+  distanceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   distanceText: {
     color: COLORS.primary,
