@@ -16,7 +16,10 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
   const [radius, setRadius] = useState(15);
   const [profilePicUrl, setProfilePicUrl] = useState('');
   const [showEditNameModal, setShowEditNameModal] = useState(false);
+  const [showEditDetailsModal, setShowEditDetailsModal] = useState(false);
   const [editingName, setEditingName] = useState('');
+  const [editingPhone, setEditingPhone] = useState('');
+  const [editingEmail, setEditingEmail] = useState('');
   const [receivedTips, setReceivedTips] = useState(0);
   const [loadingTips, setLoadingTips] = useState(true);
 
@@ -106,6 +109,65 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
   const handleCancelEditName = () => {
     setEditingName('');
     setShowEditNameModal(false);
+  };
+
+  const handleEditDetails = () => {
+    setEditingName(user?.full_name || '');
+    setEditingPhone(user?.phone || '');
+    setEditingEmail(user?.email || '');
+    setShowEditDetailsModal(true);
+  };
+
+  const handleSaveDetails = async () => {
+    if (!user) {
+      Alert.alert('Error', 'You must be logged in to update your details');
+      return;
+    }
+
+    const trimmedName = editingName.trim();
+    const trimmedEmail = editingEmail.trim();
+
+    if (!trimmedName) {
+      Alert.alert('Error', 'Name cannot be empty');
+      return;
+    }
+
+    if (!trimmedEmail) {
+      Alert.alert('Error', 'Email cannot be empty');
+      return;
+    }
+
+    try {
+      const updates: any = {
+        full_name: trimmedName,
+        email: trimmedEmail,
+      };
+
+      if (editingPhone.trim()) {
+        updates.phone = editingPhone.trim();
+      }
+
+      const { data, error } = await updateProfile(updates);
+      if (error) {
+        Alert.alert('Update Failed', error.message || 'Could not update your details');
+        console.error('[ProfileScreen] Details update failed:', error);
+        return;
+      }
+
+      console.log('[ProfileScreen] Details updated successfully:', data);
+      setShowEditDetailsModal(false);
+      Alert.alert('Success', 'Your details have been updated successfully');
+    } catch (error) {
+      console.error('[ProfileScreen] Unexpected error updating details:', error);
+      Alert.alert('Error', 'An unexpected error occurred. Please try again.');
+    }
+  };
+
+  const handleCancelEditDetails = () => {
+    setEditingName('');
+    setEditingPhone('');
+    setEditingEmail('');
+    setShowEditDetailsModal(false);
   };
 
   const handlePickProfileImage = async () => {
@@ -326,19 +388,25 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
               </View>
             </View>
             <View style={{ flex: 1 }}>
-              <TouchableOpacity onPress={handleEditName} style={styles.nameContainer}>
-                <Text style={styles.profileName}>
-                  {user?.full_name || 'Tap to add your name'}
-                </Text>
-                <MaterialIcons name="edit" size={16} color="#666" style={{ marginLeft: 8 }} />
-              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <TouchableOpacity onPress={handleEditName} style={styles.nameContainer}>
+                  <Text style={styles.profileName}>
+                    {user?.full_name || 'Tap to add your name'}
+                  </Text>
+                  <MaterialIcons name="edit" size={16} color="#666" style={{ marginLeft: 8 }} />
+                </TouchableOpacity>
+                {/* Small verification badge */}
+                <View style={styles.smallVerificationBadge}>
+                  <MaterialIcons name="verified" size={16} color="#10B981" />
+                </View>
+              </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-                <MaterialIcons name="email" size={16} color="#aaa" />
+                <MaterialIcons name="email" size={16} color="#64748B" />
                 <Text style={styles.profileLocation}>{user?.email || 'No email'}</Text>
               </View>
               {user?.phone && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-                  <MaterialIcons name="phone" size={16} color="#aaa" />
+                  <MaterialIcons name="phone" size={16} color="#64748B" />
                   <Text style={styles.profileLocation}>{user.phone}</Text>
                 </View>
               )}
@@ -368,23 +436,24 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
           {/* Credit/Debit Card - Placeholder */}
           <View style={styles.paymentRow}>
             <View style={styles.paymentIconBox}>
-              <MaterialIcons name="credit-card" size={20} color="#2563eb" />
+              <MaterialIcons name="credit-card" size={20} color="#3B82F6" />
             </View>
             <View style={{ marginLeft: 12 }}>
               <Text style={styles.paymentText}>No payment methods added</Text>
               <Text style={styles.paymentSub}>Add a payment method to get started</Text>
             </View>
-            <MaterialIcons name="chevron-right" size={24} color="#bbb" style={{ marginLeft: 'auto' }} />
+            <MaterialIcons name="chevron-right" size={24} color="#94A3B8" style={{ marginLeft: 'auto' }} />
           </View>
           {/* PayID */}
           <View style={styles.paymentRow}>
-            <View style={[styles.paymentIconBox, { backgroundColor: '#FFEAD1' }] }>
-              <Text style={{ color: '#F59E42', fontWeight: 'bold', fontSize: 16 }}>P</Text>
+            <View style={[styles.paymentIconBox, { backgroundColor: '#FEF3C7' }] }>
+              <Text style={{ color: '#F59E0B', fontWeight: 'bold', fontSize: 16 }}>P</Text>
             </View>
             <View style={{ marginLeft: 12 }}>
               <Text style={styles.paymentText}>{user?.email || 'No email available'}</Text>
+              <Text style={styles.paymentSub}>PayID linked to your email</Text>
             </View>
-            <MaterialIcons name="chevron-right" size={24} color="#bbb" style={{ marginLeft: 'auto' }} />
+            <MaterialIcons name="chevron-right" size={24} color="#94A3B8" style={{ marginLeft: 'auto' }} />
           </View>
           {/* ID Verification */}
           <View style={[styles.verificationCard, { backgroundColor: '#FFF4E6' }]}>
@@ -401,15 +470,15 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
         {/* Account Settings Card */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Account Settings</Text>
-          <TouchableOpacity style={styles.settingsRow}>
+          <TouchableOpacity style={styles.settingsRow} onPress={handleEditDetails}>
             <View style={styles.settingsIconBox}>
-              <MaterialIcons name="edit" size={20} color="#2563eb" />
+              <MaterialIcons name="edit" size={20} color="#3B82F6" />
             </View>
             <View style={{ marginLeft: 12 }}>
-              <Text style={styles.settingsText}>Update Details</Text>
+              <Text style={styles.settingsText}>Update Personal Details</Text>
               <Text style={styles.settingsSub}>Edit name, phone, and email</Text>
             </View>
-            <MaterialIcons name="chevron-right" size={24} color="#bbb" style={{ marginLeft: 'auto' }} />
+            <MaterialIcons name="chevron-right" size={24} color="#94A3B8" style={{ marginLeft: 'auto' }} />
           </TouchableOpacity>
         </View>
 
@@ -544,6 +613,77 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
               <TouchableOpacity
                 style={styles.saveButton}
                 onPress={handleSaveName}
+              >
+                <Text style={styles.saveButtonText}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Edit Details Modal */}
+      <Modal
+        visible={showEditDetailsModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={handleCancelEditDetails}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Edit Personal Details</Text>
+              <TouchableOpacity onPress={handleCancelEditDetails}>
+                <MaterialIcons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalBody}>
+              <Text style={styles.inputLabel}>Full Name</Text>
+              <TextInput
+                style={styles.nameInput}
+                value={editingName}
+                onChangeText={setEditingName}
+                placeholder="Enter your full name"
+                placeholderTextColor="#999"
+                maxLength={50}
+              />
+
+              <Text style={styles.inputLabel}>Email</Text>
+              <TextInput
+                style={styles.nameInput}
+                value={editingEmail}
+                onChangeText={setEditingEmail}
+                placeholder="Enter your email"
+                placeholderTextColor="#999"
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+
+              <Text style={styles.inputLabel}>Phone Number (Optional)</Text>
+              <TextInput
+                style={styles.nameInput}
+                value={editingPhone}
+                onChangeText={setEditingPhone}
+                placeholder="Enter your phone number"
+                placeholderTextColor="#999"
+                keyboardType="phone-pad"
+              />
+
+              <Text style={styles.inputHint}>
+                This information will be visible to other users when you interact with them.
+              </Text>
+            </View>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={handleCancelEditDetails}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.saveButton}
+                onPress={handleSaveDetails}
               >
                 <Text style={styles.saveButtonText}>Save</Text>
               </TouchableOpacity>
@@ -1029,6 +1169,13 @@ const styles = StyleSheet.create({
     color: '#64748B',
     fontSize: 15,
     marginTop: 2,
+  },
+  smallVerificationBadge: {
+    backgroundColor: '#DCFCE7',
+    borderRadius: 12,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
   },
 });
 
