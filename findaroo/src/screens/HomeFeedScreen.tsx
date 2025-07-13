@@ -10,21 +10,38 @@ import MapView, { Marker } from 'react-native-maps';
 import { Modal as RNModal } from 'react-native';
 import { LocationFilterModal } from '../components/LocationFilterModal';
 
-// Minimal color palette
+// Findaroo Official Color Palette
 const COLORS = {
   background: '#fff',
-  primary: '#2563eb',
-  accent: '#fbbf24',
-  text: '#222',
+  primary: '#000',         // Black accent
+  secondary: '#FFA930',    // Official Findaroo orange
+  success: '#33C48D',      // Success green
+  error: '#FF4C4C',        // Error red
+  text: '#2E2E2E',         // Dark gray for text
   muted: '#6b7280',
   border: '#e5e7eb',
-  card: '#f8fafc',
+  card: '#F2F2F2',         // Neutral gray for cards
 };
 
 const CATEGORIES = [
-  { value: undefined, label: 'All', icon: <Feather name="grid" size={16} color={COLORS.primary} /> },
-  { value: 'lost', label: 'Lost', icon: <Feather name="alert-circle" size={16} color={COLORS.primary} /> },
-  { value: 'found', label: 'Found', icon: <Feather name="check-circle" size={16} color={COLORS.primary} /> },
+  {
+    value: undefined,
+    label: 'All',
+    icon: 'grid',
+    activeColor: '#fff'
+  },
+  {
+    value: 'lost',
+    label: 'Lost',
+    icon: 'alert-circle',
+    activeColor: COLORS.error // Red for lost
+  },
+  {
+    value: 'found',
+    label: 'Found',
+    icon: 'check-circle',
+    activeColor: '#3A8DFF' // Blue for found
+  },
   // Add more categories as needed
 ];
 
@@ -43,12 +60,12 @@ const CATEGORY_OPTIONS: { value: Category | undefined; label: string }[] = [
 ];
 
 const DISTANCE_OPTIONS = [
-  { value: undefined, label: 'Any Distance', icon: <Feather name="globe" size={16} color={COLORS.muted} /> },
-  { value: 1, label: 'Within 1km', icon: <Feather name="user" size={16} color={COLORS.muted} /> },
-  { value: 5, label: 'Within 5km', icon: <Feather name="zap" size={16} color={COLORS.muted} /> },
-  { value: 10, label: 'Within 10km', icon: <Feather name="truck" size={16} color={COLORS.muted} /> },
-  { value: 25, label: 'Within 25km', icon: <Feather name="navigation" size={16} color={COLORS.muted} /> },
-  { value: 50, label: 'Within 50km', icon: <Feather name="navigation-2" size={16} color={COLORS.muted} /> },
+  { value: undefined, label: 'Any Distance', icon: <Feather name="globe" size={18} color={COLORS.muted} /> },
+  { value: 1, label: 'Within 1km', icon: <Feather name="user" size={18} color={COLORS.muted} /> },
+  { value: 5, label: 'Within 5km', icon: <Feather name="zap" size={18} color={COLORS.muted} /> },
+  { value: 10, label: 'Within 10km', icon: <Feather name="truck" size={18} color={COLORS.muted} /> },
+  { value: 25, label: 'Within 25km', icon: <Feather name="navigation" size={18} color={COLORS.muted} /> },
+  { value: 50, label: 'Within 50km', icon: <Feather name="navigation-2" size={18} color={COLORS.muted} /> },
 ];
 
 const SEARCH_SUGGESTIONS = [
@@ -69,14 +86,7 @@ function parsePointString(pointStr: string | undefined) {
   return null;
 }
 
-// Add type guard for location object
-function isLocationObject(value: any): value is { address: string } {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    typeof value.address === 'string'
-  );
-}
+
 
 export const HomeFeedScreen = ({ navigation }: any) => {
   const [status, setStatus] = useState<'lost' | 'found' | undefined>(undefined);
@@ -223,16 +233,32 @@ export const HomeFeedScreen = ({ navigation }: any) => {
 
       {/* Pill Filter Bar (no scroll, 3 pills + filter icon) */}
       <View style={styles.filterBarNoScroll}>
-        {CATEGORIES.map((cat) => (
-          <TouchableOpacity
-            key={cat.label}
-            style={[styles.filterPill, (status === cat.value || (!status && cat.value === undefined)) && styles.filterPillActive]}
-            onPress={() => setStatus(cat.value as 'lost' | 'found' | undefined)}
-          >
-            {cat.icon}
-            <Text style={[styles.filterPillText, (status === cat.value || (!status && cat.value === undefined)) && styles.filterPillTextActive]}>{cat.label}</Text>
-          </TouchableOpacity>
-        ))}
+        {CATEGORIES.map((cat) => {
+          const isActive = status === cat.value || (!status && cat.value === undefined);
+          const activeStyle = isActive ? {
+            backgroundColor: cat.value === 'lost' ? COLORS.error :
+                           cat.value === 'found' ? '#3A8DFF' :
+                           COLORS.primary,
+            borderColor: cat.value === 'lost' ? COLORS.error :
+                        cat.value === 'found' ? '#3A8DFF' :
+                        COLORS.primary,
+          } : {};
+
+          return (
+            <TouchableOpacity
+              key={cat.label}
+              style={[styles.filterPill, isActive && activeStyle]}
+              onPress={() => setStatus(cat.value as 'lost' | 'found' | undefined)}
+            >
+              <Feather
+                name={cat.icon as any}
+                size={18}
+                color={isActive ? '#fff' : COLORS.primary}
+              />
+              <Text style={[styles.filterPillText, isActive && styles.filterPillTextActive]}>{cat.label}</Text>
+            </TouchableOpacity>
+          );
+        })}
         <View style={{ flex: 1 }} />
 
         {/* Distance Filter Button */}
@@ -240,7 +266,7 @@ export const HomeFeedScreen = ({ navigation }: any) => {
           style={[styles.filterIconBtn, maxDistance ? styles.filterIconBtnActive : null]}
           onPress={() => setLocationFilterModalVisible(true)}
         >
-          <Feather name="map-pin" size={20} color={maxDistance ? '#fff' : COLORS.primary} />
+          <Feather name="map-pin" size={18} color={maxDistance ? '#fff' : COLORS.primary} />
           {maxDistance && (
             <Text style={styles.filterBadgeText}>{maxDistance}km</Text>
           )}
@@ -254,7 +280,7 @@ export const HomeFeedScreen = ({ navigation }: any) => {
             setCategoryModalVisible(true);
           }}
         >
-          <Feather name="filter" size={20} color={categories.length > 0 ? '#fff' : COLORS.primary} />
+          <Feather name="filter" size={18} color={categories.length > 0 ? '#fff' : COLORS.primary} />
           {categories.length > 0 && (
             <Text style={styles.filterBadgeText}>{categories.length}</Text>
           )}
@@ -274,7 +300,7 @@ export const HomeFeedScreen = ({ navigation }: any) => {
               onPress={() => setCategoryModalVisible(false)}
               style={styles.categoryModalCloseButton}
             >
-              <Feather name="x" size={24} color={COLORS.muted} />
+              <Feather name="x" size={18} color={COLORS.muted} />
             </TouchableOpacity>
             <Text style={styles.categoryModalTitle}>Select Categories</Text>
             <TouchableOpacity
@@ -309,7 +335,7 @@ export const HomeFeedScreen = ({ navigation }: any) => {
                   >
                     <Feather
                       name={selected ? "check-square" : "square"}
-                      size={20}
+                      size={18}
                       color={selected ? COLORS.primary : COLORS.muted}
                     />
                     <Text style={[styles.categoryModalOptionText, selected && styles.categoryModalOptionTextSelected]}>
@@ -326,7 +352,7 @@ export const HomeFeedScreen = ({ navigation }: any) => {
                 style={styles.categoryModalClearButton}
                 onPress={() => setPendingCategories([])}
               >
-                <Feather name="x-circle" size={16} color={COLORS.muted} />
+                <Feather name="x-circle" size={18} color={COLORS.muted} />
                 <Text style={styles.categoryModalClearButtonText}>Clear All</Text>
               </TouchableOpacity>
             </View>
@@ -456,18 +482,6 @@ export const HomeFeedScreen = ({ navigation }: any) => {
         }
         showsVerticalScrollIndicator={false}
       />
-
-      {/* Floating Action Button (FAB) */}
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => {
-          // Show action sheet or navigate to create
-          navigation.navigate('CreateLostItem');
-        }}
-        activeOpacity={0.85}
-      >
-        <Feather name="plus" size={28} color="#fff" />
-      </TouchableOpacity>
     </SafeAreaView>
   );
 };
@@ -649,8 +663,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  markerLost: { backgroundColor: '#f87171' },
-  markerFound: { backgroundColor: '#22c55e' },
+  markerLost: { backgroundColor: COLORS.error },
+  markerFound: { backgroundColor: COLORS.success },
   mapPreviewOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.08)',
@@ -665,23 +679,8 @@ const styles = StyleSheet.create({
 
   emptyState: { alignItems: 'center', marginTop: 48 },
   emptyText: { color: COLORS.muted, fontSize: 16, marginTop: 8, textAlign: 'center' },
-  fab: {
-    position: 'absolute',
-    right: 24,
-    bottom: 32,
-    backgroundColor: COLORS.primary,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowRadius: 4,
-  },
   errorContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
-  errorText: { color: '#ef4444', fontSize: 16, marginBottom: 12 },
+  errorText: { color: COLORS.error, fontSize: 16, marginBottom: 12 },
 
   // Distance Modal styles
   modalOverlay: {
@@ -741,7 +740,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     paddingHorizontal: 20,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 12,
     marginTop: 16,
     alignItems: 'center',
   },
@@ -777,7 +776,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 8,
+    borderRadius: 12,
   },
   categoryModalApplyButtonText: {
     color: '#fff',
@@ -829,7 +828,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: COLORS.card,
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: COLORS.border,
   },

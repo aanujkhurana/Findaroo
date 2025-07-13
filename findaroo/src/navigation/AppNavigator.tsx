@@ -7,6 +7,7 @@ import { useAuth } from '../hooks/useAuth';
 import { Loading } from '../components/Loading';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Feather } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ActivityScreen from '../screens/ActivityScreen';
 
 // Auth Screens
@@ -154,29 +155,32 @@ const AuthStackWithSkip = ({ onSkipAuth }: { onSkipAuth: () => void }) => (
 );
 
 // Main Tab Navigator - for authenticated users
-const MainTabs = () => (
-  <Tab.Navigator
-    screenOptions={{
-      headerShown: false,
-      tabBarStyle: {
-        backgroundColor: '#FFFFFF',
-        borderTopWidth: 0,
-        elevation: Platform.OS === 'android' ? 20 : 0,
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: -4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 20,
-        height: Platform.OS === 'ios' ? 70 : 60,
-        paddingBottom: Platform.OS === 'ios' ? 20 : 12,
-        paddingTop: 12,
-        paddingHorizontal: 12,
-        borderTopLeftRadius: 28,
-        borderTopRightRadius: 28,
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-      },
+const MainTabs = () => {
+  const insets = useSafeAreaInsets();
+
+  return (
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: '#FFFFFF',
+          borderTopWidth: 0,
+          elevation: Platform.OS === 'android' ? 20 : 0,
+          shadowColor: '#000000',
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.15,
+          shadowRadius: 20,
+          height: Platform.OS === 'ios' ? 70 + insets.bottom : 60 + insets.bottom,
+          paddingBottom: Platform.OS === 'ios' ? Math.max(insets.bottom, 20) : Math.max(insets.bottom, 12),
+          paddingTop: 12,
+          paddingHorizontal: 12,
+          borderTopLeftRadius: 28,
+          borderTopRightRadius: 28,
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+        },
       tabBarShowLabel: false,
       tabBarActiveTintColor: '#000000',
       tabBarInactiveTintColor: '#64748B',
@@ -253,8 +257,9 @@ const MainTabs = () => (
         ),
       }}
     />
-  </Tab.Navigator>
-);
+    </Tab.Navigator>
+  );
+};
 
 // Main Stack - contains tabs and modal screens
 const MainStack = () => (
