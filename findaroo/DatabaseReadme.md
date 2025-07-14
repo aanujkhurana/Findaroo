@@ -51,12 +51,8 @@ This document outlines the entire backend schema for **Findaroo**, including tab
 
 🔁 **State Logic**
 
-```text
 lost → returned | resolved | duplicate | flagged
 found → returned | claimed | kept | duplicate | flagged
-````
-
----
 
 ## 💬 Table: `messages`
 

@@ -1,323 +1,429 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { Feather, MaterialIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-// If you have a RootStackParamList, import it and use:
-// import { StackNavigationProp } from '@react-navigation/stack';
-// const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-// For now, use 'any' to avoid linter errors:
 
+// Official Findaroo Color Scheme
 const COLORS = {
-  background: '#f8fafc',
-  card: '#fff',
-  primary: '#2563eb',
-  accent: '#fbbf24',
-  text: '#222',
-  muted: '#6b7280',
-  border: '#e5e7eb',
-  green: '#22c55e',
-  blue: '#38bdf8',
-  orange: '#fbbf24',
-  gradient1: '#6ee7b7',
-  gradient2: '#3b82f6',
+  primary: '#3A8DFF',      // Primary blue
+  secondary: '#FFA930',    // Secondary orange  
+  success: '#33C48D',      // Success green
+  error: '#FF4C4C',        // Error red
+  neutral: '#F2F2F2',      // Neutral gray
+  dark: '#2E2E2E',         // Dark gray
+  white: '#FFFFFF',
+  black: '#000000',
+  text: '#2E2E2E',
+  muted: '#64748B',
+  background: '#FAFAFA',
 };
 
 export default function SuccessScreen() {
   const navigation: any = useNavigation();
 
+  const handlePostAnother = () => {
+    navigation.navigate('CreateLostItem');
+  };
+
+  const handleReportFound = () => {
+    navigation.navigate('CreateFoundItem');
+  };
+
+  const handleViewPosts = () => {
+    navigation.navigate('Activity');
+  };
+
+  const handleBackToHome = () => {
+    navigation.navigate('Home');
+  };
+
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: COLORS.background }} contentContainerStyle={{ alignItems: 'center', paddingBottom: 32 }}>
-      {/* Header */}
-      <View style={styles.headerRow}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Feather name="arrow-left" size={22} color={COLORS.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Confirmation</Text>
-        <View style={{ width: 22 }} />
-      </View>
-      {/* Checkmark */}
-      <View style={styles.checkCircleWrap}>
-        <LinearGradient colors={[COLORS.gradient1, COLORS.gradient2]} style={styles.checkCircle}>
-          <Feather name="check" size={48} color="#fff" />
-        </LinearGradient>
-      </View>
-      {/* Thank You */}
-      <Text style={styles.thankYou}>Thank You!</Text>
-      <Text style={styles.confirmMsg}>
-        Your post has been successfully submitted to the Findaroo community.\nWe'll notify you when someone responds.
-      </Text>
-      {/* Post Another Item */}
-      <TouchableOpacity style={styles.gradientBtn} onPress={() => navigation.navigate('CreateLostItem')}>
-        <LinearGradient colors={[COLORS.gradient2, COLORS.gradient1]} style={styles.gradientBtnBg}>
-          <Text style={styles.gradientBtnText}>Post Another Item</Text>
-          <Feather name="plus" size={20} color="#fff" style={{ marginLeft: 8 }} />
-        </LinearGradient>
-      </TouchableOpacity>
-      {/* Report Found Item */}
-      <TouchableOpacity style={styles.cardBtn} onPress={() => navigation.navigate('CreateFoundItem')}>
-        <View style={styles.cardBtnContent}>
-          <Text style={styles.cardBtnText}>Report Found Item</Text>
-          <Feather name="search" size={20} color={COLORS.primary} style={{ marginLeft: 8 }} />
+    <SafeAreaView style={styles.container}>
+      <ScrollView 
+        style={styles.scrollView} 
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
+          >
+            <Feather name="arrow-left" size={24} color={COLORS.black} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Success</Text>
+          <View style={styles.headerSpacer} />
         </View>
-        <Text style={styles.cardBtnSubText}>Found something? Help reunite it with its owner!</Text>
-      </TouchableOpacity>
-      {/* What happens next */}
-      <View style={styles.sectionTitleRow}>
-        <Text style={styles.sectionTitle}>What happens next?</Text>
-      </View>
-      <View style={styles.stepsList}>
-        <View style={styles.stepRow}>
-          <View style={[styles.stepCircle, { backgroundColor: '#dbeafe' }]}><Text style={styles.stepNum}>1</Text></View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.stepTitle}>Community Search</Text>
-            <Text style={styles.stepDesc}>Local Findaroo members will look out for your item</Text>
+
+        {/* Success Icon */}
+        <View style={styles.successIconContainer}>
+          <View style={styles.successIcon}>
+            <Feather name="check" size={32} color={COLORS.white} />
           </View>
         </View>
-        <View style={styles.stepRow}>
-          <View style={[styles.stepCircle, { backgroundColor: '#dcfce7' }]}><Text style={[styles.stepNum, { color: COLORS.green }]}>2</Text></View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.stepTitle}>Get Notified</Text>
-            <Text style={styles.stepDesc}>We'll send you a push notification when someone responds</Text>
+
+        {/* Success Message */}
+        <View style={styles.messageContainer}>
+          <Text style={styles.title}>Item Posted Successfully!</Text>
+          <Text style={styles.subtitle}>
+            Your item has been shared with the Findaroo community. We'll notify you when someone responds.
+          </Text>
+        </View>
+
+        {/* Action Buttons */}
+        <View style={styles.actionsContainer}>
+          <TouchableOpacity 
+            style={styles.primaryButton}
+            onPress={handlePostAnother}
+            activeOpacity={0.8}
+          >
+            <Feather name="plus" size={20} color={COLORS.white} />
+            <Text style={styles.primaryButtonText}>Post Another Item</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.secondaryButton}
+            onPress={handleReportFound}
+            activeOpacity={0.8}
+          >
+            <Feather name="search" size={20} color={COLORS.success} />
+            <Text style={styles.secondaryButtonText}>Report Found Item</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* What happens next */}
+        <View style={styles.stepsContainer}>
+          <Text style={styles.stepsTitle}>What happens next?</Text>
+          
+          <View style={styles.stepsList}>
+            <View style={styles.stepItem}>
+              <View style={[styles.stepIcon, { backgroundColor: COLORS.primary + '20' }]}>
+                <Text style={[styles.stepNumber, { color: COLORS.primary }]}>1</Text>
+              </View>
+              <View style={styles.stepContent}>
+                <Text style={styles.stepTitle}>Community Search</Text>
+                <Text style={styles.stepDescription}>
+                  Local Findaroo members will look out for your item
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.stepItem}>
+              <View style={[styles.stepIcon, { backgroundColor: COLORS.success + '20' }]}>
+                <Text style={[styles.stepNumber, { color: COLORS.success }]}>2</Text>
+              </View>
+              <View style={styles.stepContent}>
+                <Text style={styles.stepTitle}>Get Notified</Text>
+                <Text style={styles.stepDescription}>
+                  We'll send you a push notification when someone responds
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.stepItem}>
+              <View style={[styles.stepIcon, { backgroundColor: COLORS.secondary + '20' }]}>
+                <Text style={[styles.stepNumber, { color: COLORS.secondary }]}>3</Text>
+              </View>
+              <View style={styles.stepContent}>
+                <Text style={styles.stepTitle}>Safe Return</Text>
+                <Text style={styles.stepDescription}>
+                  Connect with the finder and arrange a safe pickup
+                </Text>
+              </View>
+            </View>
           </View>
         </View>
-        <View style={styles.stepRow}>
-          <View style={[styles.stepCircle, { backgroundColor: '#fef3c7' }]}><Text style={[styles.stepNum, { color: COLORS.orange }]}>3</Text></View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.stepTitle}>Safe Return</Text>
-            <Text style={styles.stepDesc}>Connect with the finder and arrange a safe pickup</Text>
+
+        {/* Pro Tip */}
+        <View style={styles.tipContainer}>
+          <View style={styles.tipHeader}>
+            <Feather name="lightbulb" size={18} color={COLORS.secondary} />
+            <Text style={styles.tipTitle}>Pro Tip</Text>
+          </View>
+          <Text style={styles.tipText}>
+            Check back regularly and respond quickly to messages. The sooner you connect with a finder, the better your chances of getting your item back!
+          </Text>
+        </View>
+
+        {/* Navigation Buttons */}
+        <View style={styles.navigationContainer}>
+          <TouchableOpacity 
+            style={styles.primaryButton}
+            onPress={handleViewPosts}
+            activeOpacity={0.8}
+          >
+            <Feather name="list" size={20} color={COLORS.white} />
+            <Text style={styles.primaryButtonText}>View My Posts</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.outlineButton}
+            onPress={handleBackToHome}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.outlineButtonText}>Back to Home</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Community Stats */}
+        <View style={styles.statsContainer}>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>2,847</Text>
+            <Text style={styles.statLabel}>Items Found</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={[styles.statValue, { color: COLORS.success }]}>94%</Text>
+            <Text style={styles.statLabel}>Success Rate</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={[styles.statValue, { color: COLORS.secondary }]}>12k+</Text>
+            <Text style={styles.statLabel}>Active Users</Text>
           </View>
         </View>
-      </View>
-      {/* Pro Tip */}
-      <View style={styles.proTipBox}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-          <Feather name="map-pin" size={16} color={COLORS.blue} style={{ marginRight: 6 }} />
-          <Text style={styles.proTipTitle}>Pro Tip</Text>
-        </View>
-        <Text style={styles.proTipText}>Check back regularly and respond quickly to messages. The sooner you connect with a finder, the better your chances of getting your item back!</Text>
-      </View>
-      {/* View My Posts */}
-      <TouchableOpacity style={styles.gradientBtn} onPress={() => navigation.navigate('Activity')}>
-        <LinearGradient colors={[COLORS.gradient2, COLORS.gradient1]} style={styles.gradientBtnBg}>
-          <Text style={styles.gradientBtnText}>View My Posts</Text>
-        </LinearGradient>
-      </TouchableOpacity>
-      {/* Back to Home */}
-      <TouchableOpacity style={styles.outlineBtn} onPress={() => navigation.navigate('Home')}>
-        <Text style={styles.outlineBtnText}>Back to Home</Text>
-      </TouchableOpacity>
-      {/* Community Impact */}
-      <View style={styles.impactBox}>
-        <View style={styles.impactCol}>
-          <Text style={styles.impactValue}>2,847</Text>
-          <Text style={styles.impactLabel}>Items Found</Text>
-        </View>
-        <View style={styles.impactCol}>
-          <Text style={[styles.impactValue, { color: COLORS.green }]}>94%</Text>
-          <Text style={styles.impactLabel}>Success Rate</Text>
-        </View>
-        <View style={styles.impactCol}>
-          <Text style={[styles.impactValue, { color: COLORS.accent }]}>12k+</Text>
-          <Text style={styles.impactLabel}>Active</Text>
-        </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  headerRow: {
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  contentContainer: {
+    paddingBottom: 40,
+  },
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    width: '100%',
-    paddingHorizontal: 18,
-    paddingTop: 18,
-    paddingBottom: 8,
-    backgroundColor: COLORS.background,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 10,
   },
-  headerTitle: { fontWeight: 'bold', fontSize: 18, color: COLORS.text },
-  checkCircleWrap: { marginTop: 18, marginBottom: 8 },
-  checkCircle: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
+  backButton: {
+    padding: 8,
+    borderRadius: 12,
+    backgroundColor: COLORS.neutral,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  headerSpacer: {
+    width: 40,
+  },
+  successIconContainer: {
+    alignItems: 'center',
+    marginTop: 40,
+    marginBottom: 24,
+  },
+  successIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: COLORS.success,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#38bdf8',
-    shadowOpacity: 0.18,
+    shadowColor: COLORS.success,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
     shadowRadius: 12,
-    elevation: 6,
+    elevation: 8,
   },
-  thankYou: {
-    fontWeight: 'bold',
+  messageContainer: {
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  title: {
     fontSize: 24,
+    fontWeight: '700',
     color: COLORS.text,
-    marginTop: 8,
-    marginBottom: 4,
     textAlign: 'center',
-  },
-  confirmMsg: {
-    color: COLORS.muted,
-    fontSize: 15,
-    textAlign: 'center',
-    marginBottom: 18,
-    marginHorizontal: 18,
-  },
-  gradientBtn: {
-    width: '88%',
-    borderRadius: 14,
-    marginTop: 8,
     marginBottom: 8,
-    overflow: 'hidden',
-    alignSelf: 'center',
   },
-  gradientBtnBg: {
+  subtitle: {
+    fontSize: 16,
+    color: COLORS.muted,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  actionsContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 32,
+  },
+  primaryButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 14,
-  },
-  gradientBtnText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  cardBtn: {
-    backgroundColor: COLORS.card,
-    borderRadius: 14,
-    padding: 16,
-    width: '88%',
-    marginTop: 4,
+    backgroundColor: COLORS.black,
+    paddingVertical: 16,
+    borderRadius: 12,
     marginBottom: 12,
-    alignSelf: 'center',
+    shadowColor: COLORS.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  primaryButtonText: {
+    color: COLORS.white,
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  secondaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.white,
+    paddingVertical: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.success,
     shadowColor: '#000',
-    shadowOpacity: 0.04,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 1,
   },
-  cardBtnContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 2,
-  },
-  cardBtnText: {
-    color: COLORS.text,
-    fontWeight: 'bold',
+  secondaryButtonText: {
+    color: COLORS.success,
     fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
   },
-  cardBtnSubText: {
-    color: COLORS.muted,
-    fontSize: 13,
-    marginTop: 2,
+  stepsContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 32,
   },
-  sectionTitleRow: {
-    width: '88%',
-    marginTop: 10,
-    marginBottom: 2,
-    alignSelf: 'center',
-  },
-  sectionTitle: {
-    fontWeight: 'bold',
-    fontSize: 16,
+  stepsTitle: {
+    fontSize: 18,
+    fontWeight: '600',
     color: COLORS.text,
+    marginBottom: 20,
   },
   stepsList: {
-    width: '88%',
-    marginTop: 6,
-    marginBottom: 10,
-    alignSelf: 'center',
+    gap: 16,
   },
-  stepRow: {
+  stepItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 10,
   },
-  stepCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+  stepIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: 16,
   },
-  stepNum: {
-    color: COLORS.primary,
-    fontWeight: 'bold',
-    fontSize: 15,
+  stepNumber: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  stepContent: {
+    flex: 1,
   },
   stepTitle: {
-    fontWeight: 'bold',
-    fontSize: 15,
-    color: COLORS.text,
-  },
-  stepDesc: {
-    color: COLORS.muted,
-    fontSize: 13,
-    marginBottom: 2,
-  },
-  proTipBox: {
-    backgroundColor: '#e0f2fe',
-    borderRadius: 14,
-    padding: 14,
-    width: '88%',
-    marginTop: 8,
-    marginBottom: 12,
-    alignSelf: 'center',
-  },
-  proTipTitle: {
-    color: COLORS.blue,
-    fontWeight: 'bold',
-    fontSize: 15,
-  },
-  proTipText: {
-    color: COLORS.text,
-    fontSize: 13,
-  },
-  outlineBtn: {
-    width: '88%',
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: COLORS.border,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 8,
-    marginBottom: 8,
-    alignSelf: 'center',
-  },
-  outlineBtnText: {
-    color: COLORS.text,
-    fontWeight: 'bold',
     fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 4,
   },
-  impactBox: {
+  stepDescription: {
+    fontSize: 14,
+    color: COLORS.muted,
+    lineHeight: 20,
+  },
+  tipContainer: {
+    backgroundColor: COLORS.secondary + '15',
+    borderRadius: 12,
+    padding: 16,
+    marginHorizontal: 20,
+    marginBottom: 32,
+  },
+  tipHeader: {
     flexDirection: 'row',
-    backgroundColor: COLORS.card,
-    borderRadius: 14,
-    width: '88%',
-    alignSelf: 'center',
-    marginTop: 18,
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  tipTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.secondary,
+    marginLeft: 8,
+  },
+  tipText: {
+    fontSize: 14,
+    color: COLORS.text,
+    lineHeight: 20,
+  },
+  navigationContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 32,
+  },
+  outlineButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.white,
     paddingVertical: 16,
-    justifyContent: 'space-around',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.neutral,
+    marginTop: 12,
     shadowColor: '#000',
-    shadowOpacity: 0.04,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 1,
   },
-  impactCol: {
+  outlineButtonText: {
+    color: COLORS.text,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    marginHorizontal: 20,
+    paddingVertical: 20,
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  statItem: {
     alignItems: 'center',
     flex: 1,
   },
-  impactValue: {
-    fontWeight: 'bold',
-    fontSize: 18,
+  statValue: {
+    fontSize: 20,
+    fontWeight: '700',
     color: COLORS.primary,
+    marginBottom: 4,
   },
-  impactLabel: {
+  statLabel: {
+    fontSize: 12,
     color: COLORS.muted,
-    fontSize: 13,
-    marginTop: 2,
+    textAlign: 'center',
   },
-}); 
+  statDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: COLORS.neutral,
+  },
+});
