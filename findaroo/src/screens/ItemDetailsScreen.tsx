@@ -329,7 +329,7 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
         // Fetch owner profile picture
         if (owner?.profile_pic) {
           console.log(`[ItemDetailsScreen] Fetching owner profile picture URL for path: ${owner.profile_pic}`);
-          const profileUrl = await getSignedImageUrl(owner.profile_pic, 'profile-pictures');
+          const profileUrl = await getSignedImageUrl(owner.profile_pic, 'profile-pics');
 
           if (profileUrl) {
             console.log(`[ItemDetailsScreen] Successfully got profile picture URL: ${profileUrl.substring(0, 50)}...`);

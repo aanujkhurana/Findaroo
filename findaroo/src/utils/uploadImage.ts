@@ -14,22 +14,32 @@ export const uploadImage = async (uri: string, filename: string, userId: string,
     // Create file name with userId prefix
     const filePath = `${userId}/${Date.now()}_${filename}`;
     console.log('[uploadImage] filePath:', filePath);
-    
-    // Convert image to blob
-    const response = await fetch(uri);
-    const blob = await response.blob();
-    console.log('[uploadImage] Blob type:', blob.type, 'Blob size:', blob.size);
+
+    // Read file as base64 and convert to ArrayBuffer for better compatibility
+    const base64 = await FileSystem.readAsStringAsync(uri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+
+    // Convert base64 to ArrayBuffer
+    const byteCharacters = atob(base64);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+
+    console.log('[uploadImage] File size:', byteArray.length, 'bytes');
 
     // Detect content type from filename
-    const contentType = mime.getType(filename) || 'application/octet-stream';
+    const contentType = mime.getType(filename) || 'image/jpeg';
     console.log('[uploadImage] Detected contentType:', contentType);
 
-    // Upload to Supabase Storage
+    // Upload to Supabase Storage using ArrayBuffer
     const { data, error } = await supabase.storage
       .from(bucket)
-      .upload(filePath, blob, {
-        contentType, // Use detected content type
-        upsert: true // Changed to true to allow overwriting existing files
+      .upload(filePath, byteArray, {
+        contentType,
+        upsert: true
       });
     console.log('[uploadImage] Supabase upload response:', { data, error });
 

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, StyleSheet, Alert, Modal, TextInput, Image } from 'react-native';
 import { MaterialIcons, Feather } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../hooks/useAuth';
+import { uploadImage, getSignedImageUrl } from '../utils/uploadImage';
 
 export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
   const { signOut, user, updateProfile, fetchReceivedTips } = useAuth();
@@ -17,6 +19,7 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
   const [editingEmail, setEditingEmail] = useState('');
   const [receivedTips, setReceivedTips] = useState(0);
   const [loadingTips, setLoadingTips] = useState(true);
+  const [uploadingProfilePic, setUploadingProfilePic] = useState(false);
 
   // Fetch received tips when component mounts or user changes
   useEffect(() => {
@@ -57,6 +60,25 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
     }
   }, [user?.id, fetchReceivedTips]);
 
+  // Fetch profile picture URL when user changes
+  useEffect(() => {
+    const fetchProfilePic = async () => {
+      if (user?.profile_pic) {
+        try {
+          const url = await getSignedImageUrl(user.profile_pic, 'profile-pics');
+          setProfilePicUrl(url);
+        } catch (error) {
+          console.error('Error fetching profile picture:', error);
+          setProfilePicUrl('');
+        }
+      } else {
+        setProfilePicUrl('');
+      }
+    };
+
+    fetchProfilePic();
+  }, [user?.profile_pic]);
+
   const handleSignOut = async () => {
     try {
       await signOut();
@@ -80,6 +102,50 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
   const handlePaymentDetails = () => {
     // Future: Navigate to payment details screen
     Alert.alert('Payment Details', 'Payment management coming soon!');
+  };
+
+  const handleProfilePictureUpload = async () => {
+    if (!user) return;
+
+    try {
+      setUploadingProfilePic(true);
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1], // Square aspect ratio for profile pictures
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        const uri = asset.uri;
+        const filename = asset.fileName || uri.split('/').pop() || `profile.jpg`;
+
+        console.log('[ProfilePicUpload] Starting upload for:', filename);
+        const path = await uploadImage(uri, filename, user.id, 'profile-pics');
+
+        if (path) {
+          console.log('[ProfilePicUpload] Upload successful, updating profile:', path);
+          const { error } = await updateProfile({ profile_pic: path });
+
+          if (error) {
+            Alert.alert('Update Failed', 'Could not update profile picture. Please try again.');
+            console.error('[ProfilePicUpload] Profile update failed:', error);
+          } else {
+            Alert.alert('Success', 'Profile picture updated successfully!');
+          }
+        } else {
+          Alert.alert('Upload Failed', 'Could not upload image. Please try again.');
+          console.error('[ProfilePicUpload] Upload failed: path is null');
+        }
+      }
+    } catch (error) {
+      console.error('[ProfilePicUpload] Error:', error);
+      Alert.alert('Error', 'An error occurred while uploading your profile picture.');
+    } finally {
+      setUploadingProfilePic(false);
+    }
   };
 
   const handleSaveName = async () => {
@@ -197,8 +263,16 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
                   </Text>
                 </View>
               )}
-              <TouchableOpacity style={styles.avatarBadge}>
-                <MaterialIcons name="camera-alt" size={12} color="#fff" />
+              <TouchableOpacity
+                style={styles.avatarBadge}
+                onPress={handleProfilePictureUpload}
+                disabled={uploadingProfilePic}
+              >
+                <MaterialIcons
+                  name={uploadingProfilePic ? "hourglass-empty" : "camera-alt"}
+                  size={12}
+                  color="#fff"
+                />
               </TouchableOpacity>
             </View>
 

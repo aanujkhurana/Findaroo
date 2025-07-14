@@ -103,7 +103,7 @@ export const ItemCard: React.FC<ItemCardProps> = ({ item, onPress, userLocation,
       setItemImageUrl('');
     }
     if (item.user?.profile_pic) {
-      getSignedImageUrl(item.user.profile_pic, 'profile-pictures').then(setUserProfileUrl);
+      getSignedImageUrl(item.user.profile_pic, 'profile-pics').then(setUserProfileUrl);
     } else {
       setUserProfileUrl('');
     }
