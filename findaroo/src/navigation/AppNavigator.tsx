@@ -137,13 +137,14 @@ const AnimatedTabIcon = ({
       >
         <Feather
           name={getIconName(iconName, focused) as any}
-          size={focused ? size + 1 : size}
+          size={focused ? size + 2 : size}
           color={focused ? '#000000' : '#64748B'}
           style={{
-            textShadowColor: focused ? 'rgba(0, 0, 0, 0.1)' : 'transparent',
+            textShadowColor: focused ? 'rgba(0, 0, 0, 0.2)' : 'transparent',
             textShadowOffset: { width: 0, height: 1 },
-            textShadowRadius: 2,
+            textShadowRadius: 3,
             marginBottom: 4,
+            fontWeight: focused ? 'bold' : 'normal',
           }}
         />
 
