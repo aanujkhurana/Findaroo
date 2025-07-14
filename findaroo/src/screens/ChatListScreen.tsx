@@ -21,7 +21,7 @@ interface ChatListScreenProps {
 
 export const ChatListScreen: React.FC<ChatListScreenProps> = ({ navigation }) => {
   const { session } = useAuth();
-  const { threads, loading, error, refetchThreads } = useChat();
+  const { threads, loading, error, refetchThreads, getUnreadMessagesCount } = useChat();
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = async () => {
@@ -54,6 +54,9 @@ export const ChatListScreen: React.FC<ChatListScreenProps> = ({ navigation }) =>
   const renderChatItem = ({ item }: { item: ChatThread }) => {
     const otherUser = getOtherUser(item);
     if (!otherUser) return null;
+
+    const threadId = `${item.item_id}-${otherUser.id}`;
+    const unreadCount = getUnreadMessagesCount(threadId);
 
     return (
       <TouchableOpacity
@@ -89,13 +92,25 @@ export const ChatListScreen: React.FC<ChatListScreenProps> = ({ navigation }) =>
           </Text>
           
           {item.last_message && (
-            <Text style={styles.lastMessage} numberOfLines={2}>
+            <Text style={[
+              styles.lastMessage,
+              unreadCount > 0 && styles.unreadMessage
+            ]} numberOfLines={2}>
               {item.last_message.message}
             </Text>
           )}
         </View>
-        
-        <MaterialIcons name="chevron-right" size={20} color="#9CA3AF" />
+
+        <View style={styles.rightSection}>
+          {unreadCount > 0 && (
+            <View style={styles.unreadBadge}>
+              <Text style={styles.unreadBadgeText}>
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </Text>
+            </View>
+          )}
+          <MaterialIcons name="chevron-right" size={20} color="#9CA3AF" />
+        </View>
       </TouchableOpacity>
     );
   };
@@ -226,6 +241,29 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#64748b',
     lineHeight: 18,
+  },
+  unreadMessage: {
+    color: '#1e293b',
+    fontWeight: '600',
+  },
+  rightSection: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  unreadBadge: {
+    backgroundColor: '#3A8DFF',
+    borderRadius: 12,
+    minWidth: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
+    paddingHorizontal: 6,
+  },
+  unreadBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
   },
   emptyState: {
     flex: 1,

@@ -26,6 +26,14 @@ export default {
       'expo-location',
       'expo-image-picker',
       'expo-file-system',
+      [
+        'expo-notifications',
+        {
+          icon: './assets/notification-icon.png',
+          color: '#3A8DFF',
+          sounds: ['./assets/notification-sound.wav'],
+        },
+      ],
     ]
   }
 };

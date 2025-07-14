@@ -28,6 +28,7 @@ This document outlines the entire backend schema for **Findaroo**, including tab
 | profile_pic  | TEXT         | Supabase Storage path        |
 | phone        | TEXT         | Optional                     |
 | karma_points | INTEGER      | Calculated from `karma_events` |
+| push_token   | TEXT         | For push notifications       |
 | created_at   | TIMESTAMP    | Default = now()              |
 
 ---
@@ -64,6 +65,7 @@ found → returned | claimed | kept | duplicate | flagged
 | receiver\_id | UUID (FK → users.id) |              |
 | message      | TEXT                 | Message text |
 | sent\_at     | TIMESTAMP            |              |
+| read\_at     | TIMESTAMP            | When message was read |
 
 🧠 1-on-1 chat is scoped to a specific `item_id`. A single item may create multiple threads (future: enforce unique pair).
 

@@ -31,7 +31,14 @@ interface ChatScreenProps {
 export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
   const { itemId, otherUserId, otherUserName } = route.params;
   const { session } = useAuth();
-  const { messages, loading, error, sendMessage } = useChat(itemId, otherUserId);
+  const {
+    messages,
+    loading,
+    error,
+    sendMessage,
+    markAllAsRead,
+    isMessageRead
+  } = useChat(itemId, otherUserId);
   const [messageText, setMessageText] = useState('');
   const [sending, setSending] = useState(false);
   const flatListRef = useRef<FlatList>(null);
@@ -51,6 +58,15 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
       }, 100);
     }
   }, [messages]);
+
+  useEffect(() => {
+    // Mark messages as read when screen is focused
+    const unsubscribe = navigation.addListener('focus', () => {
+      markAllAsRead();
+    });
+
+    return unsubscribe;
+  }, [navigation, markAllAsRead]);
 
   const handleSendMessage = async () => {
     if (!messageText.trim() || sending) return;
@@ -117,12 +133,23 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
             ]}>
               {item.message}
             </Text>
-            <Text style={[
-              styles.timeText,
-              isMyMessage ? styles.myTimeText : styles.otherTimeText
-            ]}>
-              {formatTime(item.sent_at)}
-            </Text>
+            <View style={styles.messageFooter}>
+              <Text style={[
+                styles.timeText,
+                isMyMessage ? styles.myTimeText : styles.otherTimeText
+              ]}>
+                {formatTime(item.sent_at)}
+              </Text>
+              {isMyMessage && (
+                <View style={styles.readReceiptContainer}>
+                  <MaterialIcons
+                    name={isMessageRead(item) ? "done-all" : "done"}
+                    size={14}
+                    color={isMessageRead(item) ? "#3A8DFF" : "#9CA3AF"}
+                  />
+                </View>
+              )}
+            </View>
           </View>
         </View>
       </View>
@@ -277,16 +304,24 @@ const styles = StyleSheet.create({
   otherMessageText: {
     color: '#1e293b',
   },
+  messageFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    marginTop: 4,
+  },
   timeText: {
     fontSize: 11,
     opacity: 0.7,
   },
   myTimeText: {
     color: '#fff',
-    textAlign: 'right',
   },
   otherTimeText: {
     color: '#64748b',
+  },
+  readReceiptContainer: {
+    marginLeft: 4,
   },
   inputContainer: {
     flexDirection: 'row',

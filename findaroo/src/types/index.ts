@@ -5,6 +5,7 @@ export interface User {
   profile_pic?: string;
   karma_points?: number;
   phone?: string;
+  push_token?: string;
   created_at: string;
   // Note: removed updated_at as it's not in the DatabaseReadme.md spec
 }
@@ -45,6 +46,7 @@ export interface Message {
   receiver_id: string;
   item_id: string;
   sent_at: string;
+  read_at?: string;
   sender?: User;
   receiver?: User;
 }

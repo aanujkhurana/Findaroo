@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS users (
   profile_pic TEXT,
   phone TEXT,
   karma_points INTEGER DEFAULT 0,
+  push_token TEXT,
   created_at TIMESTAMP DEFAULT now()
 );
 
@@ -35,7 +36,8 @@ CREATE TABLE IF NOT EXISTS messages (
   sender_id UUID REFERENCES users(id),
   receiver_id UUID REFERENCES users(id),
   message TEXT,
-  sent_at TIMESTAMP DEFAULT now()
+  sent_at TIMESTAMP DEFAULT now(),
+  read_at TIMESTAMP
 );
 
 -- KARMA EVENTS table (for building trust reputation)
