@@ -574,27 +574,29 @@ export default function ActivityScreen() {
               <Text style={styles.itemDesc} numberOfLines={2}>{item.desc}</Text>
 
               <View style={styles.itemFooterRow}>
+                {/* Left side - Status indicators and Tips/Reward */}
                 <View style={styles.itemFooterLeft}>
-                  {item.messageCount > 0 && (
-                    <View style={styles.messageIndicator}>
-                      <Feather name="message-circle" size={12} color={COLORS.success} />
-                      <Text style={[styles.itemFooterText, { color: COLORS.success }]}>
-                        {item.messageCount}
-                      </Text>
-                    </View>
-                  )}
-                  {item.returned && (
-                    <View style={styles.returnedIndicator}>
-                      <Feather name="check" size={12} color={COLORS.primary} />
-                      <Text style={[styles.itemFooterText, { color: COLORS.primary }]}>Returned</Text>
-                    </View>
-                  )}
-                </View>
+                  {/* Status indicators */}
+                  <View style={styles.statusIndicators}>
+                    {item.messageCount > 0 && (
+                      <View style={styles.messageIndicator}>
+                        <Feather name="message-circle" size={12} color={COLORS.success} />
+                        <Text style={[styles.itemFooterText, { color: COLORS.success }]}>
+                          {item.messageCount}
+                        </Text>
+                      </View>
+                    )}
+                    {item.returned && (
+                      <View style={styles.returnedIndicator}>
+                        <Feather name="check" size={12} color={COLORS.primary} />
+                        <Text style={[styles.itemFooterText, { color: COLORS.primary }]}>Returned</Text>
+                      </View>
+                    )}
+                  </View>
 
-                <View style={styles.itemFooterRight}>
-                  {/* Inline editable reward for lost items */}
+                  {/* Tips/Reward section for lost items */}
                   {item.status === 'lost' && !item.returned && (
-                    <View style={styles.rewardContainer}>
+                    <View style={styles.tipsSection}>
                       {editingReward === item.id ? (
                         // Editing mode
                         <View style={styles.rewardEditContainer}>
@@ -621,59 +623,66 @@ export default function ActivityScreen() {
                           </TouchableOpacity>
                         </View>
                       ) : (
-                        // Display mode
-                        <View style={styles.rewardDisplayContainer}>
-                          {item.hasReward ? (
-                            <TouchableOpacity
-                              onPress={(e) => {
-                                e.stopPropagation();
-                                startEditingReward(item);
-                              }}
-                              style={styles.rewardBadge}
-                              hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
-                            >
-                              <Feather name="gift" size={10} color="#B45309" />
-                              <Text style={styles.rewardText}>${item.rewardAmount}</Text>
-                            </TouchableOpacity>
-                          ) : (
-                            <TouchableOpacity
-                              onPress={(e) => {
-                                e.stopPropagation();
-                                startEditingReward(item);
-                              }}
-                              style={styles.addRewardHint}
-                              hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
-                              activeOpacity={0.7}
-                            >
-                              <Feather name="gift" size={8} color={COLORS.secondary} />
-                              <Text style={styles.addRewardText}>Add reward</Text>
-                            </TouchableOpacity>
-                          )}
-                        </View>
+                        // Display mode - always show for lost items
+                        <TouchableOpacity
+                          onPress={(e) => {
+                            e.stopPropagation();
+                            startEditingReward(item);
+                          }}
+                          style={[
+                            styles.tipsButton,
+                            item.hasReward ? styles.tipsButtonActive : styles.tipsButtonInactive
+                          ]}
+                          hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                          activeOpacity={0.7}
+                        >
+                          <Feather
+                            name="gift"
+                            size={12}
+                            color={item.hasReward ? '#B45309' : '#999999'}
+                          />
+                          <Text style={[
+                            styles.tipsButtonText,
+                            item.hasReward ? styles.tipsButtonTextActive : styles.tipsButtonTextInactive
+                          ]}>
+                            {item.hasReward ? `$${item.rewardAmount}` : '$0'}
+                          </Text>
+                          <Feather
+                            name="edit-3"
+                            size={10}
+                            color={item.hasReward ? '#B45309' : '#999999'}
+                            style={{ marginLeft: 4 }}
+                          />
+                        </TouchableOpacity>
                       )}
                     </View>
                   )}
+                </View>
 
-                  <TouchableOpacity
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      handleEditItem(item);
-                    }}
-                    style={styles.actionButton}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  >
-                    <Feather name="edit-2" size={14} color={COLORS.primary} />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      handleDeleteItem(item);
-                    }}
-                    style={[styles.actionButton, styles.deleteButton]}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  >
-                    <Feather name="trash-2" size={14} color={COLORS.error} />
-                  </TouchableOpacity>
+                {/* Right side - Action buttons */}
+                <View style={styles.itemFooterRight}>
+                  <View style={styles.actionButtonsContainer}>
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        handleEditItem(item);
+                      }}
+                      style={styles.iconButton}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Feather name="edit-2" size={14} color="#000000" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        handleDeleteItem(item);
+                      }}
+                      style={styles.iconButton}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Feather name="trash-2" size={14} color="#000000" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
             </View>
@@ -893,28 +902,37 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fff',
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderWidth: 2,
     borderColor: COLORS.primary,
-    gap: 2,
+    gap: 4,
+    minWidth: 70,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   currencySymbol: {
     color: '#B45309',
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '700',
   },
   rewardEditInput: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '700',
     color: '#B45309',
-    minWidth: 20,
+    minWidth: 25,
     textAlign: 'center',
     padding: 0,
+    flex: 1,
   },
   cancelEditButton: {
-    padding: 2,
+    padding: 3,
+    borderRadius: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
   },
 
   itemDesc: {
@@ -925,14 +943,24 @@ const styles = StyleSheet.create({
   },
   itemFooterRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 12,
+    paddingHorizontal: 2,
   },
   itemFooterLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    gap: 12,
+  },
+  statusIndicators: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
+  },
+  tipsSection: {
+    marginLeft: 'auto',
   },
   messageIndicator: {
     flexDirection: 'row',
@@ -959,17 +987,56 @@ const styles = StyleSheet.create({
   itemFooterRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    marginLeft: 16,
   },
-  actionButton: {
-    padding: 6,
-    borderRadius: 8,
-    backgroundColor: 'rgba(58, 141, 255, 0.1)',
+  actionButtonsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingLeft: 8,
+    borderLeftWidth: 1,
+    borderLeftColor: 'rgba(0, 0, 0, 0.08)',
+  },
+  iconButton: {
+    padding: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  deleteButton: {
-    backgroundColor: 'rgba(255, 76, 76, 0.1)',
+  tipsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 14,
+    gap: 4,
+    borderWidth: 1.5,
+    minWidth: 70,
+    justifyContent: 'center',
+  },
+  tipsButtonActive: {
+    backgroundColor: 'rgba(255, 169, 48, 0.12)',
+    borderColor: 'rgba(255, 169, 48, 0.4)',
+    shadowColor: '#FFA930',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  tipsButtonInactive: {
+    backgroundColor: 'rgba(153, 153, 153, 0.08)',
+    borderColor: 'rgba(153, 153, 153, 0.25)',
+    borderStyle: 'dashed',
+  },
+  tipsButtonText: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  tipsButtonTextActive: {
+    color: '#B45309',
+  },
+  tipsButtonTextInactive: {
+    color: '#666666',
   },
   // Enhanced Empty State Styles
   emptyState: {
