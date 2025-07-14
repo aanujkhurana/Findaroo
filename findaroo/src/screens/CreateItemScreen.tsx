@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Platform } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export const CreateItemScreen = ({ navigation }: any) => {
@@ -14,70 +13,61 @@ export const CreateItemScreen = ({ navigation }: any) => {
         <View style={styles.header}>
           <View style={styles.iconContainer}>
             <View style={styles.iconCircle}>
-              <Feather name="search" size={32} color="#4F46E5" />
+              <Feather name="plus-circle" size={28} color="#000" />
             </View>
           </View>
-          <Text style={styles.title}>What would you like to report?</Text>
-          <Text style={styles.subtitle}>Choose the type of item to get started</Text>
+          <Text style={styles.title}>Report an Item</Text>
+          <Text style={styles.subtitle}>Help your community find what matters</Text>
         </View>
 
         {/* Action Cards */}
         <View style={styles.cardContainer}>
           {/* Lost Item Card */}
           <TouchableOpacity
-            style={styles.actionCard}
+            style={[styles.actionCard, styles.lostCard]}
             onPress={() => navigation.navigate('CreateLostItem')}
-            activeOpacity={0.8}
+            activeOpacity={0.7}
           >
-            <LinearGradient
-              colors={['#3B82F6', '#1D4ED8']}
-              style={styles.cardGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-            >
-              <View style={styles.cardContent}>
-                <View style={styles.cardIconContainer}>
-                  <Feather name="alert-circle" size={28} color="#fff" />
-                </View>
-                <View style={styles.cardTextContainer}>
-                  <Text style={styles.cardTitle}>Lost Item</Text>
-                  <Text style={styles.cardSubtitle}>Report something you've lost</Text>
-                </View>
-                <Feather name="arrow-right" size={20} color="#fff" style={styles.cardArrow} />
+            <View style={styles.cardContent}>
+              <View style={[styles.cardIconContainer, styles.lostIconContainer]}>
+                <Feather name="search" size={24} color="#FFFFFF" />
               </View>
-            </LinearGradient>
+              <View style={styles.cardTextContainer}>
+                <Text style={[styles.cardTitle, styles.lostTitle]}>I Lost Something</Text>
+                <Text style={[styles.cardSubtitle, styles.lostSubtitle]}>Report an item you've lost</Text>
+              </View>
+              <View style={styles.cardArrowContainer}>
+                <Feather name="arrow-right" size={18} color="#FF4C4C" />
+              </View>
+            </View>
           </TouchableOpacity>
 
           {/* Found Item Card */}
           <TouchableOpacity
-            style={styles.actionCard}
+            style={[styles.actionCard, styles.foundCard]}
             onPress={() => navigation.navigate('CreateFoundItem')}
-            activeOpacity={0.8}
+            activeOpacity={0.7}
           >
-            <LinearGradient
-              colors={['#10B981', '#059669']}
-              style={styles.cardGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-            >
-              <View style={styles.cardContent}>
-                <View style={styles.cardIconContainer}>
-                  <Feather name="check-circle" size={28} color="#fff" />
-                </View>
-                <View style={styles.cardTextContainer}>
-                  <Text style={styles.cardTitle}>Found Item</Text>
-                  <Text style={styles.cardSubtitle}>Report something you've found</Text>
-                </View>
-                <Feather name="arrow-right" size={20} color="#fff" style={styles.cardArrow} />
+            <View style={styles.cardContent}>
+              <View style={[styles.cardIconContainer, styles.foundIconContainer]}>
+                <Feather name="check-circle" size={24} color="#FFFFFF" />
               </View>
-            </LinearGradient>
+              <View style={styles.cardTextContainer}>
+                <Text style={[styles.cardTitle, styles.foundTitle]}>I Found Something</Text>
+                <Text style={[styles.cardSubtitle, styles.foundSubtitle]}>Report an item you've found</Text>
+              </View>
+              <View style={styles.cardArrowContainer}>
+                <Feather name="arrow-right" size={18} color="#33C48D" />
+              </View>
+            </View>
           </TouchableOpacity>
         </View>
 
         {/* Help Text */}
         <View style={styles.helpContainer}>
+          <Feather name="heart" size={16} color="#666" />
           <Text style={styles.helpText}>
-            💡 Help your community by reporting lost or found items
+            Every report helps reunite someone with their belongings
           </Text>
         </View>
       </View>
@@ -88,111 +78,155 @@ export const CreateItemScreen = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FAFBFC'
+    backgroundColor: '#FFFFFF'
   },
   container: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingTop: Platform.OS === 'ios' ? 20 : 40,
+    paddingTop: Platform.OS === 'ios' ? 10 : 20,
     justifyContent: 'space-between'
   },
   header: {
     alignItems: 'center',
-    paddingTop: 20
+    paddingTop: Platform.OS === 'ios' ? 20 : 30,
+    paddingBottom: 30
   },
   iconContainer: {
     marginBottom: 20
   },
   iconCircle: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: '#EEF2FF',
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#4F46E5',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3
   },
   title: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: '700',
-    color: '#111827',
-    marginBottom: 10,
+    color: '#000000',
+    marginBottom: 6,
     textAlign: 'center',
-    lineHeight: 32
+    lineHeight: 30,
+    letterSpacing: -0.3
   },
   subtitle: {
-    fontSize: 16,
-    color: '#6B7280',
+    fontSize: 15,
+    color: '#666666',
     textAlign: 'center',
-    lineHeight: 22,
-    paddingHorizontal: 20
+    lineHeight: 20,
+    paddingHorizontal: 16,
+    fontWeight: '400',
+    maxWidth: 280
   },
   cardContainer: {
     flex: 1,
     justifyContent: 'center',
-    gap: 16,
-    paddingVertical: 20
+    gap: 20,
+    paddingVertical: 40
   },
   actionCard: {
-    borderRadius: 18,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    elevation: 6
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 6,
+    borderWidth: 2,
+    borderColor: 'transparent'
   },
-  cardGradient: {
-    borderRadius: 18,
-    padding: 20
+  lostCard: {
+    borderColor: '#FF4C4C',
+    backgroundColor: '#FFFAFA'
+  },
+  foundCard: {
+    borderColor: '#33C48D',
+    backgroundColor: '#F8FFFC'
   },
   cardContent: {
     flexDirection: 'row',
-    alignItems: 'center'
+    alignItems: 'center',
+    padding: 24
   },
   cardIconContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 14
+    marginRight: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3
+  },
+  lostIconContainer: {
+    backgroundColor: '#FF4C4C'
+  },
+  foundIconContainer: {
+    backgroundColor: '#33C48D'
   },
   cardTextContainer: {
     flex: 1
   },
   cardTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
-    color: '#fff',
-    marginBottom: 3,
-    lineHeight: 24
+    marginBottom: 6,
+    lineHeight: 26,
+    letterSpacing: -0.3
+  },
+  lostTitle: {
+    color: '#000000'
+  },
+  foundTitle: {
+    color: '#000000'
   },
   cardSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.85)',
-    lineHeight: 18
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: '400'
   },
-  cardArrow: {
-    opacity: 0.8
+  lostSubtitle: {
+    color: '#666666'
+  },
+  foundSubtitle: {
+    color: '#666666'
+  },
+  cardArrowContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F8F9FA',
+    justifyContent: 'center',
+    alignItems: 'center'
   },
   helpContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 14,
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 16,
+    marginBottom: 20,
+    gap: 10
   },
   helpText: {
-    fontSize: 14,
-    color: '#6B7280',
+    fontSize: 15,
+    color: '#666666',
     textAlign: 'center',
-    lineHeight: 18
+    lineHeight: 20,
+    fontWeight: '400',
+    flex: 1
   }
 });
 
