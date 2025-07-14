@@ -29,26 +29,34 @@ import SuccessScreen from '../screens/SuccessScreen';
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
+// Keep the same icons for both states - we'll use styling to differentiate
+const getIconName = (baseName: string, focused: boolean): string => {
+  // Always return the same icon regardless of focus state
+  return baseName;
+};
+
 // Animated Tab Icon Component
 const AnimatedTabIcon = ({
   iconName,
   focused,
-  size = 24
+  size = 24,
+  label
 }: {
   iconName: string;
   focused: boolean;
   size?: number;
+  label: string;
 }) => {
   const [bounceValue] = useState(new Animated.Value(1));
   const [rotateValue] = useState(new Animated.Value(0));
-  const [pulseValue] = useState(new Animated.Value(1));
+  const [sliderValue] = useState(new Animated.Value(focused ? 1 : 0));
 
   useEffect(() => {
     if (focused) {
       // Bounce animation
       Animated.sequence([
         Animated.timing(bounceValue, {
-          toValue: 1.2,
+          toValue: 1.1,
           duration: 150,
           useNativeDriver: true,
         }),
@@ -59,77 +67,102 @@ const AnimatedTabIcon = ({
         }),
       ]).start();
 
-      // Subtle rotation for some icons
-      if (iconName === 'plus-circle') {
-        Animated.timing(rotateValue, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }).start();
-      }
+      // Subtle rotation for some icons (disabled to prevent upside down icons)
+      // if (iconName === 'plus-circle') {
+      //   Animated.timing(rotateValue, {
+      //     toValue: 1,
+      //     duration: 300,
+      //     useNativeDriver: true,
+      //   }).start();
+      // }
 
-      // Pulse effect
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseValue, {
-            toValue: 1.05,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseValue, {
-            toValue: 1,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
-        ])
-      ).start();
+      // Slider animation
+      Animated.timing(sliderValue, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: false,
+      }).start();
     } else {
       // Reset animations when not focused
       bounceValue.setValue(1);
       rotateValue.setValue(0);
-      pulseValue.setValue(1);
+
+      // Hide slider
+      Animated.timing(sliderValue, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: false,
+      }).start();
     }
-  }, [focused, bounceValue, rotateValue, pulseValue, iconName]);
+  }, [focused, bounceValue, rotateValue, sliderValue, iconName]);
 
   const rotation = rotateValue.interpolate({
     inputRange: [0, 1],
     outputRange: ['0deg', '180deg'],
   });
 
+  const sliderWidth = sliderValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 32],
+  });
+
+  const sliderOpacity = sliderValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 1],
+  });
+
   return (
-    <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+    <View style={{ alignItems: 'center', justifyContent: 'center', minHeight: 50 }}>
+      {/* Top slider indicator */}
+      <Animated.View
+        style={{
+          position: 'absolute',
+          top: -10,
+          height: 2.5,
+          backgroundColor: '#000000',
+          borderRadius: 2,
+          width: sliderWidth,
+          opacity: sliderOpacity,
+        }}
+      />
+
       <Animated.View
         style={{
           transform: [
-            { scale: focused ? Animated.multiply(bounceValue, pulseValue) : bounceValue },
-            { rotate: iconName === 'plus-circle' ? rotation : '0deg' },
+            { scale: bounceValue },
           ],
+          alignItems: 'center',
+          width: 60, // Fixed width to prevent label wrapping
         }}
       >
         <Feather
-          name={iconName as any}
-          size={focused ? size + 2 : size}
+          name={getIconName(iconName, focused) as any}
+          size={focused ? size + 1 : size}
           color={focused ? '#000000' : '#64748B'}
           style={{
             textShadowColor: focused ? 'rgba(0, 0, 0, 0.1)' : 'transparent',
             textShadowOffset: { width: 0, height: 1 },
             textShadowRadius: 2,
+            marginBottom: 4,
           }}
         />
-      </Animated.View>
-      {focused && (
-        <Animated.View
+
+        {/* Label */}
+        <Text
           style={{
-            position: 'absolute',
-            bottom: -8,
-            width: 4,
-            height: 4,
-            borderRadius: 2,
-            backgroundColor: '#000000',
-            transform: [{ scale: pulseValue }],
+            fontSize: 10,
+            fontWeight: focused ? '600' : '400',
+            color: focused ? '#000000' : '#64748B',
+            textAlign: 'center',
+            width: '100%',
           }}
-        />
-      )}
+          numberOfLines={1}
+          adjustsFontSizeToFit={true}
+          minimumFontScale={0.8}
+        >
+          {label}
+        </Text>
+      </Animated.View>
     </View>
   );
 };
@@ -170,9 +203,9 @@ const MainTabs = () => {
           shadowOffset: { width: 0, height: -4 },
           shadowOpacity: 0.15,
           shadowRadius: 20,
-          height: Platform.OS === 'ios' ? 70 + insets.bottom : 60 + insets.bottom,
+          height: Platform.OS === 'ios' ? 85 + insets.bottom : 75 + insets.bottom,
           paddingBottom: Platform.OS === 'ios' ? Math.max(insets.bottom, 20) : Math.max(insets.bottom, 12),
-          paddingTop: 12,
+          paddingTop: 16,
           paddingHorizontal: 12,
           borderTopLeftRadius: 28,
           borderTopRightRadius: 28,
@@ -181,14 +214,15 @@ const MainTabs = () => {
           left: 0,
           right: 0,
         },
-      tabBarShowLabel: false,
+      tabBarShowLabel: false, // We'll handle labels in our custom component
       tabBarActiveTintColor: '#000000',
       tabBarInactiveTintColor: '#64748B',
       tabBarItemStyle: {
-        paddingVertical: 6,
+        paddingVertical: 8,
         borderRadius: 20,
-        marginHorizontal: 4,
+        marginHorizontal: 2,
         backgroundColor: 'transparent',
+        flex: 1,
       },
     }}
   >
@@ -201,6 +235,7 @@ const MainTabs = () => {
             iconName="map-pin"
             focused={focused}
             size={24}
+            label="Explore"
           />
         ),
       }}
@@ -214,6 +249,7 @@ const MainTabs = () => {
             iconName="bell"
             focused={focused}
             size={24}
+            label="Activity"
           />
         ),
       }}
@@ -227,6 +263,7 @@ const MainTabs = () => {
             iconName="plus-circle"
             focused={focused}
             size={24}
+            label="Post"
           />
         ),
       }}
@@ -240,6 +277,7 @@ const MainTabs = () => {
             iconName="message-circle"
             focused={focused}
             size={24}
+            label="Message"
           />
         ),
       }}
@@ -253,6 +291,7 @@ const MainTabs = () => {
             iconName="user"
             focused={focused}
             size={24}
+            label="Profile"
           />
         ),
       }}
