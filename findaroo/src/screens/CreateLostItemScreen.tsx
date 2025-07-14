@@ -54,7 +54,7 @@ interface FormData {
 const STEPS = [
   { id: 1, title: 'Item Details', subtitle: 'Tell us what you lost', icon: 'alert-circle' },
   { id: 2, title: 'Location & Time', subtitle: 'Help others know where to look', icon: 'map-pin' },
-  { id: 3, title: 'Final Details', subtitle: 'Add reward and post your item', icon: 'gift' },
+  { id: 3, title: 'Photo & Reward', subtitle: 'Add image and reward options', icon: 'camera' },
 ];
 
 export const CreateLostItemScreen = ({ navigation, route }: any) => {
@@ -367,6 +367,29 @@ useEffect(() => {
         </View>
       </View>
 
+      {/* Description */}
+      <View style={styles.inputGroup}>
+        <Text style={styles.inputLabel}>Additional Details (Optional)</Text>
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={[styles.textInput, styles.textArea]}
+            placeholder="Describe brand, color, unique features, where you think you lost it..."
+            placeholderTextColor="#9CA3AF"
+            value={formData.description}
+            onChangeText={(text) => updateFormData('description', text)}
+            multiline
+            numberOfLines={4}
+            maxLength={500}
+            textAlignVertical="top"
+          />
+          <Text style={styles.characterCount}>{formData.description.length}/500</Text>
+        </View>
+        <View style={styles.tipContainer}>
+          <Feather name="eye" size={14} color="#6B7280" />
+          <Text style={styles.tipText}>Specific details help others identify your item</Text>
+        </View>
+      </View>
+
       {/* Category Selection */}
       <View style={styles.inputGroup}>
         <Text style={styles.inputLabel}>Category *</Text>
@@ -396,67 +419,7 @@ useEffect(() => {
         </View>
       </View>
 
-      {/* Image Upload */}
-      <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>Add a Photo (Optional)</Text>
-        <TouchableOpacity
-          style={styles.uploadButton}
-          onPress={handlePickImage}
-          activeOpacity={0.8}
-        >
-          <View style={styles.uploadIconContainer}>
-            <Feather name="camera" size={20} color="#4F46E5" />
-          </View>
-          <View style={styles.uploadTextContainer}>
-            <Text style={styles.uploadButtonText}>Take Photo or Choose from Gallery</Text>
-            <Text style={styles.uploadSubtext}>Helps others identify your item</Text>
-          </View>
-          <Feather name="chevron-right" size={16} color="#9CA3AF" />
-        </TouchableOpacity>
 
-        {formData.image && (
-          <View style={styles.imagePreviewContainer}>
-            <Image
-              source={{ uri: imagePreview || undefined }}
-              style={styles.imagePreview}
-            />
-            <TouchableOpacity
-              style={styles.removeImageButton}
-              onPress={() => updateFormData('image', undefined)}
-            >
-              <Feather name="x" size={16} color="#fff" />
-            </TouchableOpacity>
-          </View>
-        )}
-
-        <View style={styles.tipContainer}>
-          <Feather name="info" size={14} color="#6B7280" />
-          <Text style={styles.tipText}>A photo helps others identify your lost item</Text>
-        </View>
-      </View>
-
-      {/* Description */}
-      <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>Additional Details (Optional)</Text>
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={[styles.textInput, styles.textArea]}
-            placeholder="Describe brand, color, unique features, where you think you lost it..."
-            placeholderTextColor="#9CA3AF"
-            value={formData.description}
-            onChangeText={(text) => updateFormData('description', text)}
-            multiline
-            numberOfLines={4}
-            maxLength={500}
-            textAlignVertical="top"
-          />
-          <Text style={styles.characterCount}>{formData.description.length}/500</Text>
-        </View>
-        <View style={styles.tipContainer}>
-          <Feather name="eye" size={14} color="#6B7280" />
-          <Text style={styles.tipText}>Specific details help others identify your item</Text>
-        </View>
-      </View>
     </View>
   );
 
@@ -561,6 +524,45 @@ useEffect(() => {
 
   const renderStep3 = () => (
     <View style={styles.stepContainer}>
+      {/* Image Upload */}
+      <View style={styles.inputGroup}>
+        <Text style={styles.inputLabel}>Add a Photo (Optional)</Text>
+        <TouchableOpacity
+          style={styles.uploadButton}
+          onPress={handlePickImage}
+          activeOpacity={0.8}
+        >
+          <View style={styles.uploadIconContainer}>
+            <Feather name="camera" size={20} color="#4F46E5" />
+          </View>
+          <View style={styles.uploadTextContainer}>
+            <Text style={styles.uploadButtonText}>Take Photo or Choose from Gallery</Text>
+            <Text style={styles.uploadSubtext}>Helps others identify your item</Text>
+          </View>
+          <Feather name="chevron-right" size={16} color="#9CA3AF" />
+        </TouchableOpacity>
+
+        {formData.image && (
+          <View style={styles.imagePreviewContainer}>
+            <Image
+              source={{ uri: imagePreview || undefined }}
+              style={styles.imagePreview}
+            />
+            <TouchableOpacity
+              style={styles.removeImageButton}
+              onPress={() => updateFormData('image', undefined)}
+            >
+              <Feather name="x" size={16} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        )}
+
+        <View style={styles.tipContainer}>
+          <Feather name="info" size={14} color="#6B7280" />
+          <Text style={styles.tipText}>A photo helps others identify your lost item</Text>
+        </View>
+      </View>
+
       {/* Reward Option */}
       <View style={styles.inputGroup}>
         <Text style={styles.inputLabel}>Reward Options</Text>
