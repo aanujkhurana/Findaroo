@@ -148,3 +148,14 @@ graph TD
 5. Lisa clicks "Mark as Returned"
 6. Lisa sees "Tip Finder \$15" screen → pays via Stripe
 7. Both get karma → item marked `returned + resolved`
+
+# COLOR SCHEME FOR APP
+["#780000","#c1121f","#fdf0d5","#003049","#669bbc"]
+---
+
+## 🌈 Color Palette
+
+| warning          | `#FFA930`    | Action accents, tags            |
+| Success Green    | `#33C48D`    | Returned items, positive status |
+| Error Red        | `#FF4C4C`    | Flags, errors                   |
+> Colors are slightly soft with a modern web-safe tone — avoid over-saturation.

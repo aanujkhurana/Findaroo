@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, ActivityIndicator, Alert, SafeAreaView, Platform, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, ActivityIndicator, Alert, SafeAreaView, Platform, RefreshControl, TextInput } from 'react-native';
 import { Feather, MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -137,6 +137,8 @@ export default function ActivityScreen() {
   const [filter, setFilter] = useState('all');
   const [refreshing, setRefreshing] = useState(false);
   const [messageCounts, setMessageCounts] = useState<{ [itemId: string]: number }>({});
+  const [editingReward, setEditingReward] = useState<string | null>(null);
+  const [tempRewardValues, setTempRewardValues] = useState<{ [itemId: string]: string }>({});
   const navigation: any = useNavigation();
   const { user, loading: authLoading } = useAuth();
   const insets = useSafeAreaInsets();
@@ -327,6 +329,71 @@ export default function ActivityScreen() {
     );
   };
 
+  // Handle reward editing
+  const startEditingReward = (item: Item) => {
+    setEditingReward(item.id);
+    setTempRewardValues(prev => ({
+      ...prev,
+      [item.id]: (item.reward_amount || 0).toString()
+    }));
+  };
+
+  const cancelEditingReward = (itemId: string) => {
+    setEditingReward(null);
+    setTempRewardValues(prev => {
+      const newValues = { ...prev };
+      delete newValues[itemId];
+      return newValues;
+    });
+  };
+
+  const saveRewardAmount = async (item: Item) => {
+    const newValue = tempRewardValues[item.id] || '0';
+    const newAmount = parseFloat(newValue);
+
+    if (isNaN(newAmount) || newAmount < 0) {
+      Alert.alert('Error', 'Please enter a valid amount');
+      return;
+    }
+
+    if (newAmount > 500) {
+      Alert.alert('Error', 'Maximum reward amount is $500');
+      return;
+    }
+
+    await updateRewardAmount(item, newAmount);
+    setEditingReward(null);
+    setTempRewardValues(prev => {
+      const newValues = { ...prev };
+      delete newValues[item.id];
+      return newValues;
+    });
+  };
+
+
+
+  // Update reward amount
+  const updateRewardAmount = async (item: Item, newAmount: number) => {
+    try {
+      const updatedItem = await updateItem(item.id, { reward_amount: newAmount });
+      if (updatedItem) {
+        Alert.alert(
+          'Success',
+          newAmount > 0
+            ? `Reward updated to $${newAmount}`
+            : 'Reward removed'
+        );
+        // Refresh the list to show updated reward
+        handleRefresh();
+      } else {
+        Alert.alert('Error', 'Failed to update reward. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error updating reward:', error);
+      Alert.alert('Error', 'Failed to update reward. Please try again.');
+    }
+  };
+
   // Combined loading state - wait for both auth and items
   const loading = authLoading || (shouldFetchItems && itemsLoading);
 
@@ -495,12 +562,6 @@ export default function ActivityScreen() {
                   <Feather name="clock" size={12} color={COLORS.muted} />
                   <Text style={styles.itemMeta}>{item.date}</Text>
                 </View>
-                {item.hasReward && (
-                  <View style={styles.rewardBadge}>
-                    <Feather name="dollar-sign" size={10} color="#B45309" />
-                    <Text style={styles.rewardText}>{item.rewardAmount}</Text>
-                  </View>
-                )}
               </View>
 
               {item.location_name && (
@@ -529,7 +590,70 @@ export default function ActivityScreen() {
                     </View>
                   )}
                 </View>
+
                 <View style={styles.itemFooterRight}>
+                  {/* Inline editable reward for lost items */}
+                  {item.status === 'lost' && !item.returned && (
+                    <View style={styles.rewardContainer}>
+                      {editingReward === item.id ? (
+                        // Editing mode
+                        <View style={styles.rewardEditContainer}>
+                          <Text style={styles.currencySymbol}>$</Text>
+                          <TextInput
+                            style={styles.rewardEditInput}
+                            value={tempRewardValues[item.id] || '0'}
+                            onChangeText={(text) => setTempRewardValues(prev => ({
+                              ...prev,
+                              [item.id]: text
+                            }))}
+                            keyboardType="numeric"
+                            selectTextOnFocus
+                            autoFocus
+                            onSubmitEditing={() => saveRewardAmount(item)}
+                            onBlur={() => saveRewardAmount(item)}
+                          />
+                          <TouchableOpacity
+                            onPress={() => cancelEditingReward(item.id)}
+                            style={styles.cancelEditButton}
+                            hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                          >
+                            <Feather name="x" size={8} color={COLORS.muted} />
+                          </TouchableOpacity>
+                        </View>
+                      ) : (
+                        // Display mode
+                        <View style={styles.rewardDisplayContainer}>
+                          {item.hasReward ? (
+                            <TouchableOpacity
+                              onPress={(e) => {
+                                e.stopPropagation();
+                                startEditingReward(item);
+                              }}
+                              style={styles.rewardBadge}
+                              hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                            >
+                              <Feather name="gift" size={10} color="#B45309" />
+                              <Text style={styles.rewardText}>${item.rewardAmount}</Text>
+                            </TouchableOpacity>
+                          ) : (
+                            <TouchableOpacity
+                              onPress={(e) => {
+                                e.stopPropagation();
+                                startEditingReward(item);
+                              }}
+                              style={styles.addRewardHint}
+                              hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                              activeOpacity={0.7}
+                            >
+                              <Feather name="gift" size={8} color={COLORS.secondary} />
+                              <Text style={styles.addRewardText}>Add reward</Text>
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                      )}
+                    </View>
+                  )}
+
                   <TouchableOpacity
                     onPress={(e) => {
                       e.stopPropagation();
@@ -741,6 +865,58 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
   },
+  addRewardHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 169, 48, 0.1)',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    gap: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 169, 48, 0.2)',
+  },
+  addRewardText: {
+    color: COLORS.secondary,
+    fontSize: 9,
+    fontWeight: '600',
+  },
+  rewardContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  rewardDisplayContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  rewardEditContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    gap: 2,
+  },
+  currencySymbol: {
+    color: '#B45309',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  rewardEditInput: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#B45309',
+    minWidth: 20,
+    textAlign: 'center',
+    padding: 0,
+  },
+  cancelEditButton: {
+    padding: 2,
+  },
+
   itemDesc: {
     color: COLORS.text,
     fontSize: 13,
@@ -783,7 +959,7 @@ const styles = StyleSheet.create({
   itemFooterRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
   actionButton: {
     padding: 6,
