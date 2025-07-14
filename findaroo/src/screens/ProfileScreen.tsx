@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, StyleSheet, Alert, Modal, TextInput, Image } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, StyleSheet, Alert, Modal, TextInput, Image, ActionSheetIOS, Platform } from 'react-native';
 import { MaterialIcons, Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../hooks/useAuth';
-import { uploadImage, getSignedImageUrl } from '../utils/uploadImage';
+import { uploadImage, getSignedImageUrl, deleteImage } from '../utils/uploadImage';
 
 export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
   const { signOut, user, updateProfile, fetchReceivedTips } = useAuth();
@@ -104,48 +104,193 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
     Alert.alert('Payment Details', 'Payment management coming soon!');
   };
 
-  const handleProfilePictureUpload = async () => {
+  const handleProfilePictureOptions = () => {
+    if (!user) return;
+
+    const options = profilePicUrl
+      ? ['Take Photo', 'Choose from Gallery', 'Remove Photo', 'Cancel']
+      : ['Take Photo', 'Choose from Gallery', 'Cancel'];
+
+    const cancelButtonIndex = options.length - 1;
+    const destructiveButtonIndex = profilePicUrl ? 2 : -1;
+
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options,
+          cancelButtonIndex,
+          destructiveButtonIndex,
+          title: 'Profile Picture',
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 0) {
+            handleTakePhoto();
+          } else if (buttonIndex === 1) {
+            handleChooseFromGallery();
+          } else if (buttonIndex === 2 && profilePicUrl) {
+            handleRemoveProfilePicture();
+          }
+        }
+      );
+    } else {
+      // For Android, show a simple alert with options
+      Alert.alert(
+        'Profile Picture',
+        'Choose an option',
+        [
+          { text: 'Take Photo', onPress: handleTakePhoto },
+          { text: 'Choose from Gallery', onPress: handleChooseFromGallery },
+          ...(profilePicUrl ? [{ text: 'Remove Photo', onPress: handleRemoveProfilePicture, style: 'destructive' }] : []),
+          { text: 'Cancel', style: 'cancel' },
+        ]
+      );
+    }
+  };
+
+  const handleTakePhoto = async () => {
     if (!user) return;
 
     try {
       setUploadingProfilePic(true);
 
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      // Request camera permissions
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Camera permission is required to take photos.');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaType.Images,
         allowsEditing: true,
-        aspect: [1, 1], // Square aspect ratio for profile pictures
+        aspect: [1, 1],
         quality: 0.8,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        const asset = result.assets[0];
-        const uri = asset.uri;
-        const filename = asset.fileName || uri.split('/').pop() || `profile.jpg`;
-
-        console.log('[ProfilePicUpload] Starting upload for:', filename);
-        const path = await uploadImage(uri, filename, user.id, 'profile-pics');
-
-        if (path) {
-          console.log('[ProfilePicUpload] Upload successful, updating profile:', path);
-          const { error } = await updateProfile({ profile_pic: path });
-
-          if (error) {
-            Alert.alert('Update Failed', 'Could not update profile picture. Please try again.');
-            console.error('[ProfilePicUpload] Profile update failed:', error);
-          } else {
-            Alert.alert('Success', 'Profile picture updated successfully!');
-          }
-        } else {
-          Alert.alert('Upload Failed', 'Could not upload image. Please try again.');
-          console.error('[ProfilePicUpload] Upload failed: path is null');
-        }
+        await uploadNewProfilePicture(result.assets[0]);
       }
     } catch (error) {
-      console.error('[ProfilePicUpload] Error:', error);
-      Alert.alert('Error', 'An error occurred while uploading your profile picture.');
+      console.error('[ProfilePicCamera] Error:', error);
+      Alert.alert('Error', 'An error occurred while taking the photo.');
     } finally {
       setUploadingProfilePic(false);
     }
+  };
+
+  const handleChooseFromGallery = async () => {
+    if (!user) return;
+
+    try {
+      setUploadingProfilePic(true);
+
+      // Request media library permissions
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Photo library permission is required to select images.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaType.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        await uploadNewProfilePicture(result.assets[0]);
+      }
+    } catch (error) {
+      console.error('[ProfilePicGallery] Error:', error);
+      Alert.alert('Error', 'An error occurred while selecting the image.');
+    } finally {
+      setUploadingProfilePic(false);
+    }
+  };
+
+  const uploadNewProfilePicture = async (asset: ImagePicker.ImagePickerAsset) => {
+    if (!user) return;
+
+    const uri = asset.uri;
+    const filename = asset.fileName || uri.split('/').pop() || `profile.jpg`;
+
+    console.log('[ProfilePicUpload] Starting upload for:', filename);
+
+    // Delete old profile picture if it exists
+    if (user.profile_pic) {
+      console.log('[ProfilePicUpload] Deleting old profile picture:', user.profile_pic);
+      const deleteSuccess = await deleteImage(user.profile_pic, 'profile-pics');
+      if (deleteSuccess) {
+        console.log('[ProfilePicUpload] Old profile picture deleted successfully');
+      } else {
+        console.warn('[ProfilePicUpload] Failed to delete old profile picture, continuing with upload');
+      }
+    }
+
+    // Upload new profile picture
+    const path = await uploadImage(uri, filename, user.id, 'profile-pics');
+
+    if (path) {
+      console.log('[ProfilePicUpload] Upload successful, updating profile:', path);
+      const { error } = await updateProfile({ profile_pic: path });
+
+      if (error) {
+        Alert.alert('Update Failed', 'Could not update profile picture. Please try again.');
+        console.error('[ProfilePicUpload] Profile update failed:', error);
+      } else {
+        Alert.alert('Success', 'Profile picture updated successfully!');
+      }
+    } else {
+      Alert.alert('Upload Failed', 'Could not upload image. Please try again.');
+      console.error('[ProfilePicUpload] Upload failed: path is null');
+    }
+  };
+
+  const handleRemoveProfilePicture = async () => {
+    if (!user || !user.profile_pic) return;
+
+    Alert.alert(
+      'Remove Profile Picture',
+      'Are you sure you want to remove your profile picture?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setUploadingProfilePic(true);
+
+              // Delete from storage
+              console.log('[ProfilePicRemove] Deleting profile picture:', user.profile_pic);
+              const deleteSuccess = await deleteImage(user.profile_pic, 'profile-pics');
+
+              if (deleteSuccess) {
+                console.log('[ProfilePicRemove] Profile picture deleted from storage');
+              } else {
+                console.warn('[ProfilePicRemove] Failed to delete from storage, continuing with profile update');
+              }
+
+              // Update user profile to remove the reference
+              const { error } = await updateProfile({ profile_pic: null });
+
+              if (error) {
+                Alert.alert('Error', 'Could not remove profile picture. Please try again.');
+                console.error('[ProfilePicRemove] Profile update failed:', error);
+              } else {
+                Alert.alert('Success', 'Profile picture removed successfully!');
+              }
+            } catch (error) {
+              console.error('[ProfilePicRemove] Error:', error);
+              Alert.alert('Error', 'An error occurred while removing your profile picture.');
+            } finally {
+              setUploadingProfilePic(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleSaveName = async () => {
@@ -265,7 +410,7 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
               )}
               <TouchableOpacity
                 style={styles.avatarBadge}
-                onPress={handleProfilePictureUpload}
+                onPress={handleProfilePictureOptions}
                 disabled={uploadingProfilePic}
               >
                 <MaterialIcons
