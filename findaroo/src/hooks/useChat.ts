@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { AppState } from 'react-native';
 import { Audio } from 'expo-av';
+import * as Notifications from 'expo-notifications';
 import { supabase } from '../services/supabaseClient';
 import { notificationService } from '../services/notificationService';
 import { Message, ChatThread } from '../types';
@@ -11,32 +12,22 @@ const playMessageSound = async () => {
     // Set audio mode for better sound playback
     await Audio.setAudioModeAsync({
       allowsRecordingIOS: false,
-      staysActiveInBackground: false,
+      staysActiveInBackground: true,
       playsInSilentModeIOS: true,
       shouldDuckAndroid: true,
       playThroughEarpieceAndroid: false,
     });
 
-    // Use a simple system sound for message notifications
-    const { sound } = await Audio.Sound.createAsync(
-      { uri: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav' }, // Simple notification sound
-      {
-        shouldPlay: true,
-        volume: 0.4,
-        isLooping: false
-      }
-    );
-
-    // Play the sound
-    await sound.playAsync();
-
-    // Unload the sound after playing
-    setTimeout(() => {
-      sound.unloadAsync();
-    }, 2000);
+    // Use Expo's notification sound
+    await Notifications.presentNotificationAsync({
+      content: {
+        sound: 'default',
+        priority: 'high',
+      },
+      trigger: null,
+    });
   } catch (error) {
-    // Fallback - just log the error, don't crash the app
-    console.log('[useChat] Sound playback failed (this is normal in simulator):', error.message);
+    console.log('[useChat] Sound playback failed:', error.message);
   }
 };
 
@@ -50,24 +41,33 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
   const currentUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
+
     const initializeChat = async () => {
       const currentUser = await supabase.auth.getUser();
-      if (currentUser.data.user) {
+      if (currentUser.data.user && isMounted) {
         currentUserIdRef.current = currentUser.data.user.id;
+        console.log(`[useChat] Initialized with user: ${currentUser.data.user.id}`);
       }
 
-      if (itemId && otherUserId) {
+      if (itemId && otherUserId && isMounted) {
+        console.log(`[useChat] Setting up chat for item: ${itemId}, other user: ${otherUserId}`);
         await fetchMessages();
-        // Small delay to ensure messages are loaded before subscribing
+
+        // Wait a bit longer to ensure everything is ready
         setTimeout(() => {
-          subscribeToMessages();
-          subscribeToReadReceipts();
-        }, 100);
-      } else {
+          if (isMounted) {
+            subscribeToMessages();
+            subscribeToReadReceipts();
+          }
+        }, 500);
+      } else if (isMounted) {
         await fetchThreads();
         setTimeout(() => {
-          subscribeToAllMessages();
-        }, 100);
+          if (isMounted) {
+            subscribeToAllMessages();
+          }
+        }, 500);
       }
     };
 
@@ -75,9 +75,14 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
 
     // Cleanup subscriptions on unmount
     return () => {
+      isMounted = false;
       console.log('[useChat] Cleaning up subscriptions');
       if (subscriptionRef.current) {
-        subscriptionRef.current.unsubscribe();
+        try {
+          subscriptionRef.current.unsubscribe();
+        } catch (error) {
+          console.log('[useChat] Error unsubscribing:', error);
+        }
         subscriptionRef.current = null;
       }
     };
@@ -196,25 +201,15 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
   };
 
   const subscribeToMessages = () => {
-    if (!itemId || !currentUserIdRef.current) {
-      console.log('[useChat] Cannot subscribe - missing itemId or currentUser');
+    if (!itemId || !otherUserId || !currentUserIdRef.current) {
+      console.log('[useChat] Missing required IDs for subscription');
       return;
     }
 
-    console.log(`[useChat] Setting up real-time subscription for item: ${itemId}`);
+    console.log(`[useChat] Setting up realtime subscription for item: ${itemId}`);
 
-    // Clean up any existing subscription
-    if (subscriptionRef.current) {
-      console.log('[useChat] Cleaning up existing subscription');
-      subscriptionRef.current.unsubscribe();
-      subscriptionRef.current = null;
-    }
-
-    const channelName = `messages-${itemId}-${currentUserIdRef.current}`;
-    console.log(`[useChat] Creating channel: ${channelName}`);
-
-    subscriptionRef.current = supabase
-      .channel(channelName)
+    const channel = supabase
+      .channel(`messages:${itemId}`)
       .on(
         'postgres_changes',
         {
@@ -224,106 +219,49 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
           filter: `item_id=eq.${itemId}`,
         },
         async (payload) => {
-          console.log('[useChat] Real-time message received:', payload.new);
+          console.log('[useChat] New message received:', payload);
+          const newMessage = payload.new as Message;
 
-          try {
-            // Always fetch the full message with user data for real-time updates
-            const { data, error } = await supabase
-              .from('messages')
-              .select(`
-                *,
-                sender:users!sender_id(id, full_name, profile_pic),
-                receiver:users!receiver_id(id, full_name, profile_pic)
-              `)
-              .eq('id', payload.new.id)
-              .single();
+          // Play sound for incoming messages only
+          if (newMessage.receiver_id === currentUserIdRef.current) {
+            await playMessageSound();
+          }
 
-            if (error) {
-              console.error('[useChat] Error fetching real-time message:', error);
-              return;
-            }
+          // Fetch the complete message with user details
+          const { data: messageWithDetails } = await supabase
+            .from('messages')
+            .select(`
+              *,
+              sender:users!sender_id(id, full_name, profile_pic),
+              receiver:users!receiver_id(id, full_name, profile_pic)
+            `)
+            .eq('id', newMessage.id)
+            .single();
 
-            if (data) {
-              console.log('[useChat] Processing real-time message:', data);
-
-              // If it's our own message, replace the optimistic one
-              if (data.sender_id === currentUserIdRef.current) {
-                console.log('[useChat] Replacing optimistic message with real one');
-                setMessages(prev => prev.map(msg =>
-                  msg.id.startsWith('temp-') && msg.message === data.message
-                    ? data
-                    : msg
-                ));
-              } else {
-                // It's a message from someone else, add it
-                console.log('[useChat] Adding message from other user');
-                setMessages(prev => {
-                  const exists = prev.some(msg => msg.id === data.id);
-                  if (exists) {
-                    console.log('[useChat] Message already exists, skipping');
-                    return prev;
-                  }
-                  return [...prev, data];
-                });
-
-                // Play notification sound for incoming messages
-                playMessageSound();
-
-                // Send push notification if app is in background
-                if (AppState.currentState !== 'active') {
-                  console.log('[useChat] App in background, sending push notification');
-
-                  const { data: item } = await supabase
-                    .from('items')
-                    .select('title')
-                    .eq('id', itemId)
-                    .single();
-
-                  if (item && data.sender) {
-                    await notificationService.sendMessageNotification(
-                      data.receiver_id,
-                      data.sender.full_name,
-                      data.message,
-                      item.title,
-                      {
-                        type: 'message',
-                        itemId: itemId,
-                        senderId: data.sender_id,
-                        senderName: data.sender.full_name,
-                        messagePreview: data.message,
-                        chatId: `${itemId}-${data.sender_id}`,
-                      }
-                    );
-                  }
+          if (messageWithDetails) {
+            setMessages((prev) => [...prev, messageWithDetails]);
+            
+            // Send push notification for incoming messages
+            if (messageWithDetails.receiver_id === currentUserIdRef.current && AppState.currentState !== 'active') {
+              notificationService.sendMessageNotification(
+                messageWithDetails.receiver_id,
+                messageWithDetails.sender.full_name,
+                messageWithDetails.message,
+                'Item', // You might want to pass the actual item title here
+                {
+                  type: 'message',
+                  itemId: messageWithDetails.item_id,
+                  senderId: messageWithDetails.sender_id,
+                  messagePreview: messageWithDetails.message
                 }
-              }
-
-              // Update unread count for received messages
-              if (data.receiver_id === currentUserIdRef.current && data.sender_id !== currentUserIdRef.current) {
-                setUnreadCount(prev => prev + 1);
-              }
+              );
             }
-          } catch (error) {
-            console.error('[useChat] Error processing real-time message:', error);
           }
         }
       )
-      .subscribe((status) => {
-        console.log(`[useChat] Subscription status for ${channelName}:`, status);
-        if (status === 'SUBSCRIBED') {
-          console.log('[useChat] ✅ Successfully subscribed to real-time messages');
-        } else if (status === 'CLOSED') {
-          console.log('[useChat] ❌ Real-time subscription closed');
-        } else if (status === 'CHANNEL_ERROR') {
-          console.log('[useChat] ⚠️ Channel error, attempting to reconnect...');
-          // Attempt to reconnect after a delay
-          setTimeout(() => {
-            if (itemId && currentUserIdRef.current) {
-              subscribeToMessages();
-            }
-          }, 2000);
-        }
-      });
+      .subscribe();
+
+    subscriptionRef.current = channel;
   };
 
   const subscribeToReadReceipts = () => {
