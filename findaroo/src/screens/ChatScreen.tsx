@@ -16,6 +16,7 @@ import { useChat } from '../hooks/useChat';
 import { useAuth } from '../hooks/useAuth';
 import { Loading } from '../components/Loading';
 import { Message } from '../types';
+import { testDatabaseConnection, testRealTimeConnection } from '../utils/testDatabase';
 
 interface ChatScreenProps {
   navigation: any;
@@ -30,6 +31,9 @@ interface ChatScreenProps {
 
 export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
   const { itemId, otherUserId, otherUserName } = route.params;
+
+  console.log('[ChatScreen] Initialized with params:', { itemId, otherUserId, otherUserName });
+
   const { session } = useAuth();
   const {
     messages,
@@ -60,6 +64,15 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
   }, [messages]);
 
   useEffect(() => {
+    // Test database connection when screen loads
+    const runTests = async () => {
+      await testDatabaseConnection();
+      await testRealTimeConnection();
+    };
+    runTests();
+  }, []);
+
+  useEffect(() => {
     // Mark messages as read when screen is focused
     const unsubscribe = navigation.addListener('focus', () => {
       markAllAsRead();
@@ -71,15 +84,18 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
   const handleSendMessage = async () => {
     if (!messageText.trim() || sending) return;
 
+    console.log('[ChatScreen] Sending message:', messageText);
     setSending(true);
     try {
       const result = await sendMessage(messageText, otherUserId);
+      console.log('[ChatScreen] Send message result:', result);
       if (result) {
         setMessageText('');
       } else {
         Alert.alert('Error', 'Failed to send message. Please try again.');
       }
     } catch (error) {
+      console.error('[ChatScreen] Error sending message:', error);
       Alert.alert('Error', 'Failed to send message. Please try again.');
     } finally {
       setSending(false);

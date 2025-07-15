@@ -26,6 +26,7 @@ export default {
       'expo-location',
       'expo-image-picker',
       'expo-file-system',
+      'expo-av',
       [
         'expo-notifications',
         {

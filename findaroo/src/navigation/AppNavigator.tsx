@@ -271,7 +271,7 @@ const MainTabs = () => {
       }}
     />
     <Tab.Screen
-      name="Chat"
+      name="Messages"
       component={ChatListScreen}
       options={{
         tabBarIcon: ({ focused, size }) => (

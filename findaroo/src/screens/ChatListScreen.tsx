@@ -53,19 +53,32 @@ export const ChatListScreen: React.FC<ChatListScreenProps> = ({ navigation }) =>
 
   const renderChatItem = ({ item }: { item: ChatThread }) => {
     const otherUser = getOtherUser(item);
-    if (!otherUser) return null;
+    if (!otherUser) {
+      console.log('[ChatListScreen] No other user found for thread:', item);
+      return null;
+    }
 
     const threadId = `${item.item_id}-${otherUser.id}`;
     const unreadCount = getUnreadMessagesCount(threadId);
 
+    const handlePress = () => {
+      console.log('[ChatListScreen] Navigating to chat:', {
+        itemId: item.item_id,
+        otherUserId: otherUser.id,
+        otherUserName: otherUser.full_name,
+      });
+
+      navigation.navigate('Chat', {
+        itemId: item.item_id,
+        otherUserId: otherUser.id,
+        otherUserName: otherUser.full_name,
+      });
+    };
+
     return (
       <TouchableOpacity
         style={styles.chatItem}
-        onPress={() => navigation.navigate('Chat', {
-          itemId: item.item_id,
-          otherUserId: otherUser.id,
-          otherUserName: otherUser.full_name,
-        })}
+        onPress={handlePress}
       >
         <View style={styles.avatarContainer}>
           {otherUser.profile_pic ? (

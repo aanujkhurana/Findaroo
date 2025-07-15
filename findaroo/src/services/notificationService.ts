@@ -105,6 +105,8 @@ class NotificationService {
     data?: NotificationData
   ): Promise<boolean> {
     try {
+      console.log(`[NotificationService] Attempting to send push notification to user: ${recipientUserId}`);
+
       // Get recipient's push token
       const { data: recipient, error } = await supabase
         .from('users')
@@ -112,10 +114,17 @@ class NotificationService {
         .eq('id', recipientUserId)
         .single();
 
-      if (error || !recipient?.push_token) {
-        console.log('No push token found for recipient:', recipientUserId);
+      if (error) {
+        console.error('[NotificationService] Error fetching recipient:', error);
         return false;
       }
+
+      if (!recipient?.push_token) {
+        console.log(`[NotificationService] No push token found for recipient: ${recipientUserId}`);
+        return false;
+      }
+
+      console.log(`[NotificationService] Found push token for ${recipient.full_name}`);
 
       // Send notification via Expo's push service
       const message = {
@@ -125,7 +134,11 @@ class NotificationService {
         body,
         data: data || {},
         channelId: data?.type === 'message' ? 'messages' : 'updates',
+        priority: 'high',
+        badge: 1,
       };
+
+      console.log('[NotificationService] Sending push notification:', { title, body, to: recipient.push_token });
 
       const response = await fetch('https://exp.host/--/api/v2/push/send', {
         method: 'POST',
@@ -138,16 +151,17 @@ class NotificationService {
       });
 
       const result = await response.json();
-      
+      console.log('[NotificationService] Push notification response:', result);
+
       if (result.data?.status === 'error') {
-        console.error('Push notification error:', result.data.message);
+        console.error('[NotificationService] Push notification error:', result.data.message);
         return false;
       }
 
-      console.log('Push notification sent successfully');
+      console.log('[NotificationService] ✅ Push notification sent successfully');
       return true;
     } catch (error) {
-      console.error('Error sending push notification:', error);
+      console.error('[NotificationService] Error sending push notification:', error);
       return false;
     }
   }
