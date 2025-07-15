@@ -25,6 +25,7 @@ import { ProfileScreen } from '../screens/ProfileScreen';
 import { CreateLostItemScreen } from '../screens/CreateLostItemScreen';
 import { CreateFoundItemScreen } from '../screens/CreateFoundItemScreen';
 import SuccessScreen from '../screens/SuccessScreen';
+import { NotificationInitializer } from '../components/NotificationInitializer';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -413,6 +414,7 @@ export const AppNavigator: React.FC = () => {
 
   return (
     <NavigationContainer>
+      <NotificationInitializer />
       {!hasSeenOnboarding ? (
         <OnBoarding navigation={null} onComplete={handleOnboardingComplete} />
       ) : shouldShowMainApp ? (

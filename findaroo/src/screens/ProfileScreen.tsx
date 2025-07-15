@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, StyleSheet, Alert, Modal, TextInput, Image, ActionSheetIOS, Platform } from 'react-native';
 import { MaterialIcons, Feather } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../hooks/useAuth';
 import { uploadImage, getSignedImageUrl, deleteImage } from '../utils/uploadImage';
 
 export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
   const { signOut, user, updateProfile, fetchReceivedTips } = useAuth();
+  const insets = useSafeAreaInsets();
   const [pushNotifications, setPushNotifications] = useState(true);
   const [emailUpdates, setEmailUpdates] = useState(false);
   const [autoAccept, setAutoAccept] = useState(true);
@@ -394,7 +396,18 @@ export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) =>
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.scrollContent}>
+      <ScrollView
+        style={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContentContainer,
+          {
+            paddingBottom: Platform.OS === 'ios'
+              ? 85 + Math.max(insets.bottom, 20) + 20 // Tab bar height + extra padding
+              : 75 + Math.max(insets.bottom, 12) + 20 // Tab bar height + extra padding
+          }
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Profile Card */}
         <View style={styles.card}>
           <View style={styles.profileHeader}>
@@ -761,9 +774,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   scrollContent: {
+    flex: 1,
+  },
+  scrollContentContainer: {
     padding: 20,
     paddingTop: 8,
-    paddingBottom: 100,
   },
   card: {
     backgroundColor: '#FFFFFF',
@@ -993,7 +1008,7 @@ const styles = StyleSheet.create({
   signOutContainer: {
     paddingHorizontal: 0,
     paddingTop: 24,
-    paddingBottom: 0,
+    paddingBottom: 24,
     backgroundColor: 'transparent',
   },
   signOutButton: {

@@ -298,6 +298,25 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
       const currentUser = await supabase.auth.getUser();
       if (!currentUser.data.user) throw new Error('No authenticated user');
 
+      // Create optimistic message for instant UI update
+      const optimisticMessage: Message = {
+        id: `temp-${Date.now()}`, // Temporary ID
+        message: content.trim(),
+        sender_id: currentUser.data.user.id,
+        receiver_id: receiverId,
+        item_id: itemId,
+        sent_at: new Date().toISOString(),
+        sender: {
+          id: currentUser.data.user.id,
+          full_name: currentUser.data.user.user_metadata?.full_name || 'You',
+          email: currentUser.data.user.email || '',
+          created_at: '',
+        },
+      };
+
+      // Add optimistic message immediately
+      setMessages(prev => [...prev, optimisticMessage]);
+
       const { data, error } = await supabase
         .from('messages')
         .insert([
@@ -317,9 +336,18 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
 
       if (error) throw error;
 
+      // Replace optimistic message with real message
+      setMessages(prev => prev.map(msg =>
+        msg.id === optimisticMessage.id ? data : msg
+      ));
+
       return data;
     } catch (error: any) {
       console.error('Error sending message:', error);
+
+      // Remove optimistic message on error
+      setMessages(prev => prev.filter(msg => !msg.id.startsWith('temp-')));
+
       setError(error.message);
       return null;
     }

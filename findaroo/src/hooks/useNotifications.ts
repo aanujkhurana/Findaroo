@@ -73,17 +73,21 @@ export const useNotifications = () => {
 
   const handleNotificationResponse = (response: Notifications.NotificationResponse) => {
     const data = response.notification.request.content.data as NotificationData;
-    
-    if (data.type === 'message' && data.itemId && data.senderId) {
-      // Navigate to the specific chat
-      navigation.navigate('Chat', {
-        itemId: data.itemId,
-        otherUserId: data.senderId,
-        otherUserName: data.senderName || 'User',
-      });
-      
-      // Clear the notification badge
-      notificationService.clearBadge();
+
+    if (data.type === 'message' && data.itemId && data.senderId && navigation) {
+      try {
+        // Navigate to the specific chat
+        navigation.navigate('Chat', {
+          itemId: data.itemId,
+          otherUserId: data.senderId,
+          otherUserName: data.senderName || 'User',
+        });
+
+        // Clear the notification badge
+        notificationService.clearBadge();
+      } catch (error) {
+        console.error('Error navigating from notification:', error);
+      }
     }
   };
 
