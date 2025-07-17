@@ -6,10 +6,7 @@ interface LoadingProps {
   size?: 'small' | 'large';
 }
 
-export const Loading: React.FC<LoadingProps> = ({ 
-  message = 'Loading...', 
-  size = 'large' 
-}) => {
+export const Loading = ({ message = 'Loading...', size = 'large' }: LoadingProps) => {
   return (
     <View style={styles.container}>
       <ActivityIndicator size={size} color="#4F46E5" />
@@ -23,11 +20,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#fff',
   },
   message: {
-    marginTop: 16,
-    color: '#6b7280',
-    textAlign: 'center',
+    marginTop: 10,
+    color: '#4F46E5',
+    fontSize: 16,
   },
 });
