@@ -9,7 +9,7 @@ interface ButtonProps extends TouchableOpacityProps {
   disabled?: boolean;
 }
 
-export const Button: React.FC<ButtonProps> = ({
+export const Button = ({
   title,
   variant = 'primary',
   size = 'md',
@@ -17,7 +17,7 @@ export const Button: React.FC<ButtonProps> = ({
   disabled = false,
   style,
   ...props
-}) => {
+}: ButtonProps) => {
   const getButtonStyle = () => {
     const baseStyle = [styles.button];
     

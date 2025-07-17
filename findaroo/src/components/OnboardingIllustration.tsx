@@ -8,11 +8,7 @@ interface OnboardingIllustrationProps {
   height?: number;
 }
 
-export const OnboardingIllustration: React.FC<OnboardingIllustrationProps> = ({ 
-  type, 
-  width = 300, 
-  height = 300 
-}) => {
+export const OnboardingIllustration = ({ type, width = 300, height = 300 }: OnboardingIllustrationProps) => {
   const getIllustration = () => {
     switch (type) {
       case 'welcome':
