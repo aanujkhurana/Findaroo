@@ -54,17 +54,19 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
     });
   }, [navigation, otherUserName]);
 
-  useEffect(() => {
-    // Scroll to bottom when new messages arrive
-    if (messages.length > 0) {
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
-    }
-  }, [messages]);
+  const scrollToBottom = React.useCallback(() => {
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    }, 100);
+  }, []);
 
   useEffect(() => {
-    // Test database connection when screen loads
+    if (messages.length > 0) {
+      scrollToBottom();
+    }
+  }, [messages, scrollToBottom]);
+
+  useEffect(() => {
     const runTests = async () => {
       await testDatabaseConnection();
       await testRealTimeConnection();
@@ -73,15 +75,11 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
   }, []);
 
   useEffect(() => {
-    // Mark messages as read when screen is focused
-    const unsubscribe = navigation.addListener('focus', () => {
-      markAllAsRead();
-    });
-
+    const unsubscribe = navigation.addListener('focus', markAllAsRead);
     return unsubscribe;
   }, [navigation, markAllAsRead]);
 
-  const handleSendMessage = async () => {
+  const handleSendMessage = React.useCallback(async () => {
     if (!messageText.trim() || sending) return;
 
     console.log('[ChatScreen] Sending message:', messageText);
@@ -100,36 +98,16 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
     } finally {
       setSending(false);
     }
-  };
+  }, [messageText, sending, sendMessage, otherUserId]);
 
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    if (date.toDateString() === today.toDateString()) {
-      return 'Today';
-    } else if (date.toDateString() === yesterday.toDateString()) {
-      return 'Yesterday';
-    } else {
-      return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
-    }
-  };
-
-  const renderMessage = ({ item, index }: { item: Message; index: number }) => {
+  const renderMessage = React.useCallback(({ item, index }: { item: Message; index: number }) => {
     const isMyMessage = item.sender_id === session?.user?.id;
     const previousMessage = index > 0 ? messages[index - 1] : null;
     const showDateSeparator = !previousMessage ||
       new Date(item.sent_at).toDateString() !== new Date(previousMessage.sent_at).toDateString();
 
     return (
-      <View>
+      <>
         {showDateSeparator && (
           <View style={styles.dateSeparator}>
             <Text style={styles.dateText}>{formatDate(item.sent_at)}</Text>
@@ -147,7 +125,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
               styles.messageText,
               isMyMessage ? styles.myMessageText : styles.otherMessageText
             ]}>
-              {item.message}
+              {item.content}
             </Text>
             <View style={styles.messageFooter}>
               <Text style={[
@@ -168,9 +146,29 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
             </View>
           </View>
         </View>
-      </View>
+      </>
     );
-  };
+  }, [session?.user?.id, messages, formatDate, formatTime, isMessageRead]);
+
+  const formatTime = React.useCallback((dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }, []);
+
+  const formatDate = React.useCallback((dateString: string) => {
+    const date = new Date(dateString);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    if (date.toDateString() === today.toDateString()) {
+      return 'Today';
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      return 'Yesterday';
+    } else {
+      return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    }
+  }, []);
 
   if (loading) {
     return <Loading message="Loading messages..." />;
@@ -203,10 +201,24 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
           ref={flatListRef}
           data={messages}
           renderItem={renderMessage}
-          keyExtractor={(item) => item.id}
+          keyExtractor={item => `message-${item.id}`}
           style={styles.messagesList}
           contentContainerStyle={styles.messagesContainer}
           showsVerticalScrollIndicator={false}
+          removeClippedSubviews={Platform.OS === 'android'}
+          maxToRenderPerBatch={10}
+          updateCellsBatchingPeriod={50}
+          initialNumToRender={10}
+          windowSize={5}
+          getItemLayout={(data, index) => ({
+            length: 80,
+            offset: 80 * index,
+            index,
+          })}
+          maintainVisibleContentPosition={{
+            minIndexForVisible: 0,
+            autoscrollToTopThreshold: 10,
+          }}
         />
 
         <View style={styles.inputContainer}>
