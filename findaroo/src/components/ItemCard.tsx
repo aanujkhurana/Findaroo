@@ -26,9 +26,11 @@ interface ItemCardProps {
   onPress: () => void;
   userLocation?: LocationCoords | null;
   showDistance?: boolean;
+  cardStyle?: any;
+  imageStyle?: any;
 }
 
-export const ItemCard: React.FC<ItemCardProps> = ({ item, onPress, userLocation, showDistance = true }) => {
+export const ItemCard: React.FC<ItemCardProps> = ({ item, onPress, userLocation, showDistance = true, cardStyle, imageStyle }) => {
   const getStatusStyle = (status: string) => {
     switch (status) {
       case 'lost':
@@ -138,81 +140,54 @@ export const ItemCard: React.FC<ItemCardProps> = ({ item, onPress, userLocation,
   console.log('[ItemCard] Is location object:', isLocationObject(item.location));
 
   return (
-    <TouchableOpacity onPress={onPress} style={styles.itemCard}>
-      {/* Icon/Image Section */}
-      <View style={styles.itemIcon}>
-        {itemImageUrl ? (
-          <Image
-            source={{ uri: itemImageUrl }}
-            style={styles.iconImage}
-            resizeMode="cover"
-          />
-        ) : (
-          <View style={styles.categoryIconContainer}>
-            {getCategoryIcon(item.category)}
-          </View>
-        )}
-      </View>
-
+    <TouchableOpacity onPress={onPress} style={[styles.fbCard, cardStyle]}>
+      {/* Large Image on Top */}
+      {itemImageUrl ? (
+        <Image
+          source={{ uri: itemImageUrl }}
+          style={[styles.fbImage, imageStyle]}
+          resizeMode="cover"
+        />
+      ) : (
+        <View style={[styles.fbImage, styles.fbImageFallback]}>
+          {getCategoryIcon(item.category, COLORS.primary)}
+        </View>
+      )}
       {/* Content Section */}
-      <View style={styles.itemContent}>
-        {/* Header Row */}
-        <View style={styles.itemHeaderRow}>
-          <Text style={styles.itemTitle} numberOfLines={1}>{item.title}</Text>
-          <View style={[styles.statusBadge, { backgroundColor: statusStyle.backgroundColor }]}>
-            <Text style={[styles.statusBadgeText, { color: statusStyle.color }]}>
+      <View style={styles.fbContent}>
+        <View style={styles.fbHeaderRow}>
+          <Text style={styles.fbTitle} numberOfLines={2}>{item.title}</Text>
+          <View style={[styles.fbStatusBadge, { backgroundColor: statusStyle.backgroundColor }]}> 
+            <Text style={[styles.fbStatusBadgeText, { color: statusStyle.color }]}> 
               {item.status}
             </Text>
           </View>
         </View>
-
-        {/* Meta Row */}
-        <Text style={styles.itemMeta}>
-          {item.category} • {formatDate(item.created_at)}
-        </Text>
-
-        {/* Description */}
-        <Text style={styles.itemDesc} numberOfLines={2}>
-          {item.description}
-        </Text>
-
-        {/* Reward Row */}
-        {item.reward_amount && item.reward_amount > 0 && (
-          <View style={styles.rewardRow}>
-            <Feather name="dollar-sign" size={14} color={COLORS.matchedText} />
-            <Text style={styles.rewardText}>
-              Reward: ${item.reward_amount}
-            </Text>
-          </View>
-        )}
-
-        {/* Footer Row */}
-        <View style={styles.itemFooterRow}>
-          <View style={styles.itemFooterLeft}>
-            {isLocationObject(item.location) ? (
-              <View style={styles.locationRow}>
-                <Feather name="map-pin" size={12} color={COLORS.muted} />
-                <Text style={styles.itemFooterText} numberOfLines={1}>
-                  {item.location.address || 'Location available'}
-                </Text>
-              </View>
-            ) : item.location_name ? (
-              <View style={styles.locationRow}>
-                <Feather name="map-pin" size={12} color={COLORS.muted} />
-                <Text style={styles.itemFooterText} numberOfLines={1}>
-                  {item.location_name}
-                </Text>
-              </View>
-            ) : null}
-            {distanceText && (
-              <Text style={[styles.itemFooterText, { color: COLORS.primary, fontWeight: '600', marginLeft: 8 }]}>
-                • {distanceText}
+        <Text style={styles.fbMeta}>{item.category} • {formatDate(item.created_at)}</Text>
+        <Text style={styles.fbDesc} numberOfLines={3}>{item.description}</Text>
+        <View style={styles.fbFooterRow}>
+          {isLocationObject(item.location) || item.location_name ? (
+            <View style={styles.fbFooterItem}>
+              <Feather name="map-pin" size={14} color={COLORS.muted} />
+              <Text style={styles.fbFooterText} numberOfLines={1}>
+                {isLocationObject(item.location)
+                  ? (item.location.address || 'Location available')
+                  : item.location_name}
               </Text>
-            )}
-          </View>
-          <Text style={styles.itemFooterText}>
-            {formatDate(item.created_at)}
-          </Text>
+            </View>
+          ) : null}
+          {item.reward_amount && item.reward_amount > 0 && (
+            <View style={styles.fbFooterItem}>
+              <Feather name="gift" size={14} color={COLORS.matchedText} />
+              <Text style={styles.fbFooterText}>${item.reward_amount}</Text>
+            </View>
+          )}
+          {distanceText && (
+            <View style={styles.fbFooterItem}>
+              <Feather name="navigation" size={14} color={COLORS.primary} />
+              <Text style={[styles.fbFooterText, { color: COLORS.primary }]}>{distanceText}</Text>
+            </View>
+          )}
         </View>
       </View>
     </TouchableOpacity>
@@ -320,5 +295,94 @@ const styles = StyleSheet.create({
     color: COLORS.muted,
     fontSize: 12,
     marginLeft: 4,
+  },
+  fbCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+    marginBottom: 18,
+    overflow: 'hidden',
+    padding: 0,
+    flexDirection: 'column',
+    minHeight: 260,
+  },
+  fbImage: {
+    width: '100%',
+    height: 150,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    backgroundColor: '#f3f4f6',
+  },
+  fbImageFallback: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fbContent: {
+    padding: 14,
+    flex: 1,
+  },
+  fbHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  fbTitle: {
+    fontFamily: 'Manrope-SemiBold',
+    fontWeight: '700',
+    fontSize: 17,
+    color: COLORS.text,
+    flex: 1,
+    marginRight: 8,
+    lineHeight: 22,
+  },
+  fbStatusBadge: {
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    alignSelf: 'flex-start',
+    marginLeft: 4,
+  },
+  fbStatusBadgeText: {
+    fontFamily: 'Inter',
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'capitalize',
+  },
+  fbMeta: {
+    fontFamily: 'Inter',
+    color: COLORS.muted,
+    fontSize: 12,
+    marginBottom: 6,
+  },
+  fbDesc: {
+    fontFamily: 'Inter',
+    color: COLORS.text,
+    fontSize: 14,
+    lineHeight: 19,
+    marginBottom: 10,
+  },
+  fbFooterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flexWrap: 'wrap',
+  },
+  fbFooterItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 14,
+    marginBottom: 2,
+  },
+  fbFooterText: {
+    fontFamily: 'RobotoMono-Regular',
+    fontSize: 12,
+    color: COLORS.muted,
+    marginLeft: 4,
+    fontWeight: '500',
+    maxWidth: 90,
   },
 });

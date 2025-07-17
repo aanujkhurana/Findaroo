@@ -464,14 +464,20 @@ export const HomeFeedScreen = ({ navigation }: any) => {
         data={filteredItems}
         keyExtractor={item => item.id}
         renderItem={({ item }) => (
-          <ItemCard
-            item={item}
-            onPress={() => navigation.navigate('ItemDetails', { itemId: item.id })}
-            userLocation={userLocation}
-            showDistance={true}
-          />
+          <View style={styles.gridItemWrapper}>
+            <ItemCard
+              item={item}
+              onPress={() => navigation.navigate('ItemDetails', { itemId: item.id })}
+              userLocation={userLocation}
+              showDistance={true}
+              cardStyle={styles.gridCard}
+              imageStyle={styles.gridImage}
+            />
+          </View>
         )}
-        contentContainerStyle={{ paddingBottom: 80, paddingTop: 8 }}
+        numColumns={2}
+        columnWrapperStyle={styles.gridRow}
+        contentContainerStyle={{ paddingBottom: 80, paddingTop: 8, paddingHorizontal: 8 }}
         refreshing={refreshing}
         onRefresh={onRefresh}
         ListEmptyComponent={
@@ -836,5 +842,36 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.muted,
     marginLeft: 8,
+  },
+  gridRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    gap: 0,
+  },
+  gridItemWrapper: {
+    flex: 1,
+    marginHorizontal: 6,
+  },
+  gridCard: {
+    borderRadius: 24,
+    backgroundColor: COLORS.card,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+    marginBottom: 0,
+    padding: 0,
+    minHeight: 220,
+    minWidth: 0,
+    overflow: 'hidden',
+  },
+  gridImage: {
+    width: '100%',
+    height: 120,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    resizeMode: 'cover',
+    backgroundColor: COLORS.neutral,
   },
 });
