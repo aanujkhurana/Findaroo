@@ -53,21 +53,10 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
       if (itemId && otherUserId && isMounted) {
         console.log(`[useChat] Setting up chat for item: ${itemId}, other user: ${otherUserId}`);
         await fetchMessages();
-
-        // Wait a bit longer to ensure everything is ready
-        setTimeout(() => {
-          if (isMounted) {
-            subscribeToMessages();
-            subscribeToReadReceipts();
-          }
-        }, 500);
+        subscribeToMessages();
       } else if (isMounted) {
         await fetchThreads();
-        setTimeout(() => {
-          if (isMounted) {
-            subscribeToAllMessages();
-          }
-        }, 500);
+        subscribeToAllMessages();
       }
     };
 
@@ -88,7 +77,7 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
     };
   }, [itemId, otherUserId]);
 
-  const fetchMessages = async () => {
+  const fetchMessages = React.useCallback(async () => {
     if (!itemId || !otherUserId) {
       console.log('[useChat] Missing itemId or otherUserId:', { itemId, otherUserId });
       return;
@@ -123,7 +112,7 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
 
       setMessages(data || []);
 
-      // Count unread messages (now that read_at column exists)
+      // Count unread messages
       const unread = data?.filter(msg =>
         msg.receiver_id === currentUser.data.user.id && !msg.read_at
       ).length || 0;
@@ -136,9 +125,33 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [itemId, otherUserId]);
 
-  const fetchThreads = async () => {
+  const markAllAsRead = React.useCallback(async () => {
+    if (!itemId || !currentUserIdRef.current) return;
+
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .update({ read_at: new Date().toISOString() })
+        .eq('item_id', itemId)
+        .eq('receiver_id', currentUserIdRef.current)
+        .is('read_at', null);
+
+      if (error) throw error;
+
+      setMessages(prev => prev.map(msg =>
+        msg.receiver_id === currentUserIdRef.current && !msg.read_at
+          ? { ...msg, read_at: new Date().toISOString() }
+          : msg
+      ));
+      setUnreadCount(0);
+    } catch (err) {
+      console.error('[useChat] Error marking messages as read:', err);
+    }
+  }, [itemId]);
+
+  const fetchThreads = React.useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -159,7 +172,6 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
 
       if (error) throw error;
 
-      // Group messages by item and participants
       const threadMap = new Map<string, ChatThread>();
       
       data?.forEach(message => {
@@ -194,80 +206,143 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
       setThreads(Array.from(threadMap.values()));
     } catch (err: any) {
       setError(err.message);
-      console.error('Error fetching threads:', err);
+      console.error('[useChat] Error fetching threads:', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const subscribeToMessages = () => {
+  useEffect(() => {
+    let isMounted = true;
+
+    const initializeChat = async () => {
+      const currentUser = await supabase.auth.getUser();
+      if (currentUser.data.user && isMounted) {
+        currentUserIdRef.current = currentUser.data.user.id;
+        console.log(`[useChat] Initialized with user: ${currentUser.data.user.id}`);
+      }
+
+      if (itemId && otherUserId && isMounted) {
+        console.log(`[useChat] Setting up chat for item: ${itemId}, other user: ${otherUserId}`);
+        await fetchMessages();
+        subscribeToMessages();
+      } else if (isMounted) {
+        await fetchThreads();
+        subscribeToAllMessages();
+      }
+    };
+
+    initializeChat();
+
+    return () => {
+      isMounted = false;
+      if (subscriptionRef.current) {
+        console.log('[useChat] Cleaning up subscriptions');
+        try {
+          subscriptionRef.current.unsubscribe();
+        } catch (error) {
+          console.log('[useChat] Error unsubscribing:', error);
+        }
+        subscriptionRef.current = null;
+      }
+    };
+  }, [itemId, otherUserId, fetchMessages, fetchThreads]);
+
+  const subscribeToMessages = React.useCallback(() => {
     if (!itemId || !otherUserId || !currentUserIdRef.current) {
       console.log('[useChat] Missing required IDs for subscription');
       return;
     }
 
-    console.log(`[useChat] Setting up realtime subscription for item: ${itemId}`);
+    if (subscriptionRef.current) {
+      console.log('[useChat] Cleaning up existing subscription');
+      subscriptionRef.current.unsubscribe();
+      subscriptionRef.current = null;
+    }
 
-    const channel = supabase
+    console.log(`[useChat] Setting up message subscription for item: ${itemId}`);
+
+    subscriptionRef.current = supabase
       .channel(`messages:${itemId}`)
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'messages',
           filter: `item_id=eq.${itemId}`,
         },
         async (payload) => {
-          console.log('[useChat] New message received:', payload);
-          const newMessage = payload.new as Message;
+          console.log('[useChat] Received message update:', payload);
 
-          // Play sound for incoming messages only
-          if (newMessage.receiver_id === currentUserIdRef.current) {
-            await playMessageSound();
-          }
+          if (payload.eventType === 'INSERT') {
+            const newMessage = payload.new;
+            const isRelevantMessage =
+              (newMessage.sender_id === otherUserId && newMessage.receiver_id === currentUserIdRef.current) ||
+              (newMessage.sender_id === currentUserIdRef.current && newMessage.receiver_id === otherUserId);
 
-          // Fetch the complete message with user details
-          const { data: messageWithDetails } = await supabase
-            .from('messages')
-            .select(`
-              *,
-              sender:users!sender_id(id, full_name, profile_pic),
-              receiver:users!receiver_id(id, full_name, profile_pic)
-            `)
-            .eq('id', newMessage.id)
-            .single();
-
-          if (messageWithDetails) {
-            setMessages((prev) => [...prev, messageWithDetails]);
-            
-            // Send push notification for incoming messages
-            if (messageWithDetails.receiver_id === currentUserIdRef.current && AppState.currentState !== 'active') {
-              notificationService.sendMessageNotification(
-                messageWithDetails.receiver_id,
-                messageWithDetails.sender.full_name,
-                messageWithDetails.message,
-                'Item', // You might want to pass the actual item title here
-                {
-                  type: 'message',
-                  itemId: messageWithDetails.item_id,
-                  senderId: messageWithDetails.sender_id,
-                  messagePreview: messageWithDetails.message
-                }
-              );
+            if (!isRelevantMessage) {
+              console.log('[useChat] Ignoring irrelevant message');
+              return;
             }
+
+            // Fetch complete message details including sender and receiver info
+            const { data: messageData, error } = await supabase
+              .from('messages')
+              .select(`
+                *,
+                sender:users!sender_id(id, full_name, profile_pic),
+                receiver:users!receiver_id(id, full_name, profile_pic)
+              `)
+              .eq('id', newMessage.id)
+              .single();
+
+            if (error) {
+              console.error('[useChat] Error fetching message details:', error);
+              return;
+            }
+
+            // Check if message already exists to prevent duplicates
+            setMessages(prev => {
+              if (prev.some(msg => msg.id === messageData.id)) {
+                console.log('[useChat] Message already exists, skipping');
+                return prev;
+              }
+
+              // Play sound and send notification for incoming messages
+              if (messageData.receiver_id === currentUserIdRef.current) {
+                Notifications.presentNotificationAsync({
+                  title: messageData.sender.full_name,
+                  body: messageData.content,
+                  sound: 'default',
+                });
+              }
+
+              return [...prev, messageData];
+            });
+
+            // Update unread count for incoming messages
+            if (messageData.receiver_id === currentUserIdRef.current) {
+              setUnreadCount(prev => prev + 1);
+            }
+          } else if (payload.eventType === 'UPDATE') {
+            setMessages(prev =>
+              prev.map(msg =>
+                msg.id === payload.new.id ? { ...msg, ...payload.new } : msg
+              )
+            );
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log(`[useChat] Subscription status: ${status}`);
+      });
+  }, [itemId, otherUserId]);
 
-    subscriptionRef.current = channel;
-  };
-
-  const subscribeToReadReceipts = () => {
+  const subscribeToReadReceipts = React.useCallback(() => {
     if (!itemId || !currentUserIdRef.current) return;
 
-    supabase
+    const channel = supabase
       .channel(`read_receipts:${itemId}`)
       .on(
         'postgres_changes',
@@ -278,124 +353,129 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
           filter: `item_id=eq.${itemId}`,
         },
         (payload) => {
-          // Update message read status in real-time
-          if (payload.new.read_at && !payload.old.read_at) {
-            setMessages(prev => prev.map(msg =>
-              msg.id === payload.new.id
-                ? { ...msg, read_at: payload.new.read_at }
-                : msg
-            ));
+          console.log('[useChat] Read receipt update:', payload);
+          const updatedMessage = payload.new;
 
-            // Update unread count if it's our message that was read
-            if (payload.new.receiver_id === currentUserIdRef.current) {
-              setUnreadCount(prev => Math.max(0, prev - 1));
-            }
+          if (updatedMessage.read_at) {
+            setMessages(prev =>
+              prev.map(msg =>
+                msg.id === updatedMessage.id ? { ...msg, read_at: updatedMessage.read_at } : msg
+              )
+            );
           }
         }
       )
       .subscribe();
-  };
 
-  const subscribeToAllMessages = () => {
+    return () => {
+      channel.unsubscribe();
+    };
+  }, [itemId]);
+
+  const subscribeToAllMessages = React.useCallback(() => {
     if (!currentUserIdRef.current) return;
+
+    if (subscriptionRef.current) {
+      subscriptionRef.current.unsubscribe();
+      subscriptionRef.current = null;
+    }
+
+    console.log('[useChat] Setting up subscription for all messages');
 
     subscriptionRef.current = supabase
       .channel('all_messages')
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'messages',
-          filter: `receiver_id=eq.${currentUserIdRef.current}`,
+          filter: `or(sender_id.eq.${currentUserIdRef.current},receiver_id.eq.${currentUserIdRef.current})`,
         },
         async (payload) => {
-          // Refresh threads when new message arrives
-          await fetchThreads();
+          console.log('[useChat] Message update received:', payload);
 
-          // Send notification if app is in background
-          if (AppState.currentState !== 'active') {
-            const { data: messageData } = await supabase
+          if (payload.eventType === 'INSERT') {
+            const { data: messageData, error } = await supabase
               .from('messages')
               .select(`
                 *,
                 sender:users!sender_id(id, full_name, profile_pic),
-                item:items(id, title)
+                receiver:users!receiver_id(id, full_name, profile_pic),
+                item:items(id, title, status, image)
               `)
               .eq('id', payload.new.id)
               .single();
 
-            if (messageData?.sender && messageData?.item) {
-              await notificationService.sendMessageNotification(
-                payload.new.receiver_id,
-                messageData.sender.full_name,
-                payload.new.message,
-                messageData.item.title,
-                {
-                  type: 'message',
-                  itemId: payload.new.item_id,
-                  senderId: payload.new.sender_id,
-                  senderName: messageData.sender.full_name,
-                  messagePreview: payload.new.message,
-                  chatId: `${payload.new.item_id}-${payload.new.sender_id}`,
-                }
-              );
+            if (error) {
+              console.error('[useChat] Error fetching message details:', error);
+              return;
+            }
+
+            // Update threads with new message
+            setThreads(prev => {
+              const threadKey = `${messageData.item_id}-${messageData.sender_id === currentUserIdRef.current ? messageData.receiver_id : messageData.sender_id}`;
+              const existingThread = prev.find(t => t.id === threadKey);
+
+              if (existingThread) {
+                return prev.map(thread =>
+                  thread.id === threadKey
+                    ? { ...thread, last_message: messageData, updated_at: messageData.sent_at }
+                    : thread
+                );
+              }
+
+              // Create new thread if it doesn't exist
+              const newThread: ChatThread = {
+                id: threadKey,
+                item_id: messageData.item_id,
+                participant_1_id: currentUserIdRef.current!,
+                participant_2_id: messageData.sender_id === currentUserIdRef.current ? messageData.receiver_id : messageData.sender_id,
+                last_message: messageData,
+                created_at: messageData.sent_at,
+                updated_at: messageData.sent_at,
+                item: messageData.item,
+                participant_1: messageData.sender_id === currentUserIdRef.current ? messageData.sender : messageData.receiver,
+                participant_2: messageData.sender_id === currentUserIdRef.current ? messageData.receiver : messageData.sender,
+              };
+
+              return [...prev, newThread];
+            });
+
+            // Play sound and show notification for incoming messages
+            if (messageData.receiver_id === currentUserIdRef.current) {
+              Notifications.presentNotificationAsync({
+                title: messageData.sender.full_name,
+                body: messageData.content,
+                sound: 'default',
+              });
             }
           }
         }
       )
-      .subscribe();
-  };
+      .subscribe((status) => {
+        console.log(`[useChat] All messages subscription status: ${status}`);
+      });
+  }, []);
 
-  const sendMessage = async (content: string, receiverId: string): Promise<Message | null> => {
-    if (!itemId || !content.trim()) return null;
-
-    console.log(`[useChat] Sending message: "${content}" to user: ${receiverId}`);
+  const sendMessage = React.useCallback(async (content: string, receiverId: string): Promise<Message | null> => {
+    if (!itemId || !currentUserIdRef.current) {
+      console.error('[useChat] Cannot send message: Missing itemId or user');
+      return null;
+    }
 
     try {
-      const currentUser = await supabase.auth.getUser();
-      if (!currentUser.data.user) throw new Error('No authenticated user');
-
-      // Get current user's profile for optimistic message
-      const { data: userProfile } = await supabase
-        .from('users')
-        .select('full_name, profile_pic')
-        .eq('id', currentUser.data.user.id)
-        .single();
-
-      // Create optimistic message for instant UI update
-      const optimisticMessage: Message = {
-        id: `temp-${Date.now()}-${Math.random()}`, // Unique temporary ID
-        message: content.trim(),
-        sender_id: currentUser.data.user.id,
-        receiver_id: receiverId,
+      const messageData = {
         item_id: itemId,
+        sender_id: currentUserIdRef.current,
+        receiver_id: receiverId,
+        content,
         sent_at: new Date().toISOString(),
-        sender: {
-          id: currentUser.data.user.id,
-          full_name: userProfile?.full_name || 'You',
-          profile_pic: userProfile?.profile_pic || null,
-          email: currentUser.data.user.email || '',
-          created_at: '',
-        },
       };
 
-      console.log('[useChat] Adding optimistic message:', optimisticMessage);
-
-      // Add optimistic message immediately
-      setMessages(prev => [...prev, optimisticMessage]);
-
-      // Send the actual message to database
       const { data, error } = await supabase
         .from('messages')
-        .insert([
-          {
-            message: content.trim(),
-            sender_id: currentUser.data.user.id,
-            receiver_id: receiverId,
-            item_id: itemId,
-          },
-        ])
+        .insert(messageData)
         .select(`
           *,
           sender:users!sender_id(id, full_name, profile_pic),
@@ -405,95 +485,17 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
 
       if (error) throw error;
 
+      // Optimistically update the messages list
+      setMessages(prev => [...prev, data]);
+
       console.log('[useChat] Message sent successfully:', data);
-
-      // The real-time subscription will handle replacing the optimistic message
-      // But we'll also do it here as a fallback
-      setTimeout(() => {
-        setMessages(prev => prev.map(msg =>
-          msg.id === optimisticMessage.id ? data : msg
-        ));
-      }, 100);
-
       return data;
-    } catch (error: any) {
-      console.error('[useChat] Error sending message:', error);
-
-      // Remove optimistic message on error
-      setMessages(prev => prev.filter(msg => !msg.id.startsWith('temp-')));
-
-      setError(error.message);
+    } catch (err) {
+      console.error('[useChat] Error sending message:', err);
+      setError(err instanceof Error ? err.message : 'Failed to send message');
       return null;
     }
-  };
-
-  const markAsRead = async (messageIds: string[]) => {
-    try {
-      const currentUser = await supabase.auth.getUser();
-      if (!currentUser.data.user) return;
-
-      const { error } = await supabase
-        .from('messages')
-        .update({ read_at: new Date().toISOString() })
-        .in('id', messageIds)
-        .eq('receiver_id', currentUser.data.user.id)
-        .is('read_at', null);
-
-      if (error) throw error;
-
-      // Update local state
-      setMessages(prev => prev.map(msg =>
-        messageIds.includes(msg.id) && msg.receiver_id === currentUser.data.user!.id
-          ? { ...msg, read_at: new Date().toISOString() }
-          : msg
-      ));
-
-      // Update unread count
-      const unreadMessages = messageIds.filter(id => {
-        const msg = messages.find(m => m.id === id);
-        return msg && msg.receiver_id === currentUser.data.user!.id && !msg.read_at;
-      });
-      setUnreadCount(prev => Math.max(0, prev - unreadMessages.length));
-
-    } catch (error: any) {
-      console.error('Error marking messages as read:', error);
-    }
-  };
-
-  const markAllAsRead = async () => {
-    if (!itemId || !otherUserId) return;
-
-    try {
-      const currentUser = await supabase.auth.getUser();
-      if (!currentUser.data.user) return;
-
-      const unreadMessages = messages.filter(msg =>
-        msg.receiver_id === currentUser.data.user!.id && !msg.read_at
-      );
-
-      if (unreadMessages.length > 0) {
-        await markAsRead(unreadMessages.map(msg => msg.id));
-      }
-    } catch (error: any) {
-      console.error('Error marking all messages as read:', error);
-    }
-  };
-
-  const getUnreadMessagesCount = (threadId?: string): number => {
-    if (threadId) {
-      // Count unread messages for specific thread
-      return messages.filter(msg =>
-        msg.receiver_id === currentUserIdRef.current &&
-        !msg.read_at &&
-        `${msg.item_id}-${msg.sender_id}` === threadId
-      ).length;
-    }
-    return unreadCount;
-  };
-
-  const isMessageRead = (message: Message): boolean => {
-    return !!message.read_at;
-  };
+  }, [itemId]);
 
   return {
     messages,
@@ -502,11 +504,8 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
     error,
     unreadCount,
     sendMessage,
-    markAsRead,
     markAllAsRead,
-    getUnreadMessagesCount,
-    isMessageRead,
-    refetchMessages: fetchMessages,
-    refetchThreads: fetchThreads,
   };
 };
+
+export default useChat;
