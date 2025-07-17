@@ -446,17 +446,6 @@ export default function ActivityScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        {/* Header */}
-        <View style={styles.headerRow}>
-          <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Feather name="arrow-left" size={22} color={COLORS.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>My Activity</Text>
-          <TouchableOpacity onPress={handleRefresh} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Feather name="refresh-cw" size={22} color={COLORS.text} />
-          </TouchableOpacity>
-        </View>
-
         {/* Compact Stats Row */}
         <View style={styles.statsContainer}>
           {stats.map((stat, index) => (
@@ -520,176 +509,176 @@ export default function ActivityScreen() {
               )}
             </View>
           )}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.itemCard}
-            onPress={() => navigation.navigate('ItemDetails', { itemId: item.id })}
-            activeOpacity={0.7}
-          >
-            <View style={styles.itemIcon}>{item.icon}</View>
-            <View style={styles.itemContent}>
-              <View style={styles.itemHeaderRow}>
-                <View style={styles.itemTitleContainer}>
-                  <Text style={styles.itemTitle} numberOfLines={1}>{item.title}</Text>
-                  <View style={styles.itemTypeContainer}>
-                    <View style={[
-                      styles.typeBadge,
-                      { backgroundColor: item.status === 'lost' ? '#FFF0F0' : '#F0FFF0' }
-                    ]}>
-                      <Feather
-                        name={item.status === 'lost' ? 'search' : 'check-circle'}
-                        size={10}
-                        color={item.status === 'lost' ? '#DC2626' : '#16A34A'}
-                      />
-                      <Text style={[
-                        styles.typeText,
-                        { color: item.status === 'lost' ? '#DC2626' : '#16A34A' }
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.itemCard}
+              onPress={() => navigation.navigate('ItemDetails', { itemId: item.id })}
+              activeOpacity={0.7}
+            >
+              <View style={styles.itemIcon}>{item.icon}</View>
+              <View style={styles.itemContent}>
+                <View style={styles.itemHeaderRow}>
+                  <View style={styles.itemTitleContainer}>
+                    <Text style={styles.itemTitle} numberOfLines={1}>{item.title}</Text>
+                    <View style={styles.itemTypeContainer}>
+                      <View style={[
+                        styles.typeBadge,
+                        { backgroundColor: item.status === 'lost' ? '#FFF0F0' : '#F0FFF0' }
                       ]}>
-                        {item.type}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-                <View style={[styles.statusBadge, { backgroundColor: item.statusColor }]}>
-                  <Text style={[styles.statusBadgeText, { color: item.statusTextColor }]}>
-                    {item.statusLabel}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.itemMetaRow}>
-                <View style={styles.itemMetaLeft}>
-                  <Feather name="clock" size={12} color={COLORS.muted} />
-                  <Text style={styles.itemMeta}>{item.date}</Text>
-                </View>
-              </View>
-
-              {item.location_name && (
-                <View style={styles.locationRow}>
-                  <Feather name="map-pin" size={12} color={COLORS.muted} />
-                  <Text style={styles.itemLocation} numberOfLines={1}>{item.location_name}</Text>
-                </View>
-              )}
-
-              <Text style={styles.itemDesc} numberOfLines={2}>{item.desc}</Text>
-
-              <View style={styles.itemFooterRow}>
-                {/* Left side - Status indicators and Tips/Reward */}
-                <View style={styles.itemFooterLeft}>
-                  {/* Status indicators */}
-                  <View style={styles.statusIndicators}>
-                    {item.messageCount > 0 && (
-                      <View style={styles.messageIndicator}>
-                        <Feather name="message-circle" size={12} color={COLORS.success} />
-                        <Text style={[styles.itemFooterText, { color: COLORS.success }]}>
-                          {item.messageCount}
+                        <Feather
+                          name={item.status === 'lost' ? 'search' : 'check-circle'}
+                          size={10}
+                          color={item.status === 'lost' ? '#DC2626' : '#16A34A'}
+                        />
+                        <Text style={[
+                          styles.typeText,
+                          { color: item.status === 'lost' ? '#DC2626' : '#16A34A' }
+                        ]}>
+                          {item.type}
                         </Text>
                       </View>
-                    )}
-                    {item.returned && (
-                      <View style={styles.returnedIndicator}>
-                        <Feather name="check" size={12} color={COLORS.primary} />
-                        <Text style={[styles.itemFooterText, { color: COLORS.primary }]}>Returned</Text>
+                    </View>
+                  </View>
+                  <View style={[styles.statusBadge, { backgroundColor: item.statusColor }]}>
+                    <Text style={[styles.statusBadgeText, { color: item.statusTextColor }]}>
+                      {item.statusLabel}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.itemMetaRow}>
+                  <View style={styles.itemMetaLeft}>
+                    <Feather name="clock" size={12} color={COLORS.muted} />
+                    <Text style={styles.itemMeta}>{item.date}</Text>
+                  </View>
+                </View>
+
+                {item.location_name && (
+                  <View style={styles.locationRow}>
+                    <Feather name="map-pin" size={12} color={COLORS.muted} />
+                    <Text style={styles.itemLocation} numberOfLines={1}>{item.location_name}</Text>
+                  </View>
+                )}
+
+                <Text style={styles.itemDesc} numberOfLines={2}>{item.desc}</Text>
+
+                <View style={styles.itemFooterRow}>
+                  {/* Left side - Status indicators and Tips/Reward */}
+                  <View style={styles.itemFooterLeft}>
+                    {/* Status indicators */}
+                    <View style={styles.statusIndicators}>
+                      {item.messageCount > 0 && (
+                        <View style={styles.messageIndicator}>
+                          <Feather name="message-circle" size={12} color={COLORS.success} />
+                          <Text style={[styles.itemFooterText, { color: COLORS.success }]}>
+                            {item.messageCount}
+                          </Text>
+                        </View>
+                      )}
+                      {item.returned && (
+                        <View style={styles.returnedIndicator}>
+                          <Feather name="check" size={12} color={COLORS.primary} />
+                          <Text style={[styles.itemFooterText, { color: COLORS.primary }]}>Returned</Text>
+                        </View>
+                      )}
+                    </View>
+
+                    {/* Tips/Reward section for lost items */}
+                    {item.status === 'lost' && !item.returned && (
+                      <View style={styles.tipsSection}>
+                        {editingReward === item.id ? (
+                          // Editing mode
+                          <View style={styles.rewardEditContainer}>
+                            <Text style={styles.currencySymbol}>$</Text>
+                            <TextInput
+                              style={styles.rewardEditInput}
+                              value={tempRewardValues[item.id] || '0'}
+                              onChangeText={(text) => setTempRewardValues(prev => ({
+                                ...prev,
+                                [item.id]: text
+                              }))}
+                              keyboardType="numeric"
+                              selectTextOnFocus
+                              autoFocus
+                              onSubmitEditing={() => saveRewardAmount(item)}
+                              onBlur={() => saveRewardAmount(item)}
+                            />
+                            <TouchableOpacity
+                              onPress={() => cancelEditingReward(item.id)}
+                              style={styles.cancelEditButton}
+                              hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                            >
+                              <Feather name="x" size={8} color={COLORS.muted} />
+                            </TouchableOpacity>
+                          </View>
+                        ) : (
+                          // Display mode - always show for lost items
+                          <TouchableOpacity
+                            onPress={(e) => {
+                              e.stopPropagation();
+                              startEditingReward(item);
+                            }}
+                            style={[
+                              styles.tipsButton,
+                              item.hasReward ? styles.tipsButtonActive : styles.tipsButtonInactive
+                            ]}
+                            hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                            activeOpacity={0.7}
+                          >
+                            <Feather
+                              name="gift"
+                              size={12}
+                              color={item.hasReward ? '#B45309' : '#999999'}
+                            />
+                            <Text style={[
+                              styles.tipsButtonText,
+                              item.hasReward ? styles.tipsButtonTextActive : styles.tipsButtonTextInactive
+                            ]}>
+                              {item.hasReward ? `$${item.rewardAmount}` : '$0'}
+                            </Text>
+                            <Feather
+                              name="edit-3"
+                              size={10}
+                              color={item.hasReward ? '#B45309' : '#999999'}
+                              style={{ marginLeft: 4 }}
+                            />
+                          </TouchableOpacity>
+                        )}
                       </View>
                     )}
                   </View>
 
-                  {/* Tips/Reward section for lost items */}
-                  {item.status === 'lost' && !item.returned && (
-                    <View style={styles.tipsSection}>
-                      {editingReward === item.id ? (
-                        // Editing mode
-                        <View style={styles.rewardEditContainer}>
-                          <Text style={styles.currencySymbol}>$</Text>
-                          <TextInput
-                            style={styles.rewardEditInput}
-                            value={tempRewardValues[item.id] || '0'}
-                            onChangeText={(text) => setTempRewardValues(prev => ({
-                              ...prev,
-                              [item.id]: text
-                            }))}
-                            keyboardType="numeric"
-                            selectTextOnFocus
-                            autoFocus
-                            onSubmitEditing={() => saveRewardAmount(item)}
-                            onBlur={() => saveRewardAmount(item)}
-                          />
-                          <TouchableOpacity
-                            onPress={() => cancelEditingReward(item.id)}
-                            style={styles.cancelEditButton}
-                            hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
-                          >
-                            <Feather name="x" size={8} color={COLORS.muted} />
-                          </TouchableOpacity>
-                        </View>
-                      ) : (
-                        // Display mode - always show for lost items
-                        <TouchableOpacity
-                          onPress={(e) => {
-                            e.stopPropagation();
-                            startEditingReward(item);
-                          }}
-                          style={[
-                            styles.tipsButton,
-                            item.hasReward ? styles.tipsButtonActive : styles.tipsButtonInactive
-                          ]}
-                          hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
-                          activeOpacity={0.7}
-                        >
-                          <Feather
-                            name="gift"
-                            size={12}
-                            color={item.hasReward ? '#B45309' : '#999999'}
-                          />
-                          <Text style={[
-                            styles.tipsButtonText,
-                            item.hasReward ? styles.tipsButtonTextActive : styles.tipsButtonTextInactive
-                          ]}>
-                            {item.hasReward ? `$${item.rewardAmount}` : '$0'}
-                          </Text>
-                          <Feather
-                            name="edit-3"
-                            size={10}
-                            color={item.hasReward ? '#B45309' : '#999999'}
-                            style={{ marginLeft: 4 }}
-                          />
-                        </TouchableOpacity>
-                      )}
+                  {/* Right side - Action buttons */}
+                  <View style={styles.itemFooterRight}>
+                    <View style={styles.actionButtonsContainer}>
+                      <TouchableOpacity
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          handleEditItem(item);
+                        }}
+                        style={styles.iconButton}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Feather name="edit-2" size={14} color="#000000" />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          handleDeleteItem(item);
+                        }}
+                        style={styles.iconButton}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Feather name="trash-2" size={14} color="#000000" />
+                      </TouchableOpacity>
                     </View>
-                  )}
-                </View>
-
-                {/* Right side - Action buttons */}
-                <View style={styles.itemFooterRight}>
-                  <View style={styles.actionButtonsContainer}>
-                    <TouchableOpacity
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        handleEditItem(item);
-                      }}
-                      style={styles.iconButton}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    >
-                      <Feather name="edit-2" size={14} color="#000000" />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        handleDeleteItem(item);
-                      }}
-                      style={styles.iconButton}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    >
-                      <Feather name="trash-2" size={14} color="#000000" />
-                    </TouchableOpacity>
                   </View>
                 </View>
               </View>
-            </View>
-          </TouchableOpacity>
-        )}
-        showsVerticalScrollIndicator={false}
-      />
+            </TouchableOpacity>
+          )}
+          showsVerticalScrollIndicator={false}
+        />
       </View>
     </SafeAreaView>
   );

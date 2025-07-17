@@ -6,7 +6,11 @@ import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../hooks/useAuth';
 import { uploadImage, getSignedImageUrl, deleteImage } from '../utils/uploadImage';
 
-export const ProfileScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
+interface ProfileScreenProps {
+  navigation?: any;
+}
+
+export const ProfileScreen = ({ navigation }: ProfileScreenProps) => {
   const { signOut, user, updateProfile, fetchReceivedTips } = useAuth();
   const insets = useSafeAreaInsets();
   const [pushNotifications, setPushNotifications] = useState(true);
