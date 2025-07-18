@@ -149,7 +149,7 @@ export const ItemCard: React.FC<ItemCardProps> = ({ item, onPress, userLocation,
           resizeMode="cover"
         />
       ) : (
-        <View style={[styles.fbImage, styles.fbImageFallback]}>
+        <View style={[styles.fbImage, styles.fbImageFallback, imageStyle]}>
           {getCategoryIcon(item.category, COLORS.primary)}
         </View>
       )}
