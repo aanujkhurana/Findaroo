@@ -17,6 +17,8 @@ import { useAuth } from '../hooks/useAuth';
 import { Loading } from '../components/Loading';
 import { Message } from '../types';
 import { testDatabaseConnection, testRealTimeConnection } from '../utils/testDatabase';
+import { useItems } from '../hooks/useItems';
+import { supabase } from '../services/supabaseClient';
 
 interface ChatScreenProps {
   navigation: any;
@@ -46,6 +48,10 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
   const [messageText, setMessageText] = useState('');
   const [sending, setSending] = useState(false);
   const flatListRef = useRef<FlatList>(null);
+  const { markAsResolved } = useItems();
+  const [item, setItem] = useState<any>(null);
+  const [itemLoading, setItemLoading] = useState(true);
+  const [resolving, setResolving] = useState(false);
 
   useEffect(() => {
     navigation.setOptions({
@@ -53,6 +59,33 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
       headerShown: true,
     });
   }, [navigation, otherUserName]);
+
+  useEffect(() => {
+    const fetchItem = async () => {
+      setItemLoading(true);
+      const { data, error } = await supabase
+        .from('items')
+        .select('*')
+        .eq('id', itemId)
+        .single();
+      if (!error) setItem(data);
+      setItemLoading(false);
+    };
+    fetchItem();
+  }, [itemId]);
+
+  const handleResolve = async () => {
+    if (!item) return;
+    setResolving(true);
+    const success = await markAsResolved(item.id);
+    if (success) {
+      setItem({ ...item, resolved: true });
+      Alert.alert('Success', 'Item marked as resolved.');
+    } else {
+      Alert.alert('Error', 'Failed to mark item as resolved.');
+    }
+    setResolving(false);
+  };
 
   const scrollToBottom = React.useCallback(() => {
     setTimeout(() => {
@@ -194,6 +227,24 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
         {error && (
           <View style={styles.errorBanner}>
             <Text style={styles.errorText}>{error}</Text>
+          </View>
+        )}
+        {/* Call to Action: Mark as Resolved */}
+        {!itemLoading && item && !item.resolved && (
+          <View style={{ padding: 16, backgroundColor: '#e0e7ff', alignItems: 'center' }}>
+            <Text style={{ color: '#3730a3', marginBottom: 8, fontWeight: '600' }}>Is this item resolved?</Text>
+            <TouchableOpacity
+              style={{
+                backgroundColor: resolving ? '#9ca3af' : '#4f46e5',
+                paddingHorizontal: 24,
+                paddingVertical: 10,
+                borderRadius: 20,
+              }}
+              onPress={handleResolve}
+              disabled={resolving}
+            >
+              <Text style={{ color: '#fff', fontWeight: 'bold' }}>{resolving ? 'Marking...' : 'Mark as Resolved'}</Text>
+            </TouchableOpacity>
           </View>
         )}
 
