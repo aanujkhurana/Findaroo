@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { AppState } from 'react-native';
 import { Audio } from 'expo-av';
 import * as Notifications from 'expo-notifications';
@@ -18,16 +18,16 @@ const playMessageSound = async () => {
       playThroughEarpieceAndroid: false,
     });
 
-    // Use Expo's notification sound
+    // Use Expo's notification sound (no 'content' property, just top-level)
     await Notifications.presentNotificationAsync({
-      content: {
-        sound: 'default',
-        priority: 'high',
-      },
-      trigger: null,
+      title: 'New Message',
+      body: 'You have a new message',
+      sound: 'default',
+      priority: Notifications.AndroidNotificationPriority.HIGH,
     });
   } catch (error) {
-    console.log('[useChat] Sound playback failed:', error.message);
+    const errMsg = error instanceof Error ? error.message : String(error);
+    console.log('[useChat] Sound playback failed:', errMsg);
   }
 };
 
@@ -114,13 +114,14 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
 
       // Count unread messages
       const unread = data?.filter(msg =>
+        currentUser.data.user &&
         msg.receiver_id === currentUser.data.user.id && !msg.read_at
       ).length || 0;
       setUnreadCount(unread);
 
       console.log(`[useChat] Unread count: ${unread}`);
     } catch (err: any) {
-      setError(err.message);
+      setError(err instanceof Error ? err.message : String(err));
       console.error('[useChat] Error fetching messages:', err);
     } finally {
       setLoading(false);
@@ -205,7 +206,7 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
 
       setThreads(Array.from(threadMap.values()));
     } catch (err: any) {
-      setError(err.message);
+      setError(err instanceof Error ? err.message : String(err));
       console.error('[useChat] Error fetching threads:', err);
     } finally {
       setLoading(false);
@@ -497,6 +498,31 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
     }
   }, [itemId]);
 
+  // Add a function to refetch threads
+  const refetchThreads = async () => {
+    await fetchThreads();
+  };
+
+  // Add a function to get unread messages count for a thread
+  const getUnreadMessagesCount = (threadId: string): number => {
+    const thread = threads.find(t => t.id === threadId);
+    if (!thread || !thread.last_message) return 0;
+    // If the last message is unread and sent to the current user, count as 1
+    if (
+      currentUserIdRef.current &&
+      thread.last_message.receiver_id === currentUserIdRef.current &&
+      !thread.last_message.read_at
+    ) {
+      return 1;
+    }
+    return 0;
+  };
+
+  // Add a function to check if a message is read
+  const isMessageRead = (message: Message): boolean => {
+    return !!message.read_at;
+  };
+
   return {
     messages,
     threads,
@@ -505,6 +531,9 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
     unreadCount,
     sendMessage,
     markAllAsRead,
+    refetchThreads,
+    getUnreadMessagesCount,
+    isMessageRead,
   };
 };
 

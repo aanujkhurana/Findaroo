@@ -19,10 +19,10 @@ interface ChatListScreenProps {
   navigation: any;
 }
 
-export const ChatListScreen = ({ navigation }: ChatListScreenProps) => {
+export const ChatListScreen: React.FC<ChatListScreenProps> = ({ navigation }) => {
   const { session } = useAuth();
   const { threads, loading, error, refetchThreads, getUnreadMessagesCount } = useChat();
-  const [refreshing, setRefreshing] = useState(false);
+  const [refreshing, setRefreshing] = useState<boolean>(false);
 
   const onRefresh = async () => {
     setRefreshing(true);

@@ -100,6 +100,26 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
     }
   }, [messageText, sending, sendMessage, otherUserId]);
 
+  const formatTime = React.useCallback((dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }, []);
+
+  const formatDate = React.useCallback((dateString: string) => {
+    const date = new Date(dateString);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    if (date.toDateString() === today.toDateString()) {
+      return 'Today';
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      return 'Yesterday';
+    } else {
+      return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    }
+  }, []);
+
   const renderMessage = React.useCallback(({ item, index }: { item: Message; index: number }) => {
     const isMyMessage = item.sender_id === session?.user?.id;
     const previousMessage = index > 0 ? messages[index - 1] : null;
@@ -125,7 +145,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
               styles.messageText,
               isMyMessage ? styles.myMessageText : styles.otherMessageText
             ]}>
-              {item.content}
+              {item.message}
             </Text>
             <View style={styles.messageFooter}>
               <Text style={[
@@ -149,26 +169,6 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
       </>
     );
   }, [session?.user?.id, messages, formatDate, formatTime, isMessageRead]);
-
-  const formatTime = React.useCallback((dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  }, []);
-
-  const formatDate = React.useCallback((dateString: string) => {
-    const date = new Date(dateString);
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    if (date.toDateString() === today.toDateString()) {
-      return 'Today';
-    } else if (date.toDateString() === yesterday.toDateString()) {
-      return 'Yesterday';
-    } else {
-      return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
-    }
-  }, []);
 
   if (loading) {
     return <Loading message="Loading messages..." />;
