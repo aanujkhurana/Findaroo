@@ -148,21 +148,23 @@ export const ChatListScreen: React.FC<ChatListScreenProps> = ({ navigation }) =>
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Messages</Text>
+      <View style={styles.headerWrapper}>
+        <View style={styles.headerModern}>
+          <Text style={styles.headerTitleModern}>Messages</Text>
+          <MaterialIcons name="chat-bubble-outline" size={28} color="#4f46e5" style={styles.headerIconModern} />
+        </View>
+        <View style={styles.headerDivider} />
       </View>
-      
       {error && (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
         </View>
       )}
-      
       {threads.length === 0 && !loading ? (
-        <View style={styles.emptyState}>
-          <MaterialIcons name="chat-bubble-outline" size={64} color="#9CA3AF" />
-          <Text style={styles.emptyTitle}>No conversations yet</Text>
-          <Text style={styles.emptySubtitle}>
+        <View style={styles.emptyStateModern}>
+          <MaterialIcons name="chat-bubble-outline" size={72} color="#e0e7ff" />
+          <Text style={styles.emptyTitleModern}>No conversations yet</Text>
+          <Text style={styles.emptySubtitleModern}>
             Start a conversation by messaging someone about their lost or found item
           </Text>
         </View>
@@ -174,7 +176,7 @@ export const ChatListScreen: React.FC<ChatListScreenProps> = ({ navigation }) =>
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
-          contentContainerStyle={styles.listContainer}
+          contentContainerStyle={styles.listContainerModern}
         />
       )}
     </SafeAreaView>
@@ -184,45 +186,76 @@ export const ChatListScreen: React.FC<ChatListScreenProps> = ({ navigation }) =>
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#f3f4f6', // lighter background
   },
-  header: {
+  headerWrapper: {
     backgroundColor: '#fff',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 4,
+    zIndex: 10,
   },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
+  headerModern: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 28,
+    paddingTop: 24,
+    paddingBottom: 18,
+    backgroundColor: '#fff',
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+  },
+  headerTitleModern: {
+    fontSize: 28,
+    fontWeight: '800',
     color: '#1e293b',
+    letterSpacing: -0.5,
   },
-  listContainer: {
+  headerIconModern: {
+    marginLeft: 8,
+  },
+  headerDivider: {
+    height: 1,
+    backgroundColor: '#e0e7ff',
+    marginHorizontal: 20,
+    marginBottom: 2,
+  },
+  listContainerModern: {
     flexGrow: 1,
+    padding: 16,
   },
   chatItem: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fff',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+    borderRadius: 18,
+    marginBottom: 14,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
   },
   avatarContainer: {
-    marginRight: 12,
+    marginRight: 14,
   },
   avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
   },
   avatarPlaceholder: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#f1f5f9',
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#e0e7ff',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -233,11 +266,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   userName: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '700',
     color: '#1e293b',
   },
   timestamp: {
@@ -245,10 +278,10 @@ const styles = StyleSheet.create({
     color: '#64748b',
   },
   itemTitle: {
-    fontSize: 14,
-    color: '#4f46e5',
-    fontWeight: '500',
-    marginBottom: 4,
+    fontSize: 15,
+    color: '#6366f1',
+    fontWeight: '600',
+    marginBottom: 2,
   },
   lastMessage: {
     fontSize: 14,
@@ -257,26 +290,52 @@ const styles = StyleSheet.create({
   },
   unreadMessage: {
     color: '#1e293b',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   rightSection: {
     alignItems: 'center',
     justifyContent: 'center',
+    marginLeft: 8,
   },
   unreadBadge: {
-    backgroundColor: '#3A8DFF',
-    borderRadius: 12,
-    minWidth: 24,
-    height: 24,
+    backgroundColor: '#6366f1',
+    borderRadius: 14,
+    minWidth: 28,
+    height: 28,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 4,
-    paddingHorizontal: 6,
+    paddingHorizontal: 8,
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.12,
+    shadowRadius: 2,
+    elevation: 2,
   },
   unreadBadgeText: {
     color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  emptyStateModern: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  emptyTitleModern: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#6366f1',
+    marginTop: 18,
+    marginBottom: 8,
+    letterSpacing: -0.3,
+  },
+  emptySubtitleModern: {
+    fontSize: 16,
+    color: '#64748b',
+    textAlign: 'center',
+    lineHeight: 22,
   },
   emptyState: {
     flex: 1,
