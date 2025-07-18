@@ -48,7 +48,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
   const [messageText, setMessageText] = useState('');
   const [sending, setSending] = useState(false);
   const flatListRef = useRef<FlatList>(null);
-  const { markAsResolved } = useItems();
+  const { markAsResolved, updateItem } = useItems();
   const [item, setItem] = useState<any>(null);
   const [itemLoading, setItemLoading] = useState(true);
   const [resolving, setResolving] = useState(false);
@@ -77,10 +77,16 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
   const handleResolve = async () => {
     if (!item) return;
     setResolving(true);
-    const success = await markAsResolved(item.id);
-    if (success) {
-      setItem({ ...item, resolved: true });
-      Alert.alert('Success', 'Item marked as resolved.');
+    let newStatus = item.status;
+    if (item.status === 'lost') {
+      newStatus = 'returned';
+    } else if (item.status === 'found') {
+      newStatus = 'claimed';
+    }
+    const updated = await updateItem(item.id, { resolved: true, status: newStatus });
+    if (updated) {
+      setItem({ ...item, resolved: true, status: newStatus });
+      Alert.alert('Success', `Item marked as resolved (${newStatus}).`);
     } else {
       Alert.alert('Error', 'Failed to mark item as resolved.');
     }
