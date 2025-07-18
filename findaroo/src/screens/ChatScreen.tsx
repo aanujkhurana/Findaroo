@@ -55,10 +55,10 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
 
   useEffect(() => {
     navigation.setOptions({
-      title: otherUserName,
-      headerShown: true,
+      // Hide the default navigation header
+      headerShown: false,
     });
-  }, [navigation, otherUserName]);
+  }, [navigation]);
 
   useEffect(() => {
     const fetchItem = async () => {
@@ -225,8 +225,16 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Custom Header */}
+      <View style={styles.customHeader}>
+        <TouchableOpacity style={styles.headerBackBtn} onPress={() => navigation.goBack()}>
+          <MaterialIcons name="arrow-back" size={26} color="#4F46E5" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle} numberOfLines={1}>{otherUserName}</Text>
+        <View style={{ width: 40 }} /> {/* Placeholder for symmetry */}
+      </View>
       <KeyboardAvoidingView
-        style={styles.container}
+        style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
@@ -237,7 +245,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
         )}
         {/* Call to Action: Mark as Resolved */}
         {!itemLoading && item && !item.resolved && (
-          <View style={{ padding: 16, backgroundColor: '#e0e7ff', alignItems: 'center' }}>
+          <View style={{ paddingHorizontal: 16, paddingBottom: 16, backgroundColor: '#e0e7ff', alignItems: 'center' }}>
             <Text style={{ color: '#3730a3', marginBottom: 8, fontWeight: '600' }}>Is this item resolved?</Text>
             <TouchableOpacity
               style={{
@@ -246,7 +254,16 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
                 paddingVertical: 10,
                 borderRadius: 20,
               }}
-              onPress={handleResolve}
+              onPress={() => {
+                Alert.alert(
+                  'Confirm',
+                  'Are you sure you want to mark this item as resolved?',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Yes', onPress: handleResolve },
+                  ]
+                );
+              }}
               disabled={resolving}
             >
               <Text style={{ color: '#fff', fontWeight: 'bold' }}>{resolving ? 'Marking...' : 'Mark as Resolved'}</Text>
@@ -312,6 +329,39 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8fafc',
+  },
+  customHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 12,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
+    elevation: 2,
+    zIndex: 10,
+  },
+  headerBackBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f1f5f9',
+  },
+  headerTitle: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#222',
+    marginHorizontal: 8,
   },
   errorBanner: {
     backgroundColor: '#fef2f2',
