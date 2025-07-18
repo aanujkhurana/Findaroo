@@ -295,6 +295,19 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
           }}
         />
 
+        {/* Suggestion text when there are no messages */}
+        {!loading && messages.length === 0 && item && (
+          <View style={styles.suggestionContainer}>
+            <Text style={styles.suggestionText}>
+              {item.status === 'lost'
+                ? 'Start the conversation to help reunite the owner with their lost item.'
+                : item.status === 'found'
+                ? 'Start the chat to help return this found item to its owner.'
+                : 'Start the conversation!'}
+            </Text>
+          </View>
+        )}
+
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.textInput}
@@ -489,5 +502,17 @@ const styles = StyleSheet.create({
   },
   sendButtonDisabled: {
     backgroundColor: '#9ca3af',
+  },
+  suggestionContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 32,
+    paddingHorizontal: 24,
+  },
+  suggestionText: {
+    color: '#64748b',
+    fontSize: 16,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
 });
