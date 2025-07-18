@@ -471,7 +471,7 @@ export const HomeFeedScreen = ({ navigation }: any) => {
               userLocation={userLocation}
               showDistance={true}
               cardStyle={styles.gridCard}
-              imageStyle={styles.gridImage}
+              imageStyle={item.image ? styles.gridImage : styles.gridImageSmall}
             />
           </View>
         )}
@@ -872,6 +872,14 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     resizeMode: 'cover',
-    backgroundColor: COLORS.neutral,
+    backgroundColor: COLORS.card,
+  },
+  gridImageSmall: {
+    width: '100%',
+    height: 70,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    resizeMode: 'cover',
+    backgroundColor: COLORS.card,
   },
 });
