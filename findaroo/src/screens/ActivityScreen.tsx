@@ -397,12 +397,26 @@ export default function ActivityScreen() {
   // Combined loading state - wait for both auth and items
   const loading = authLoading || (shouldFetchItems && itemsLoading);
 
+  // Determine header background and text color based on selected filter
+  const headerStyle = useMemo(() => {
+    switch (filter) {
+      case 'active':
+        return { backgroundColor: COLORS.primary, textColor: '#fff' };
+      case 'matched':
+        return { backgroundColor: COLORS.success, textColor: '#fff' };
+      case 'resolved':
+        return { backgroundColor: COLORS.resolved, textColor: COLORS.primary };
+      default:
+        return { backgroundColor: COLORS.card, textColor: COLORS.text };
+    }
+  }, [filter]);
+
   if (authLoading) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
           <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={[styles.headerTitle, { marginTop: 16 }]}>Authenticating...</Text>
+          <Text style={[styles.modernHeaderTitle, { marginTop: 16, color: COLORS.primary }]}>Authenticating...</Text>
         </View>
       </SafeAreaView>
     );
@@ -413,7 +427,7 @@ export default function ActivityScreen() {
       <SafeAreaView style={styles.safeArea}>
         <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
           <Feather name="user-x" size={48} color={COLORS.muted} />
-          <Text style={[styles.headerTitle, { marginTop: 16, textAlign: 'center' }]}>Not authenticated</Text>
+          <Text style={[styles.modernHeaderTitle, { marginTop: 16, textAlign: 'center', color: COLORS.text }]}>Not authenticated</Text>
           <Text style={[styles.statLabel, { textAlign: 'center', marginTop: 8 }]}>Please sign in to view your activity</Text>
         </View>
       </SafeAreaView>
@@ -425,7 +439,7 @@ export default function ActivityScreen() {
       <SafeAreaView style={styles.safeArea}>
         <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
           <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={[styles.headerTitle, { marginTop: 16 }]}>Loading your activity...</Text>
+          <Text style={[styles.modernHeaderTitle, { marginTop: 16, color: COLORS.primary }]}>Loading your activity...</Text>
         </View>
       </SafeAreaView>
     );
@@ -436,7 +450,7 @@ export default function ActivityScreen() {
       <SafeAreaView style={styles.safeArea}>
         <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
           <Feather name="alert-circle" size={48} color={COLORS.muted} />
-          <Text style={[styles.headerTitle, { marginTop: 16, textAlign: 'center' }]}>Error loading activity</Text>
+          <Text style={[styles.modernHeaderTitle, { marginTop: 16, textAlign: 'center', color: COLORS.text }]}>Error loading activity</Text>
           <Text style={[styles.statLabel, { textAlign: 'center', marginTop: 8 }]}>{error}</Text>
         </View>
       </SafeAreaView>
@@ -445,6 +459,10 @@ export default function ActivityScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      {/* Modern Professional Header Bar */}
+      <View style={[styles.modernHeaderBar, { backgroundColor: headerStyle.backgroundColor, shadowColor: headerStyle.backgroundColor }]}>
+        <Text style={[styles.modernHeaderTitle, { color: headerStyle.textColor }]}>Activity</Text>
+      </View>
       <View style={styles.container}>
         {/* Compact Stats Row */}
         <View style={styles.statsContainer}>
@@ -693,17 +711,27 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 18,
-    paddingTop: Platform.OS === 'ios' ? 8 : 18,
-    paddingBottom: 8,
-    backgroundColor: COLORS.background,
+  // Modern Professional Header Bar Styles
+  modernHeaderBar: {
+    width: '100%',
+    paddingTop: Platform.OS === 'ios' ? 18 : 16,
+    paddingBottom: 18,
+    paddingHorizontal: 24,
+    alignItems: 'flex-start',
+    justifyContent: 'flex-end',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 4,
+    zIndex: 10,
   },
-  headerTitle: { fontWeight: 'bold', fontSize: 20, color: COLORS.text },
-
+  modernHeaderTitle: {
+    fontFamily: 'Manrope-SemiBold',
+    fontWeight: 'bold',
+    fontSize: 28,
+    letterSpacing: 0.2,
+    textTransform: 'uppercase',
+  },
   // Compact Stats Styles
   statsContainer: {
     flexDirection: 'row',
