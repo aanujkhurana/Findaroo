@@ -630,104 +630,84 @@ export const ProfileScreen = ({ navigation }: ProfileScreenProps) => {
 
             <View style={styles.profileInfo}>
               <View style={styles.nameSection}>
-                <TouchableOpacity onPress={handleEditName} style={styles.nameContainer}>
-                  <Text style={styles.profileName}>
-                    {user?.full_name || 'Tap to add your name'}
-                  </Text>
-                  <MaterialIcons name="edit" size={18} color="#64748B" style={{ marginLeft: 8 }} />
-                </TouchableOpacity>
+                <View style={styles.nameRow}>
+                  <View style={styles.nameContainer}>
+                    <Text style={styles.profileName}>
+                      {user?.full_name || 'User Name'}
+                    </Text>
+                  </View>
 
-                {/* Verification Badges */}
-                <View style={styles.verificationBadges}>
-                  {user?.email_verified && (
-                    <View style={styles.verificationBadge}>
-                      <MaterialIcons name="mark-email-read" size={14} color="#10B981" />
-                      <Text style={styles.verificationText}>Email</Text>
-                    </View>
-                  )}
-                  {user?.phone_verified && (
-                    <View style={styles.verificationBadge}>
-                      <MaterialIcons name="verified-user" size={14} color="#3B82F6" />
-                      <Text style={styles.verificationText}>Phone</Text>
-                    </View>
-                  )}
-                  {user?.identity_verified && (
-                    <View style={styles.verificationBadge}>
-                      <MaterialIcons name="verified" size={14} color="#F59E0B" />
-                      <Text style={styles.verificationText}>ID</Text>
+                  {/* Verification Icon next to name */}
+                  {(user?.email_verified || user?.phone_verified || user?.identity_verified) && (
+                    <View style={styles.verificationIcon}>
+                      <MaterialIcons
+                        name="verified"
+                        size={18}
+                        color={user?.identity_verified ? "#F59E0B" : user?.phone_verified ? "#3B82F6" : "#10B981"}
+                      />
                     </View>
                   )}
                 </View>
 
-                {/* Karma and Trust Badges */}
-                <View style={styles.badgesContainer}>
-                  <KarmaBadge
-                    karmaPoints={user?.karma_points ?? 0}
-                    size="small"
-                    showLevel={true}
-                    showPoints={false}
-                  />
-                  <TrustedBadge
-                    isVerified={user?.identity_verified || false}
-                    returnsCompleted={trustedReturnerStatus.returnsCompleted}
-                    size="small"
-                  />
-                </View>
-              </View>
-
-              <View style={styles.contactInfo}>
-                <View style={styles.contactRow}>
-                  <MaterialIcons name="email" size={16} color="#64748B" />
-                  <Text style={styles.contactText}>{user?.email || 'No email'}</Text>
-                  {!user?.email_verified && (
-                    <View style={styles.unverifiedIndicator}>
-                      <Text style={styles.unverifiedText}>Unverified</Text>
-                    </View>
-                  )}
-                </View>
-                {user?.phone && (
+                {/* Contact Info - Phone and Email */}
+                <View style={styles.contactInfo}>
                   <View style={styles.contactRow}>
-                    <MaterialIcons name="phone" size={16} color="#64748B" />
-                    <Text style={styles.contactText}>{user.phone}</Text>
-                    {!user?.phone_verified && (
-                      <View style={styles.unverifiedIndicator}>
-                        <Text style={styles.unverifiedText}>Unverified</Text>
+                    <MaterialIcons name="email" size={14} color="#64748B" />
+                    <Text style={styles.contactText}>{user?.email || 'No email'}</Text>
+                    {!user?.email_verified && (
+                      <View style={styles.unverifiedDot}>
+                        <View style={styles.unverifiedIndicatorSmall} />
                       </View>
                     )}
                   </View>
-                )}
+                  {user?.phone && (
+                    <View style={styles.contactRow}>
+                      <MaterialIcons name="phone" size={14} color="#64748B" />
+                      <Text style={styles.contactText}>{user.phone}</Text>
+                      {!user?.phone_verified && (
+                        <View style={styles.unverifiedDot}>
+                          <View style={styles.unverifiedIndicatorSmall} />
+                        </View>
+                      )}
+                    </View>
+                  )}
+                </View>
+
+                {/* Small Verification Status */}
+                <View style={styles.verificationStatus}>
+                  <Text style={styles.verificationStatusText}>
+                    {user?.identity_verified ? 'ID Verified' :
+                     user?.phone_verified ? 'Phone Verified' :
+                     user?.email_verified ? 'Email Verified' : 'Verification Pending'}
+                  </Text>
+                </View>
               </View>
+
+
             </View>
           </View>
 
-          {/* Stats Row */}
+          {/* Compact Stats Row */}
           <View style={styles.profileStatsRow}>
             <TouchableOpacity
-              style={styles.statCard}
+              style={styles.compactStatCard}
               onPress={() => navigation?.navigate('KarmaHistory')}
               activeOpacity={0.7}
             >
-              <View style={styles.statIconContainer}>
-                <MaterialIcons name="star" size={20} color="#F59E0B" />
+              <MaterialIcons name="star" size={16} color="#F59E0B" />
+              <View style={styles.compactStatContent}>
+                <Text style={styles.compactStatValue}>{user?.karma_points ?? '0'}</Text>
+                <Text style={styles.compactStatLabel}>Karma</Text>
               </View>
-              <View style={styles.statContent}>
-                <Text style={styles.statLabel}>Karma Points</Text>
-                <Text style={styles.statValue}>{user?.karma_points ?? '0'}</Text>
-                <Text style={styles.karmaLevel}>
-                  {karmaService.getKarmaLevel(user?.karma_points ?? 0).level}
-                </Text>
-              </View>
-              <MaterialIcons name="chevron-right" size={16} color="#94A3B8" />
             </TouchableOpacity>
-            <View style={styles.statCard}>
-              <View style={styles.statIconContainer}>
-                <MaterialIcons name="card-giftcard" size={20} color="#10B981" />
-              </View>
-              <View style={styles.statContent}>
-                <Text style={styles.statLabel}>Received Tips</Text>
-                <Text style={styles.statValue}>
-                  {loadingTips ? '...' : `$${receivedTips.toFixed(2)}`}
+
+            <View style={styles.compactStatCard}>
+              <MaterialIcons name="card-giftcard" size={16} color="#10B981" />
+              <View style={styles.compactStatContent}>
+                <Text style={styles.compactStatValue}>
+                  {loadingTips ? '...' : `$${receivedTips.toFixed(0)}`}
                 </Text>
+                <Text style={styles.compactStatLabel}>Tips</Text>
               </View>
             </View>
           </View>
@@ -1426,48 +1406,37 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   nameSection: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
-  verificationBadges: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 12,
-    gap: 6,
+  verificationIcon: {
+    marginLeft: 8,
   },
-  verificationBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8F8F8',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+  verificationStatus: {
+    marginTop: 6,
   },
-  verificationText: {
-    fontSize: 11,
+  verificationStatusText: {
+    fontSize: 12,
     fontWeight: '500',
-    color: '#666666',
-    marginLeft: 4,
+    color: '#10B981',
   },
   badgesContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    marginTop: 8,
+    marginTop: 12,
   },
-  unverifiedIndicator: {
-    backgroundColor: '#FFF3CD',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-    marginLeft: 8,
+  unverifiedDot: {
+    marginLeft: 6,
   },
-  unverifiedText: {
-    fontSize: 10,
-    fontWeight: '500',
-    color: '#856404',
+  unverifiedIndicatorSmall: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#F59E0B',
   },
   contactInfo: {
-    gap: 6,
+    gap: 4,
+    marginTop: 8,
   },
   contactRow: {
     flexDirection: 'row',
@@ -1475,9 +1444,10 @@ const styles = StyleSheet.create({
   },
   contactText: {
     color: '#666666',
-    fontSize: 14,
-    marginLeft: 8,
+    fontSize: 13,
+    marginLeft: 6,
     fontWeight: '400',
+    flex: 1,
   },
   avatar: {
     width: 72,
@@ -1521,8 +1491,8 @@ const styles = StyleSheet.create({
   },
   profileStatsRow: {
     flexDirection: 'row',
-    marginTop: 0,
-    gap: 12,
+    marginTop: 16,
+    gap: 8,
   },
   karmaCard: {
     flex: 1,
@@ -1577,6 +1547,15 @@ const styles = StyleSheet.create({
     padding: 16,
     marginHorizontal: 4,
   },
+  compactStatCard: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8F8F8',
+    borderRadius: 10,
+    padding: 12,
+    marginHorizontal: 4,
+  },
   statIconContainer: {
     width: 32,
     height: 32,
@@ -1589,16 +1568,31 @@ const styles = StyleSheet.create({
   statContent: {
     flex: 1,
   },
+  compactStatContent: {
+    marginLeft: 8,
+    flex: 1,
+  },
   statLabel: {
     color: '#666666',
     fontSize: 12,
     fontWeight: '400',
     marginBottom: 2,
   },
+  compactStatLabel: {
+    color: '#666666',
+    fontSize: 11,
+    fontWeight: '400',
+  },
   statValue: {
     color: '#000000',
     fontWeight: '600',
     fontSize: 16,
+  },
+  compactStatValue: {
+    color: '#000000',
+    fontWeight: '600',
+    fontSize: 14,
+    marginBottom: 2,
   },
   karmaLevel: {
     color: '#64748B',

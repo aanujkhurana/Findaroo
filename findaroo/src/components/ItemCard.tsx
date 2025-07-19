@@ -4,7 +4,7 @@ import { Feather } from '@expo/vector-icons';
 import { Item, LocationCoords } from '../types';
 import { getSignedImageUrl } from '../utils/uploadImage';
 import { calculateDistance, formatDistance } from '../utils/location';
-import { KarmaBadge, TrustedBadge } from './KarmaBadge';
+
 
 const COLORS = {
   background: '#f8fafc',
@@ -97,7 +97,6 @@ export const ItemCard: React.FC<ItemCardProps> = ({ item, onPress, userLocation,
 
   // Signed URLs for images
   const [itemImageUrl, setItemImageUrl] = useState('');
-  const [userProfileUrl, setUserProfileUrl] = useState('');
 
   useEffect(() => {
     if (item.image) {
@@ -105,12 +104,7 @@ export const ItemCard: React.FC<ItemCardProps> = ({ item, onPress, userLocation,
     } else {
       setItemImageUrl('');
     }
-    if (item.user?.profile_pic) {
-      getSignedImageUrl(item.user.profile_pic, 'profile-pics').then(setUserProfileUrl);
-    } else {
-      setUserProfileUrl('');
-    }
-  }, [item.image, item.user?.profile_pic]);
+  }, [item.image]);
 
   // Type guard for location object
   function isLocationObject(value: any): value is { address?: string; latitude: number; longitude: number } {
@@ -191,35 +185,7 @@ export const ItemCard: React.FC<ItemCardProps> = ({ item, onPress, userLocation,
           )}
         </View>
 
-        {/* User Info Section */}
-        {item.user && (
-          <View style={styles.fbUserSection}>
-            <View style={styles.fbUserInfo}>
-              {userProfileUrl ? (
-                <Image source={{ uri: userProfileUrl }} style={styles.fbUserAvatar} />
-              ) : (
-                <View style={styles.fbUserAvatarPlaceholder}>
-                  <Text style={styles.fbUserAvatarText}>
-                    {item.user.full_name?.charAt(0)?.toUpperCase() || 'U'}
-                  </Text>
-                </View>
-              )}
-              <View style={styles.fbUserDetails}>
-                <Text style={styles.fbUserName} numberOfLines={1}>
-                  {item.user.full_name || 'Anonymous'}
-                </Text>
-                <View style={styles.fbUserBadges}>
-                  <KarmaBadge
-                    karmaPoints={item.user.karma_points ?? 0}
-                    size="small"
-                    showLevel={true}
-                    showPoints={false}
-                  />
-                </View>
-              </View>
-            </View>
-          </View>
-        )}
+
       </View>
     </TouchableOpacity>
   );
@@ -416,48 +382,5 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     maxWidth: 90,
   },
-  // User section styles
-  fbUserSection: {
-    borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
-    paddingTop: 12,
-    marginTop: 8,
-  },
-  fbUserInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  fbUserAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    marginRight: 10,
-  },
-  fbUserAvatarPlaceholder: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#e2e8f0',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
-  },
-  fbUserAvatarText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#64748b',
-  },
-  fbUserDetails: {
-    flex: 1,
-  },
-  fbUserName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginBottom: 4,
-  },
-  fbUserBadges: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
+
 });
