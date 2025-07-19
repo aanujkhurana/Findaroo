@@ -130,9 +130,12 @@ export const ItemCard: React.FC<ItemCardProps> = ({ item, onPress, userLocation,
   const statusStyle = getStatusStyle(item.status);
 
   // Debug location data
+  console.log('[ItemCard] showDistance:', showDistance);
+  console.log('[ItemCard] userLocation:', userLocation);
   console.log('[ItemCard] Item location:', item.location);
   console.log('[ItemCard] Item location_name:', item.location_name);
   console.log('[ItemCard] Is location object:', isLocationObject(item.location));
+  console.log('[ItemCard] distanceText:', distanceText);
 
   return (
     <TouchableOpacity onPress={onPress} style={[styles.fbCard, cardStyle]}>
@@ -176,16 +179,21 @@ export const ItemCard: React.FC<ItemCardProps> = ({ item, onPress, userLocation,
           </Text>
         )}
         <View style={styles.fbFooterRow}>
-          {isLocationObject(item.location) || item.location_name ? (
+          {distanceText ? (
+            <View style={styles.fbFooterItem}>
+              <Feather name="navigation" size={14} color={COLORS.primary} />
+              <Text style={[styles.fbFooterText, { color: COLORS.primary }]}>{distanceText}</Text>
+            </View>
+          ) : (
             <View style={styles.fbFooterItem}>
               <Feather name="map-pin" size={14} color={COLORS.muted} />
-              <Text style={styles.fbFooterText} numberOfLines={1}>
-                {isLocationObject(item.location)
-                  ? (item.location.address || 'Location available')
-                  : item.location_name}
+              <Text style={styles.fbFooterTextPlaceholder}>
+                {!userLocation ? 'Enable location' :
+                 !isLocationObject(item.location) ? 'No item location' :
+                 'Distance unavailable'}
               </Text>
             </View>
-          ) : null}
+          )}
           {item.reward_amount && item.reward_amount > 0 ? (
             <View style={styles.fbFooterItem}>
               <Feather name="gift" size={14} color={COLORS.matchedText} />
