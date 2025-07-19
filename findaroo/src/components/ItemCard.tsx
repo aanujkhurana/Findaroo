@@ -159,7 +159,13 @@ export const ItemCard: React.FC<ItemCardProps> = ({ item, onPress, userLocation,
           </View>
         </View>
         <Text style={styles.fbMeta}>{item.category} • {formatDate(item.created_at)}</Text>
-        <Text style={styles.fbDesc} numberOfLines={3}>{item.description}</Text>
+        {item.description && item.description.trim() ? (
+          <Text style={styles.fbDesc} numberOfLines={3}>{item.description}</Text>
+        ) : (
+          <Text style={styles.fbDescPlaceholder} numberOfLines={2}>
+            No description provided. Contact the poster for more details.
+          </Text>
+        )}
         <View style={styles.fbFooterRow}>
           {isLocationObject(item.location) || item.location_name ? (
             <View style={styles.fbFooterItem}>
@@ -171,10 +177,15 @@ export const ItemCard: React.FC<ItemCardProps> = ({ item, onPress, userLocation,
               </Text>
             </View>
           ) : null}
-          {item.reward_amount && item.reward_amount > 0 && (
+          {item.reward_amount && item.reward_amount > 0 ? (
             <View style={styles.fbFooterItem}>
               <Feather name="gift" size={14} color={COLORS.matchedText} />
               <Text style={styles.fbFooterText}>${item.reward_amount}</Text>
+            </View>
+          ) : (
+            <View style={styles.fbFooterItem}>
+              <Feather name="gift" size={14} color={COLORS.muted} />
+              <Text style={styles.fbFooterTextPlaceholder}>No reward offered</Text>
             </View>
           )}
           {distanceText && (
@@ -362,6 +373,14 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     marginBottom: 10,
   },
+  fbDescPlaceholder: {
+    fontFamily: 'Inter',
+    color: COLORS.muted,
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 10,
+    fontStyle: 'italic',
+  },
   fbFooterRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -381,6 +400,15 @@ const styles = StyleSheet.create({
     marginLeft: 4,
     fontWeight: '500',
     maxWidth: 90,
+  },
+  fbFooterTextPlaceholder: {
+    fontFamily: 'Inter',
+    fontSize: 11,
+    color: COLORS.muted,
+    marginLeft: 4,
+    fontStyle: 'italic',
+    opacity: 0.7,
+    maxWidth: 100,
   },
 
 });
