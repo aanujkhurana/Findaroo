@@ -18,6 +18,7 @@ import { useChat } from '../hooks/useChat';
 import { useAuth } from '../hooks/useAuth';
 import { Loading } from '../components/Loading';
 import { Message } from '../types';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 
 import { supabase } from '../services/supabaseClient';
 
@@ -62,7 +63,6 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
   const [showTipModal, setShowTipModal] = useState(false);
   const [tipAmount, setTipAmount] = useState('');
   const [sendingTip, setSendingTip] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
 
   useEffect(() => {
     navigation.setOptions({
@@ -163,10 +163,15 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
 
 
 
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', markAllAsRead);
-    return unsubscribe;
-  }, [navigation, markAllAsRead]);
+  // Mark messages as read when screen is focused
+  useFocusEffect(
+    React.useCallback(() => {
+      if (messages.length > 0) {
+        console.log('[ChatScreen] Screen focused, marking messages as read');
+        markAllAsRead();
+      }
+    }, [messages.length, markAllAsRead])
+  );
 
   const handleSendMessage = React.useCallback(async () => {
     if (!messageText.trim() || sending) return;
@@ -241,7 +246,6 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
   // Handle suggestion tap
   const handleSuggestionTap = (suggestion: string) => {
     setMessageText(suggestion);
-    setShowSuggestions(false);
   };
 
   const renderMessage = React.useCallback(({ item, index }: { item: Message; index: number }) => {
@@ -448,8 +452,8 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
           </View>
         )}
 
-        {/* Message Suggestions */}
-        {showSuggestions && messages.length === 0 && (
+        {/* Message Suggestions - Only show when no messages exist */}
+        {messages.length === 0 && (
           <View style={styles.suggestionsContainer}>
             <Text style={styles.suggestionsTitle}>Quick replies:</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -467,12 +471,6 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
         )}
 
         <View style={styles.inputContainer}>
-          <TouchableOpacity
-            style={styles.suggestionsButton}
-            onPress={() => setShowSuggestions(!showSuggestions)}
-          >
-            <Feather name="message-square" size={20} color="#64748b" />
-          </TouchableOpacity>
           <TextInput
             style={styles.textInput}
             value={messageText}
@@ -847,14 +845,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5,
   },
-  suggestionsButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 8,
-  },
+
   textInput: {
     flex: 1,
     borderWidth: 1,

@@ -66,6 +66,7 @@ export const ChatListScreen: React.FC<ChatListScreenProps> = ({ navigation }) =>
         itemId: item.item_id,
         otherUserId: otherUser.id,
         otherUserName: otherUser.full_name,
+        unreadCount: unreadCount,
       });
 
       navigation.navigate('Chat', {
