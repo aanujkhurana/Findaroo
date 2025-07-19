@@ -224,7 +224,12 @@ const AuthStackWithSkip = ({ onSkipAuth }: { onSkipAuth: () => void }) => (
 // Main Tab Navigator - for authenticated users
 const MainTabs = () => {
   const insets = useSafeAreaInsets();
-  const { totalUnreadCount } = useUnreadCount(); // Get unread count for messages tab
+  const { totalUnreadCount, refreshUnreadCount } = useUnreadCount(); // Get unread count for messages tab
+
+  // Debug logging for unread count
+  React.useEffect(() => {
+    console.log('[MainTabs] Unread count updated:', totalUnreadCount);
+  }, [totalUnreadCount]);
 
   return (
     <Tab.Navigator
