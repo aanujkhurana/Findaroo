@@ -39,6 +39,19 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
   console.log('[ChatScreen] Initialized with params:', { itemId, otherUserId, otherUserName });
 
   const { session } = useAuth();
+
+  // Prevent users from chatting with themselves
+  React.useEffect(() => {
+    if (session?.user && session.user.id === otherUserId) {
+      console.error('[ChatScreen] User trying to chat with themselves');
+      Alert.alert(
+        'Invalid Action',
+        'You cannot send messages to yourself.',
+        [{ text: 'OK', onPress: () => navigation.goBack() }]
+      );
+      return;
+    }
+  }, [session?.user, otherUserId, navigation]);
   const {
     messages,
     loading,
