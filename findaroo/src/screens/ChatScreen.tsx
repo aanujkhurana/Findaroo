@@ -11,12 +11,12 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MaterialIcons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { useChat } from '../hooks/useChat';
 import { useAuth } from '../hooks/useAuth';
 import { Loading } from '../components/Loading';
 import { Message } from '../types';
-import { testDatabaseConnection, testRealTimeConnection } from '../utils/testDatabase';
+
 import { useItems } from '../hooks/useItems';
 import { supabase } from '../services/supabaseClient';
 
@@ -105,13 +105,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
     }
   }, [messages, scrollToBottom]);
 
-  useEffect(() => {
-    const runTests = async () => {
-      await testDatabaseConnection();
-      await testRealTimeConnection();
-    };
-    runTests();
-  }, []);
+
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', markAllAsRead);
@@ -195,10 +189,10 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
               </Text>
               {isMyMessage && (
                 <View style={styles.readReceiptContainer}>
-                  <MaterialIcons
-                    name={isMessageRead(item) ? "done-all" : "done"}
+                  <Feather
+                    name={isMessageRead(item) ? "check-circle" : "check"}
                     size={14}
-                    color={isMessageRead(item) ? "#3A8DFF" : "#9CA3AF"}
+                    color={isMessageRead(item) ? "#000000" : "#9CA3AF"}
                   />
                 </View>
               )}
@@ -209,7 +203,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
     );
   }, [session?.user?.id, messages, formatDate, formatTime, isMessageRead]);
 
-  if (loading) {
+  if (loading || itemLoading) {
     return <Loading message="Loading messages..." />;
   }
 
@@ -218,6 +212,28 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
       <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>You need to be signed in to chat</Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.retryButtonText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Error loading messages: {error}</Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.retryButtonText}>Go Back</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
@@ -228,7 +244,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
       {/* Custom Header */}
       <View style={styles.customHeader}>
         <TouchableOpacity style={styles.headerBackBtn} onPress={() => navigation.goBack()}>
-          <MaterialIcons name="arrow-back" size={26} color="#4F46E5" />
+          <Feather name="arrow-left" size={26} color="#000000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>{otherUserName}</Text>
         <View style={{ width: 40 }} /> {/* Placeholder for symmetry */}
@@ -249,7 +265,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
             <Text style={{ color: '#3730a3', marginBottom: 8, fontWeight: '600' }}>Is this item resolved?</Text>
             <TouchableOpacity
               style={{
-                backgroundColor: resolving ? '#9ca3af' : '#4f46e5',
+                backgroundColor: resolving ? '#9ca3af' : '#000000',
                 paddingHorizontal: 24,
                 paddingVertical: 10,
                 borderRadius: 20,
@@ -327,9 +343,9 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
             disabled={!messageText.trim() || sending}
           >
             {sending ? (
-              <MaterialIcons name="hourglass-empty" size={24} color="#fff" />
+              <Feather name="clock" size={24} color="#fff" />
             ) : (
-              <MaterialIcons name="send" size={24} color="#fff" />
+              <Feather name="send" size={24} color="#fff" />
             )}
           </TouchableOpacity>
         </View>
@@ -493,7 +509,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
   },
   sendButton: {
-    backgroundColor: '#4f46e5',
+    backgroundColor: '#000000',
     width: 44,
     height: 44,
     borderRadius: 22,
@@ -514,5 +530,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     fontStyle: 'italic',
+  },
+  errorText: {
+    color: '#dc2626',
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  retryButton: {
+    backgroundColor: '#000000',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

@@ -40,42 +40,7 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
   const subscriptionRef = useRef<any>(null);
   const currentUserIdRef = useRef<string | null>(null);
 
-  useEffect(() => {
-    let isMounted = true;
 
-    const initializeChat = async () => {
-      const currentUser = await supabase.auth.getUser();
-      if (currentUser.data.user && isMounted) {
-        currentUserIdRef.current = currentUser.data.user.id;
-        console.log(`[useChat] Initialized with user: ${currentUser.data.user.id}`);
-      }
-
-      if (itemId && otherUserId && isMounted) {
-        console.log(`[useChat] Setting up chat for item: ${itemId}, other user: ${otherUserId}`);
-        await fetchMessages();
-        subscribeToMessages();
-      } else if (isMounted) {
-        await fetchThreads();
-        subscribeToAllMessages();
-      }
-    };
-
-    initializeChat();
-
-    // Cleanup subscriptions on unmount
-    return () => {
-      isMounted = false;
-      console.log('[useChat] Cleaning up subscriptions');
-      if (subscriptionRef.current) {
-        try {
-          subscriptionRef.current.unsubscribe();
-        } catch (error) {
-          console.log('[useChat] Error unsubscribing:', error);
-        }
-        subscriptionRef.current = null;
-      }
-    };
-  }, [itemId, otherUserId]);
 
   const fetchMessages = React.useCallback(async () => {
     if (!itemId || !otherUserId) {
@@ -247,7 +212,7 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
         subscriptionRef.current = null;
       }
     };
-  }, [itemId, otherUserId, fetchMessages, fetchThreads]);
+  }, [itemId, otherUserId]); // Removed fetchMessages and fetchThreads from dependencies
 
   const subscribeToMessages = React.useCallback(() => {
     if (!itemId || !otherUserId || !currentUserIdRef.current) {
@@ -314,7 +279,7 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
               if (messageData.receiver_id === currentUserIdRef.current) {
                 Notifications.presentNotificationAsync({
                   title: messageData.sender.full_name,
-                  body: messageData.content,
+                  body: messageData.message, // Fixed: use 'message' field instead of 'content'
                   sound: 'default',
                 });
               }
@@ -447,7 +412,7 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
             if (messageData.receiver_id === currentUserIdRef.current) {
               Notifications.presentNotificationAsync({
                 title: messageData.sender.full_name,
-                body: messageData.content,
+                body: messageData.message, // Fixed: use 'message' field instead of 'content'
                 sound: 'default',
               });
             }
@@ -470,7 +435,7 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
         item_id: itemId,
         sender_id: currentUserIdRef.current,
         receiver_id: receiverId,
-        content,
+        message: content, // Fixed: use 'message' field instead of 'content'
         sent_at: new Date().toISOString(),
       };
 

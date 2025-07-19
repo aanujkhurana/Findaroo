@@ -9,7 +9,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MaterialIcons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { useChat } from '../hooks/useChat';
 import { useAuth } from '../hooks/useAuth';
 import { Loading } from '../components/Loading';
@@ -85,7 +85,7 @@ export const ChatListScreen: React.FC<ChatListScreenProps> = ({ navigation }) =>
             <Image source={{ uri: otherUser.profile_pic }} style={styles.avatar} />
           ) : (
             <View style={styles.avatarPlaceholder}>
-              <MaterialIcons name="person" size={24} color="#9CA3AF" />
+              <Feather name="user" size={24} color="#9CA3AF" />
             </View>
           )}
         </View>
@@ -122,7 +122,7 @@ export const ChatListScreen: React.FC<ChatListScreenProps> = ({ navigation }) =>
               </Text>
             </View>
           )}
-          <MaterialIcons name="chevron-right" size={20} color="#9CA3AF" />
+          <Feather name="chevron-right" size={20} color="#9CA3AF" />
         </View>
       </TouchableOpacity>
     );
@@ -136,7 +136,7 @@ export const ChatListScreen: React.FC<ChatListScreenProps> = ({ navigation }) =>
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.emptyState}>
-          <MaterialIcons name="chat" size={64} color="#9CA3AF" />
+          <Feather name="message-circle" size={64} color="#9CA3AF" />
           <Text style={styles.emptyTitle}>Sign in to view chats</Text>
           <Text style={styles.emptySubtitle}>
             You need to be signed in to see your conversations
@@ -151,7 +151,7 @@ export const ChatListScreen: React.FC<ChatListScreenProps> = ({ navigation }) =>
       <View style={styles.headerWrapper}>
         <View style={styles.headerModern}>
           <Text style={styles.headerTitleModern}>Messages</Text>
-          <MaterialIcons name="chat-bubble-outline" size={28} color="#4f46e5" style={styles.headerIconModern} />
+          <Feather name="message-circle" size={28} color="#000000" style={styles.headerIconModern} />
         </View>
         <View style={styles.headerDivider} />
       </View>
@@ -162,7 +162,7 @@ export const ChatListScreen: React.FC<ChatListScreenProps> = ({ navigation }) =>
       )}
       {threads.length === 0 && !loading ? (
         <View style={styles.emptyStateModern}>
-          <MaterialIcons name="chat-bubble-outline" size={72} color="#e0e7ff" />
+          <Feather name="message-circle" size={72} color="#e0e7ff" />
           <Text style={styles.emptyTitleModern}>No conversations yet</Text>
           <Text style={styles.emptySubtitleModern}>
             Start a conversation by messaging someone about their lost or found item
@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
   },
   itemTitle: {
     fontSize: 15,
-    color: '#6366f1',
+    color: '#000000',
     fontWeight: '600',
     marginBottom: 2,
   },
@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   unreadBadge: {
-    backgroundColor: '#6366f1',
+    backgroundColor: '#000000',
     borderRadius: 14,
     minWidth: 28,
     height: 28,
@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 4,
     paddingHorizontal: 8,
-    shadowColor: '#6366f1',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.12,
     shadowRadius: 2,
@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
   emptyTitleModern: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#6366f1',
+    color: '#000000',
     marginTop: 18,
     marginBottom: 8,
     letterSpacing: -0.3,
