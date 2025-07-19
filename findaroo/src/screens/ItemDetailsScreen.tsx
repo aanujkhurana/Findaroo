@@ -11,21 +11,21 @@ import { useAuth } from '../hooks/useAuth';
 
 // Findaroo UI Style Guide Colors
 const COLORS = {
-  primary: '#3A8DFF',
-  secondary: '#FFA930',
-  success: '#33C48D',
-  error: '#FF4C4C',
-  neutral: '#F2F2F2',
-  dark: '#2E2E2E',
-  background: '#f8fafc',
-  card: '#ffffff',
-  text: '#222222',
-  muted: '#6b7280',
-  border: '#e5e7eb',
+  primary: '#000000',      // Black accent (updated to match style guide)
+  secondary: '#FFA930',    // Official Findaroo orange
+  success: '#33C48D',      // Success green
+  error: '#FF4C4C',        // Error red
+  neutral: '#F2F2F2',      // Neutral gray
+  dark: '#2E2E2E',         // Dark gray
+  background: '#f8fafc',   // Light background
+  card: '#ffffff',         // Card background
+  text: '#222222',         // Text color
+  muted: '#6b7280',        // Muted text
+  border: '#e5e7eb',       // Border color
 };
 
 // Category icon mapping with proper Feather icons
-const getCategoryIcon = (category: string, size: number = 20, color: string = COLORS.primary) => {
+const getCategoryIcon = (category: string, size: number = 20, color: string = COLORS.dark) => {
   const iconMap: { [key: string]: string } = {
     electronics: 'smartphone',
     phone: 'smartphone',
@@ -84,8 +84,8 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
     switch (status) {
       case 'lost': return COLORS.error;
       case 'found': return COLORS.success;
-      case 'returned': return COLORS.primary;
-      case 'claimed': return COLORS.primary;
+      case 'returned': return COLORS.dark;      // Use dark instead of primary for better contrast
+      case 'claimed': return COLORS.dark;       // Use dark instead of primary for better contrast
       case 'kept': return COLORS.secondary;
       case 'flagged': return COLORS.error;
       case 'duplicate': return COLORS.muted;
@@ -373,7 +373,7 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
+          <ActivityIndicator size="large" color={COLORS.dark} />
           <Text style={styles.loadingText}>Loading item details...</Text>
         </View>
       </SafeAreaView>
@@ -388,7 +388,7 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
           <Text style={styles.errorTitle}>Oops! Something went wrong</Text>
           <Text style={styles.errorMessage}>{error || 'Item not found.'}</Text>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.errorButton}>
-            <Feather name="arrow-left" size={20} color={COLORS.primary} />
+            <Feather name="arrow-left" size={20} color={COLORS.dark} />
             <Text style={styles.errorButtonText}>Go Back</Text>
           </TouchableOpacity>
         </View>
@@ -544,7 +544,7 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
             <Text style={styles.sectionLabel}>Last Seen</Text>
             {distance && (
               <View style={styles.distanceContainer}>
-                <Feather name="navigation" size={14} color={COLORS.primary} />
+                <Feather name="navigation" size={14} color={COLORS.dark} />
                 <Text style={styles.distanceText}>{distance} away</Text>
               </View>
             )}
@@ -556,7 +556,7 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
             </View>
           </View>
           <View style={styles.lastSeenRow}>
-            <Feather name="clock" size={18} color={COLORS.primary} />
+            <Feather name="clock" size={18} color={COLORS.dark} />
             <Text style={styles.lastSeenDate}>{formatRelativeDate(item.created_at)}</Text>
           </View>
 
@@ -612,7 +612,9 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
         {owner && (
           <View style={styles.card}>
             <Text style={styles.sectionLabel}>Contact Owner</Text>
-            <View style={styles.ownerRow}>
+
+            {/* Owner Profile Row */}
+            <View style={styles.ownerProfileRow}>
               {ownerProfileUrl ? (
                 <Image
                   source={{ uri: ownerProfileUrl }}
@@ -629,47 +631,76 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
                   </Text>
                 </View>
               )}
-              <View style={{ flex: 1 }}>
-                <Text style={styles.ownerName}>{owner.full_name}</Text>
-                <Text style={styles.ownerSince}>Member since {new Date(owner.created_at).getFullYear()}</Text>
-              </View>
-              <View style={styles.ownerRating}>
-                <Feather name="star" size={16} color={COLORS.secondary} />
-                <Text style={styles.ownerRatingText}>
-                  {(owner.karma_points ? (owner.karma_points / 100).toFixed(1) : '4.8')}
+
+              <View style={styles.ownerInfo}>
+                <View style={styles.ownerNameRow}>
+                  <Text style={styles.ownerName}>{owner.full_name}</Text>
+                  {/* Verification badge if user is verified */}
+                  {owner.phone_verified && (
+                    <View style={styles.verificationBadge}>
+                      <Feather name="check-circle" size={14} color={COLORS.success} />
+                    </View>
+                  )}
+                </View>
+
+                <Text style={styles.ownerSince}>
+                  Member since {new Date(owner.created_at).getFullYear()}
                 </Text>
+
+                {/* Karma/Rating Display */}
+                <View style={styles.ownerStatsRow}>
+                  <View style={styles.karmaContainer}>
+                    <Feather name="star" size={14} color={COLORS.secondary} />
+                    <Text style={styles.karmaText}>
+                      {(owner.karma_points ? (owner.karma_points / 100).toFixed(1) : '4.8')} karma
+                    </Text>
+                  </View>
+                </View>
               </View>
             </View>
-            <View style={styles.ownerActions}>
-              {!isOwner && (
-                <TouchableOpacity
-                  style={styles.messageBtn}
-                  onPress={() => navigation.navigate('Chat', {
-                    itemId: item.id,
-                    otherUserId: owner.id,
-                    otherUserName: owner.full_name,
-                  })}
-                >
-                  <Feather name="message-circle" size={18} color={COLORS.primary} />
-                  <Text style={styles.messageBtnText}>Message</Text>
-                </TouchableOpacity>
-              )}
 
-              {!isOwner && (
-                <TouchableOpacity
-                  style={styles.callBtn}
-                  onPress={handleCall}
-                  disabled={!owner.phone}
-                >
-                  <Feather name="phone" size={18} color={owner.phone ? COLORS.success : COLORS.muted} />
-                  <Text style={[styles.callBtnText, { color: owner.phone ? COLORS.success : COLORS.muted }]}>
-                    {owner.phone ? 'Call' : 'No Phone'}
-                  </Text>
-                </TouchableOpacity>
-              )}
+            {/* Contact Actions */}
+            <View style={styles.contactActions}>
+              {!isOwner ? (
+                <>
+                  <TouchableOpacity
+                    style={styles.primaryContactBtn}
+                    onPress={() => navigation.navigate('Chat', {
+                      itemId: item.id,
+                      otherUserId: owner.id,
+                      otherUserName: owner.full_name,
+                    })}
+                  >
+                    <Feather name="message-circle" size={18} color="#fff" />
+                    <Text style={styles.primaryContactBtnText}>Send Message</Text>
+                  </TouchableOpacity>
 
-              {isOwner && (
-                <Text style={styles.ownerLabel}>This is your item</Text>
+                  <TouchableOpacity
+                    style={[
+                      styles.secondaryContactBtn,
+                      !owner.phone && styles.disabledContactBtn
+                    ]}
+                    onPress={handleCall}
+                    disabled={!owner.phone}
+                  >
+                    <Feather
+                      name="phone"
+                      size={18}
+                      color={owner.phone ? COLORS.success : COLORS.muted}
+                    />
+                    <Text style={[
+                      styles.secondaryContactBtnText,
+                      { color: owner.phone ? COLORS.success : COLORS.muted }
+                    ]}>
+                      {owner.phone ? 'Call' : 'No Phone'}
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <View style={styles.ownerNotice}>
+                  <Feather name="user" size={18} color={COLORS.muted} />
+                  <Text style={styles.ownerNoticeText}>This is your item</Text>
+                </View>
               )}
             </View>
           </View>
@@ -793,7 +824,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.primary,
+    color: COLORS.dark,
   },
 
   // Header
@@ -967,7 +998,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   distanceText: {
-    color: COLORS.primary,
+    color: COLORS.dark,
     fontSize: 14,
     fontWeight: '600'
   },
@@ -1025,7 +1056,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.success,
   },
   ctaButtonSecondary: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.dark,
   },
   ctaButtonOwner: {
     backgroundColor: COLORS.dark,
@@ -1111,93 +1142,132 @@ const styles = StyleSheet.create({
   },
 
 
-  // Owner Section
-  ownerRow: {
+  // Owner Section - Updated for modern contact card
+  ownerProfileRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16
+    alignItems: 'flex-start',
+    marginBottom: 20,
   },
   ownerAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    marginRight: 12
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    marginRight: 16,
+    borderWidth: 2,
+    borderColor: COLORS.border,
   },
   ownerAvatarFallback: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.dark,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
   },
   ownerAvatarText: {
     color: '#fff',
     fontWeight: 'bold',
-    fontSize: 20
+    fontSize: 22,
+  },
+  ownerInfo: {
+    flex: 1,
+  },
+  ownerNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
   },
   ownerName: {
     color: COLORS.text,
     fontWeight: 'bold',
-    fontSize: 16
+    fontSize: 18,
+    marginRight: 8,
+  },
+  verificationBadge: {
+    marginLeft: 4,
   },
   ownerSince: {
     color: COLORS.muted,
-    fontSize: 13,
-    marginTop: 2,
+    fontSize: 14,
+    marginBottom: 8,
   },
-  ownerRating: {
+  ownerStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  karmaContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFF4E8',
     borderRadius: 12,
     paddingHorizontal: 10,
-    paddingVertical: 4
+    paddingVertical: 4,
   },
-  ownerRatingText: {
+  karmaText: {
     color: COLORS.secondary,
-    fontWeight: 'bold',
-    fontSize: 14,
-    marginLeft: 4
+    fontWeight: '600',
+    fontSize: 13,
+    marginLeft: 4,
   },
-  ownerActions: {
-    flexDirection: 'row',
-    gap: 12,
+
+  // Contact Actions - Updated for better UX
+  contactActions: {
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
   },
-  messageBtn: {
-    flex: 1,
+  primaryContactBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#E8F0FF',
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    backgroundColor: COLORS.dark,
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  messageBtnText: {
-    color: COLORS.primary,
-    fontWeight: '600',
-    fontSize: 15,
-    marginLeft: 8
+  primaryContactBtnText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+    marginLeft: 8,
   },
-  callBtn: {
-    flex: 1,
+  secondaryContactBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#E8F5E8',
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderWidth: 1,
+    borderColor: COLORS.success,
   },
-  callBtnText: {
+  disabledContactBtn: {
+    backgroundColor: COLORS.neutral,
+    borderColor: COLORS.border,
+  },
+  secondaryContactBtnText: {
     fontWeight: '600',
-    fontSize: 15,
-    marginLeft: 8
+    fontSize: 16,
+    marginLeft: 8,
   },
-  ownerLabel: {
+  ownerNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.neutral,
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+  },
+  ownerNoticeText: {
     color: COLORS.muted,
-    fontSize: 14,
-    fontStyle: 'italic',
-    textAlign: 'center',
-    flex: 1,
+    fontSize: 16,
+    fontWeight: '500',
+    marginLeft: 8,
   },
 
   // Similar Items
