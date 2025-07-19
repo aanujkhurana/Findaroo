@@ -4,6 +4,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useAuth } from '../hooks/useAuth';
+import { useUnreadCount } from '../hooks/useUnreadCount';
 import { Loading } from '../components/Loading';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Feather } from '@expo/vector-icons';
@@ -37,17 +38,19 @@ const getIconName = (baseName: string, focused: boolean): string => {
   return baseName;
 };
 
-// Animated Tab Icon Component
+// Animated Tab Icon Component with Badge Support
 const AnimatedTabIcon = ({
   iconName,
   focused,
   size = 24,
-  label
+  label,
+  badgeCount = 0
 }: {
   iconName: string;
   focused: boolean;
   size?: number;
   label: string;
+  badgeCount?: number;
 }) => {
   const [bounceValue] = useState(new Animated.Value(1));
   const [rotateValue] = useState(new Animated.Value(0));
@@ -137,18 +140,46 @@ const AnimatedTabIcon = ({
           width: 60, // Fixed width to prevent label wrapping
         }}
       >
-        <Feather
-          name={getIconName(iconName, focused) as any}
-          size={focused ? size + 2 : size}
-          color={focused ? '#000000' : '#64748B'}
-          style={{
-            textShadowColor: focused ? 'rgba(0, 0, 0, 0.2)' : 'transparent',
-            textShadowOffset: { width: 0, height: 1 },
-            textShadowRadius: 3,
-            marginBottom: 4,
-            fontWeight: focused ? 'bold' : 'normal',
-          }}
-        />
+        <View style={{ position: 'relative' }}>
+          <Feather
+            name={getIconName(iconName, focused) as any}
+            size={focused ? size + 2 : size}
+            color={focused ? '#000000' : '#64748B'}
+            style={{
+              textShadowColor: focused ? 'rgba(0, 0, 0, 0.2)' : 'transparent',
+              textShadowOffset: { width: 0, height: 1 },
+              textShadowRadius: 3,
+              marginBottom: 4,
+              fontWeight: focused ? 'bold' : 'normal',
+            }}
+          />
+
+          {/* Badge */}
+          {badgeCount > 0 && (
+            <View style={{
+              position: 'absolute',
+              top: -6,
+              right: -8,
+              backgroundColor: '#FF4C4C',
+              borderRadius: 10,
+              minWidth: 20,
+              height: 20,
+              justifyContent: 'center',
+              alignItems: 'center',
+              borderWidth: 2,
+              borderColor: '#fff',
+            }}>
+              <Text style={{
+                color: '#fff',
+                fontSize: 11,
+                fontWeight: '700',
+                textAlign: 'center',
+              }}>
+                {badgeCount > 99 ? '99+' : badgeCount}
+              </Text>
+            </View>
+          )}
+        </View>
 
         {/* Label */}
         <Text
@@ -193,6 +224,7 @@ const AuthStackWithSkip = ({ onSkipAuth }: { onSkipAuth: () => void }) => (
 // Main Tab Navigator - for authenticated users
 const MainTabs = () => {
   const insets = useSafeAreaInsets();
+  const { totalUnreadCount } = useUnreadCount(); // Get unread count for messages tab
 
   return (
     <Tab.Navigator
@@ -281,6 +313,7 @@ const MainTabs = () => {
             focused={focused}
             size={24}
             label="Message"
+            badgeCount={totalUnreadCount}
           />
         ),
       }}
