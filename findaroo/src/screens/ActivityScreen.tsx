@@ -445,7 +445,7 @@ export default function ActivityScreen() {
         <Text style={[styles.modernHeaderTitle, { color: headerStyle.textColor }]}>Activity</Text>
         <TouchableOpacity
           style={styles.headerActionButton}
-          onPress={() => navigation.navigate('Items')}
+          onPress={() => navigation.navigate('My Items')}
         >
           <Feather name="plus" size={20} color={headerStyle.textColor} />
         </TouchableOpacity>
@@ -507,7 +507,7 @@ export default function ActivityScreen() {
               {filter === 'all' && (
                 <TouchableOpacity
                   style={styles.emptyActionButton}
-                  onPress={() => navigation.navigate('Items')}
+                  onPress={() => navigation.navigate('My Items')}
                 >
                   <Feather name="plus" size={18} color="#fff" />
                   <Text style={styles.emptyActionText}>Post an Item</Text>
