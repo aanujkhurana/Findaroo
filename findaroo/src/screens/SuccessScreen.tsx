@@ -21,20 +21,14 @@ const COLORS = {
 export default function SuccessScreen() {
   const navigation: any = useNavigation();
 
-  const handlePostAnother = () => {
-    navigation.navigate('CreateLostItem');
-  };
-
-  const handleReportFound = () => {
-    navigation.navigate('CreateFoundItem');
-  };
-
   const handleViewPosts = () => {
-    navigation.navigate('Activity');
+    // Navigate to Activity tab in the main navigation
+    navigation.navigate('MainTabs', { screen: 'Activity' });
   };
 
   const handleBackToHome = () => {
-    navigation.navigate('Home');
+    // Navigate to Home tab (which is the HomeFeedScreen)
+    navigation.navigate('MainTabs', { screen: 'Home' });
   };
 
   return (
@@ -46,12 +40,12 @@ export default function SuccessScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.backButton}
-            onPress={() => navigation.goBack()}
+            onPress={handleBackToHome}
             activeOpacity={0.7}
           >
-            <Feather name="arrow-left" size={24} color={COLORS.black} />
+            <Feather name="x" size={24} color={COLORS.black} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Success</Text>
           <View style={styles.headerSpacer} />
@@ -72,26 +66,7 @@ export default function SuccessScreen() {
           </Text>
         </View>
 
-        {/* Action Buttons */}
-        <View style={styles.actionsContainer}>
-          <TouchableOpacity 
-            style={styles.primaryButton}
-            onPress={handlePostAnother}
-            activeOpacity={0.8}
-          >
-            <Feather name="plus" size={20} color={COLORS.white} />
-            <Text style={styles.primaryButtonText}>Post Another Item</Text>
-          </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={styles.secondaryButton}
-            onPress={handleReportFound}
-            activeOpacity={0.8}
-          >
-            <Feather name="search" size={20} color={COLORS.success} />
-            <Text style={styles.secondaryButtonText}>Report Found Item</Text>
-          </TouchableOpacity>
-        </View>
 
         {/* What happens next */}
         <View style={styles.stepsContainer}>
@@ -149,21 +124,22 @@ export default function SuccessScreen() {
 
         {/* Navigation Buttons */}
         <View style={styles.navigationContainer}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.primaryButton}
             onPress={handleViewPosts}
             activeOpacity={0.8}
           >
-            <Feather name="list" size={20} color={COLORS.white} />
-            <Text style={styles.primaryButtonText}>View My Posts</Text>
+            <Feather name="package" size={20} color={COLORS.white} />
+            <Text style={styles.primaryButtonText}>View My Items</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.outlineButton}
             onPress={handleBackToHome}
             activeOpacity={0.8}
           >
-            <Text style={styles.outlineButtonText}>Back to Home</Text>
+            <Feather name="map-pin" size={18} color={COLORS.text} />
+            <Text style={styles.outlineButtonText}>Explore Feed</Text>
           </TouchableOpacity>
         </View>
 
@@ -257,10 +233,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 22,
   },
-  actionsContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 32,
-  },
+
   primaryButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -281,27 +254,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 8,
   },
-  secondaryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.white,
-    paddingVertical: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.success,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  secondaryButtonText: {
-    color: COLORS.success,
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
+
   stepsContainer: {
     paddingHorizontal: 20,
     marginBottom: 32,
@@ -373,6 +326,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   outlineButton: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: COLORS.white,
@@ -391,6 +345,7 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     fontSize: 16,
     fontWeight: '600',
+    marginLeft: 8,
   },
   statsContainer: {
     flexDirection: 'row',
