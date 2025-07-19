@@ -32,13 +32,16 @@ const playMessageSound = async () => {
 };
 
 export const useChat = (itemId?: string, otherUserId?: string) => {
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [threads, setThreads] = useState<ChatThread[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [forceInit, setForceInit] = useState(0);
   const subscriptionRef = useRef<any>(null);
   const currentUserIdRef = useRef<string | null>(null);
+  const initializationRef = useRef<boolean>(false);
 
 
 
@@ -178,41 +181,61 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
     }
   }, []);
 
-  useEffect(() => {
+  // Force initialization on mount
+  React.useEffect(() => {
+    setForceInit(1);
+  }, []);
+
+  // Initialize chat functionality
+  React.useEffect(() => {
+    console.log('[useChat] EFFECT STARTING - itemId:', itemId, 'otherUserId:', otherUserId);
+
+    // Mark as initialized
+    initializationRef.current = true;
+
     let isMounted = true;
 
-    const initializeChat = async () => {
-      const currentUser = await supabase.auth.getUser();
-      if (currentUser.data.user && isMounted) {
-        currentUserIdRef.current = currentUser.data.user.id;
-        console.log(`[useChat] Initialized with user: ${currentUser.data.user.id}`);
-      }
+    const initialize = async () => {
+      try {
+        console.log('[useChat] Getting current user...');
+        const { data: { user } } = await supabase.auth.getUser();
 
-      if (itemId && otherUserId && isMounted) {
-        console.log(`[useChat] Setting up chat for item: ${itemId}, other user: ${otherUserId}`);
-        await fetchMessages();
-        subscribeToMessages();
-      } else if (isMounted) {
-        await fetchThreads();
-        subscribeToAllMessages();
+        if (!user) {
+          console.log('[useChat] No user found');
+          return;
+        }
+
+        if (!isMounted) return;
+
+        currentUserIdRef.current = user.id;
+        console.log('[useChat] User set:', user.id);
+
+        if (itemId && otherUserId) {
+          console.log('[useChat] Fetching messages for chat...');
+          await fetchMessages();
+          subscribeToMessages();
+        } else {
+          console.log('[useChat] Fetching threads...');
+          await fetchThreads();
+          subscribeToAllMessages();
+        }
+      } catch (error) {
+        console.error('[useChat] Initialization error:', error);
+        setError(error instanceof Error ? error.message : 'Failed to initialize chat');
       }
     };
 
-    initializeChat();
+    initialize();
 
     return () => {
+      console.log('[useChat] CLEANUP RUNNING');
       isMounted = false;
       if (subscriptionRef.current) {
-        console.log('[useChat] Cleaning up subscriptions');
-        try {
-          subscriptionRef.current.unsubscribe();
-        } catch (error) {
-          console.log('[useChat] Error unsubscribing:', error);
-        }
+        subscriptionRef.current.unsubscribe();
         subscriptionRef.current = null;
       }
     };
-  }, [itemId, otherUserId]); // Removed fetchMessages and fetchThreads from dependencies
+  }, [itemId, otherUserId, forceInit]);
 
   const subscribeToMessages = React.useCallback(() => {
     if (!itemId || !otherUserId || !currentUserIdRef.current) {

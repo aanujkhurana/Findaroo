@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
   },
   headerDivider: {
     height: 1,
-    backgroundColor: '#e0e7ff',
+    backgroundColor: '#e2e8f0',
     marginHorizontal: 20,
     marginBottom: 2,
   },
@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: '#e0e7ff',
+    backgroundColor: '#F2F2F2', // Findaroo neutral gray
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#1e293b',
+    color: '#2E2E2E', // Findaroo dark gray
   },
   timestamp: {
     fontSize: 12,
@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
   },
   itemTitle: {
     fontSize: 15,
-    color: '#000000',
+    color: '#2E2E2E', // Findaroo dark gray
     fontWeight: '600',
     marginBottom: 2,
   },
@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   unreadMessage: {
-    color: '#1e293b',
+    color: '#2E2E2E', // Findaroo dark gray
     fontWeight: '700',
   },
   rightSection: {
@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   unreadBadge: {
-    backgroundColor: '#000000',
+    backgroundColor: '#2E2E2E', // Findaroo dark gray (black accent)
     borderRadius: 14,
     minWidth: 28,
     height: 28,
@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 4,
     paddingHorizontal: 8,
-    shadowColor: '#000000',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.12,
     shadowRadius: 2,

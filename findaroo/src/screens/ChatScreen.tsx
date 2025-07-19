@@ -261,15 +261,13 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
         )}
         {/* Call to Action: Mark as Resolved */}
         {!itemLoading && item && !item.resolved && (
-          <View style={{ paddingHorizontal: 16, paddingBottom: 16, backgroundColor: '#e0e7ff', alignItems: 'center' }}>
-            <Text style={{ color: '#3730a3', marginBottom: 8, fontWeight: '600' }}>Is this item resolved?</Text>
+          <View style={styles.callToActionContainer}>
+            <Text style={styles.callToActionText}>Is this item resolved?</Text>
             <TouchableOpacity
-              style={{
-                backgroundColor: resolving ? '#9ca3af' : '#000000',
-                paddingHorizontal: 24,
-                paddingVertical: 10,
-                borderRadius: 20,
-              }}
+              style={[
+                styles.resolveButton,
+                resolving && styles.resolveButtonDisabled
+              ]}
               onPress={() => {
                 Alert.alert(
                   'Confirm',
@@ -282,7 +280,14 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
               }}
               disabled={resolving}
             >
-              <Text style={{ color: '#fff', fontWeight: 'bold' }}>{resolving ? 'Marking...' : 'Mark as Resolved'}</Text>
+              {resolving ? (
+                <Feather name="clock" size={20} color="#fff" style={{ marginRight: 8 }} />
+              ) : (
+                <Feather name="check-circle" size={20} color="#fff" style={{ marginRight: 8 }} />
+              )}
+              <Text style={styles.resolveButtonText}>
+                {resolving ? 'Marking...' : 'Mark as Resolved'}
+              </Text>
             </TouchableOpacity>
           </View>
         )}
@@ -445,16 +450,18 @@ const styles = StyleSheet.create({
     borderRadius: 18,
   },
   myMessageBubble: {
-    backgroundColor: '#4f46e5',
+    backgroundColor: '#2E2E2E', // Findaroo dark gray (black accent)
     borderBottomRightRadius: 4,
   },
   otherMessageBubble: {
     backgroundColor: '#fff',
     borderBottomLeftRadius: 4,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
     elevation: 2,
   },
   messageText: {
@@ -491,33 +498,45 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 16,
     backgroundColor: '#fff',
     borderTopWidth: 1,
     borderTopColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 5,
   },
   textInput: {
     flex: 1,
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    borderRadius: 20,
+    borderRadius: 24,
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 12,
     marginRight: 12,
     maxHeight: 100,
     fontSize: 16,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#F2F2F2', // Findaroo neutral gray
+    color: '#2E2E2E', // Findaroo dark gray
   },
   sendButton: {
-    backgroundColor: '#000000',
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    backgroundColor: '#2E2E2E', // Findaroo dark gray (black accent)
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   sendButtonDisabled: {
     backgroundColor: '#9ca3af',
+    opacity: 0.6,
   },
   suggestionContainer: {
     alignItems: 'center',
@@ -538,14 +557,57 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   retryButton: {
-    backgroundColor: '#000000',
+    backgroundColor: '#2E2E2E', // Findaroo dark gray (black accent)
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   retryButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  callToActionContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    backgroundColor: '#F2F2F2', // Findaroo neutral gray
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#e2e8f0',
+  },
+  callToActionText: {
+    color: '#2E2E2E', // Findaroo dark gray
+    marginBottom: 12,
+    fontWeight: '600',
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  resolveButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#33C48D', // Findaroo success green
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  resolveButtonDisabled: {
+    backgroundColor: '#9ca3af',
+    opacity: 0.7,
+  },
+  resolveButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 16,
   },
 });
