@@ -110,6 +110,8 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
     if (!itemId || !currentUserIdRef.current) return;
 
     try {
+      console.log('[useChat] Marking all messages as read for item:', itemId);
+
       const { error } = await supabase
         .from('messages')
         .update({ read_at: new Date().toISOString() })
@@ -118,6 +120,8 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
         .is('read_at', null);
 
       if (error) throw error;
+
+      console.log('[useChat] Messages marked as read successfully');
 
       setMessages(prev => prev.map(msg =>
         msg.receiver_id === currentUserIdRef.current && !msg.read_at
