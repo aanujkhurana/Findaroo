@@ -245,6 +245,152 @@ class NotificationService {
   removeNotificationSubscription(subscription: Notifications.Subscription) {
     Notifications.removeNotificationSubscription(subscription);
   }
+
+  // Database notification methods
+  async createNotification(
+    userId: string,
+    type: 'message' | 'item_update' | 'system' | 'tip_received' | 'karma_update',
+    title: string,
+    body: string,
+    data?: any
+  ): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: userId,
+          type,
+          title,
+          body,
+          data: data || {},
+        });
+
+      if (error) {
+        console.error('Error creating notification:', error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error creating notification:', error);
+      return false;
+    }
+  }
+
+  async getNotifications(userId: string, limit: number = 50): Promise<any[]> {
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (error) {
+        console.error('Error fetching notifications:', error);
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+      return [];
+    }
+  }
+
+  async getUnreadCount(userId: string): Promise<number> {
+    try {
+      const { count, error } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .is('read_at', null);
+
+      if (error) {
+        console.error('Error getting unread count:', error);
+        return 0;
+      }
+
+      return count || 0;
+    } catch (error) {
+      console.error('Error getting unread count:', error);
+      return 0;
+    }
+  }
+
+  async markAsRead(notificationId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read_at: new Date().toISOString() })
+        .eq('id', notificationId);
+
+      if (error) {
+        console.error('Error marking notification as read:', error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+      return false;
+    }
+  }
+
+  async markAllAsRead(userId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read_at: new Date().toISOString() })
+        .eq('user_id', userId)
+        .is('read_at', null);
+
+      if (error) {
+        console.error('Error marking all notifications as read:', error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+      return false;
+    }
+  }
+
+  // Enhanced message notification that also creates database record
+  async sendMessageNotificationWithDB(
+    recipientUserId: string,
+    senderName: string,
+    messagePreview: string,
+    itemTitle: string,
+    data: NotificationData
+  ): Promise<boolean> {
+    // Create database notification
+    await this.createNotification(
+      recipientUserId,
+      'message',
+      `New message from ${senderName}`,
+      `About "${itemTitle}": ${messagePreview}`,
+      data
+    );
+
+    // Send push notification
+    return this.sendMessageNotification(recipientUserId, senderName, messagePreview, itemTitle, data);
+  }
+
+  // Enhanced item update notification that also creates database record
+  async sendItemUpdateNotificationWithDB(
+    recipientUserId: string,
+    title: string,
+    body: string,
+    data: NotificationData
+  ): Promise<boolean> {
+    // Create database notification
+    await this.createNotification(recipientUserId, 'item_update', title, body, data);
+
+    // Send push notification
+    return this.sendItemUpdateNotification(recipientUserId, title, body, data);
+  }
 }
 
 export const notificationService = new NotificationService();
