@@ -136,29 +136,38 @@ export const ItemCard: React.FC<ItemCardProps> = ({ item, onPress, userLocation,
 
   return (
     <TouchableOpacity onPress={onPress} style={[styles.fbCard, cardStyle]}>
-      {/* Large Image on Top */}
-      {itemImageUrl ? (
-        <Image
-          source={{ uri: itemImageUrl }}
-          style={[styles.fbImage, imageStyle]}
-          resizeMode="cover"
-        />
-      ) : (
-        <View style={[styles.fbImage, styles.fbImageFallback, imageStyle]}>
-          {getCategoryIcon(item.category, COLORS.primary)}
+      {/* Large Image on Top with Status Badge */}
+      <View style={styles.fbImageContainer}>
+        {itemImageUrl ? (
+          <Image
+            source={{ uri: itemImageUrl }}
+            style={[styles.fbImage, imageStyle]}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={[styles.fbImage, styles.fbImageFallback, imageStyle]}>
+            {getCategoryIcon(item.category, COLORS.primary)}
+          </View>
+        )}
+        {/* Status Badge on Image */}
+        <View style={[styles.fbStatusBadgeOnImage, { backgroundColor: statusStyle.backgroundColor }]}>
+          <Text style={[styles.fbStatusBadgeText, { color: statusStyle.color }]}>
+            {item.status}
+          </Text>
         </View>
-      )}
+      </View>
       {/* Content Section */}
       <View style={styles.fbContent}>
         <View style={styles.fbHeaderRow}>
           <Text style={styles.fbTitle} numberOfLines={2}>{item.title}</Text>
-          <View style={[styles.fbStatusBadge, { backgroundColor: statusStyle.backgroundColor }]}> 
-            <Text style={[styles.fbStatusBadgeText, { color: statusStyle.color }]}> 
-              {item.status}
-            </Text>
+          <View style={styles.fbHeaderInfo}>
+            {distanceText && (
+              <Text style={styles.fbHeaderDistance}>{distanceText}</Text>
+            )}
+            <Text style={styles.fbHeaderTime}>{formatDate(item.created_at)}</Text>
           </View>
         </View>
-        <Text style={styles.fbMeta}>{item.category} • {formatDate(item.created_at)}</Text>
+        <Text style={styles.fbMeta}>{item.category}</Text>
         {item.description && item.description.trim() ? (
           <Text style={styles.fbDesc} numberOfLines={3}>{item.description}</Text>
         ) : (
@@ -188,12 +197,7 @@ export const ItemCard: React.FC<ItemCardProps> = ({ item, onPress, userLocation,
               <Text style={styles.fbFooterTextPlaceholder}>No reward offered</Text>
             </View>
           )}
-          {distanceText && (
-            <View style={styles.fbFooterItem}>
-              <Feather name="navigation" size={14} color={COLORS.primary} />
-              <Text style={[styles.fbFooterText, { color: COLORS.primary }]}>{distanceText}</Text>
-            </View>
-          )}
+
         </View>
 
 
@@ -317,6 +321,10 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     minHeight: 260,
   },
+  fbImageContainer: {
+    position: 'relative',
+    width: '100%',
+  },
   fbImage: {
     width: '100%',
     height: 150,
@@ -347,12 +355,41 @@ const styles = StyleSheet.create({
     marginRight: 8,
     lineHeight: 22,
   },
+  fbHeaderInfo: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
+  fbHeaderDistance: {
+    fontFamily: 'RobotoMono-Regular',
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.primary,
+    marginBottom: 2,
+  },
+  fbHeaderTime: {
+    fontFamily: 'Inter',
+    fontSize: 11,
+    color: COLORS.muted,
+    fontWeight: '500',
+  },
   fbStatusBadge: {
     borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 4,
     alignSelf: 'flex-start',
     marginLeft: 4,
+  },
+  fbStatusBadgeOnImage: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
   },
   fbStatusBadgeText: {
     fontFamily: 'Inter',
