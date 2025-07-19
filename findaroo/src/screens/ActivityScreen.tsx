@@ -451,41 +451,6 @@ export default function ActivityScreen() {
         </TouchableOpacity>
       </View>
       <View style={styles.container}>
-        {/* Professional Action Bar */}
-        <View style={styles.actionBarContainer}>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => navigation.navigate('Items')}
-          >
-            <Feather name="plus" size={16} color={COLORS.primary} />
-            <Text style={styles.actionButtonText}>Post</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={handleRefresh}
-          >
-            <Feather name="refresh-cw" size={16} color={COLORS.primary} />
-            <Text style={styles.actionButtonText}>Refresh</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => navigation.navigate('Messages')}
-          >
-            <Feather name="message-circle" size={16} color={COLORS.primary} />
-            <Text style={styles.actionButtonText}>Messages</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => navigation.navigate('Explore')}
-          >
-            <Feather name="search" size={16} color={COLORS.primary} />
-            <Text style={styles.actionButtonText}>Explore</Text>
-          </TouchableOpacity>
-        </View>
-
         {/* Enhanced Filter Bar with Counts */}
         <View style={styles.filterContainer}>
           {FILTERS.map(f => (
@@ -739,14 +704,24 @@ const styles = StyleSheet.create({
     width: '100%',
     paddingTop: Platform.OS === 'ios' ? 18 : 16,
     paddingBottom: 18,
-    paddingHorizontal: 24,
-    alignItems: 'flex-start',
-    justifyContent: 'flex-end',
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12,
     shadowRadius: 6,
     elevation: 4,
     zIndex: 10,
+  },
+  headerActionButton: {
+    padding: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 40,
+    minHeight: 40,
   },
   modernHeaderTitle: {
     fontFamily: 'Manrope-SemiBold',
@@ -763,43 +738,12 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontFamily: 'Inter',
   },
-  // Professional Action Bar Styles
-  actionBarContainer: {
-    flexDirection: 'row',
-    marginHorizontal: 20,
-    marginTop: 8,
-    marginBottom: 16,
-    gap: 12,
-    justifyContent: 'space-between',
-  },
-  actionButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.card,
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    gap: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  actionButtonText: {
-    color: COLORS.primary,
-    fontSize: 13,
-    fontWeight: '600',
-    fontFamily: 'Inter',
-  },
+
   // Enhanced Filter Styles with Counts
   filterContainer: {
     flexDirection: 'row',
     marginHorizontal: 20,
+    marginTop: 16,
     marginBottom: 16,
     gap: 8,
   },
