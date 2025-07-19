@@ -7,6 +7,8 @@ import { useAuth } from '../hooks/useAuth';
 import { uploadImage, getSignedImageUrl, deleteImage } from '../utils/uploadImage';
 import { createTestNotifications, clearAllNotifications } from '../utils/testNotifications';
 import { verificationService } from '../services/verificationService';
+import { karmaService } from '../services/karmaService';
+import { KarmaBadge, TrustedBadge } from '../components/KarmaBadge';
 
 interface ProfileScreenProps {
   navigation?: any;
@@ -27,6 +29,10 @@ export const ProfileScreen = ({ navigation }: ProfileScreenProps) => {
   const [editingEmail, setEditingEmail] = useState('');
   const [receivedTips, setReceivedTips] = useState(0);
   const [loadingTips, setLoadingTips] = useState(true);
+  const [trustedReturnerStatus, setTrustedReturnerStatus] = useState({
+    isTrustedReturner: false,
+    returnsCompleted: 0,
+  });
   const [uploadingProfilePic, setUploadingProfilePic] = useState(false);
 
   // Verification states
@@ -100,6 +106,27 @@ export const ProfileScreen = ({ navigation }: ProfileScreenProps) => {
 
     fetchProfilePic();
   }, [user?.profile_pic]);
+
+  // Fetch trusted returner status
+  useEffect(() => {
+    const fetchTrustedReturnerStatus = async () => {
+      if (!user?.id) return;
+
+      try {
+        const result = await karmaService.checkTrustedReturnerStatus(user.id);
+        if (result.success) {
+          setTrustedReturnerStatus({
+            isTrustedReturner: result.isTrustedReturner || false,
+            returnsCompleted: result.returnsCompleted || 0,
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching trusted returner status:', error);
+      }
+    };
+
+    fetchTrustedReturnerStatus();
+  }, [user?.id]);
 
   const handleSignOut = async () => {
     try {
@@ -631,6 +658,21 @@ export const ProfileScreen = ({ navigation }: ProfileScreenProps) => {
                     </View>
                   )}
                 </View>
+
+                {/* Karma and Trust Badges */}
+                <View style={styles.badgesContainer}>
+                  <KarmaBadge
+                    karmaPoints={user?.karma_points ?? 0}
+                    size="small"
+                    showLevel={true}
+                    showPoints={false}
+                  />
+                  <TrustedBadge
+                    isVerified={user?.identity_verified || false}
+                    returnsCompleted={trustedReturnerStatus.returnsCompleted}
+                    size="small"
+                  />
+                </View>
               </View>
 
               <View style={styles.contactInfo}>
@@ -660,15 +702,23 @@ export const ProfileScreen = ({ navigation }: ProfileScreenProps) => {
 
           {/* Stats Row */}
           <View style={styles.profileStatsRow}>
-            <View style={styles.statCard}>
+            <TouchableOpacity
+              style={styles.statCard}
+              onPress={() => navigation?.navigate('KarmaHistory')}
+              activeOpacity={0.7}
+            >
               <View style={styles.statIconContainer}>
                 <MaterialIcons name="star" size={20} color="#F59E0B" />
               </View>
               <View style={styles.statContent}>
                 <Text style={styles.statLabel}>Karma Points</Text>
                 <Text style={styles.statValue}>{user?.karma_points ?? '0'}</Text>
+                <Text style={styles.karmaLevel}>
+                  {karmaService.getKarmaLevel(user?.karma_points ?? 0).level}
+                </Text>
               </View>
-            </View>
+              <MaterialIcons name="chevron-right" size={16} color="#94A3B8" />
+            </TouchableOpacity>
             <View style={styles.statCard}>
               <View style={styles.statIconContainer}>
                 <MaterialIcons name="card-giftcard" size={20} color="#10B981" />
@@ -1398,6 +1448,12 @@ const styles = StyleSheet.create({
     color: '#666666',
     marginLeft: 4,
   },
+  badgesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 8,
+  },
   unverifiedIndicator: {
     backgroundColor: '#FFF3CD',
     paddingHorizontal: 6,
@@ -1543,6 +1599,12 @@ const styles = StyleSheet.create({
     color: '#000000',
     fontWeight: '600',
     fontSize: 16,
+  },
+  karmaLevel: {
+    color: '#64748B',
+    fontSize: 10,
+    fontWeight: '500',
+    marginTop: 2,
   },
   sectionTitle: {
     fontWeight: '600',
