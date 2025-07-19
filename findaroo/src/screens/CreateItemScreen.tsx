@@ -11,11 +11,6 @@ export const CreateItemScreen = ({ navigation }: any) => {
       <View style={[styles.container, { paddingBottom: insets.bottom + (Platform.OS === 'ios' ? 88 : 72) }]}>
         {/* Header */}
         <View style={styles.header}>
-          <View style={styles.iconContainer}>
-            <View style={styles.iconCircle}>
-              <Feather name="plus-circle" size={28} color="#000" />
-            </View>
-          </View>
           <Text style={styles.title}>Report an Item</Text>
           <Text style={styles.subtitle}>Help your community find what matters</Text>
         </View>
@@ -88,42 +83,27 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    paddingTop: Platform.OS === 'ios' ? 20 : 30,
-    paddingBottom: 30
-  },
-  iconContainer: {
-    marginBottom: 20
-  },
-  iconCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#000000',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3
+    paddingTop: Platform.OS === 'ios' ? 24 : 32,
+    paddingBottom: 32
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
+    fontSize: 28,
+    fontWeight: '800',
     color: '#000000',
-    marginBottom: 6,
+    marginBottom: 8,
     textAlign: 'center',
-    lineHeight: 30,
-    letterSpacing: -0.3
+    lineHeight: 34,
+    letterSpacing: -0.5
   },
   subtitle: {
-    fontSize: 15,
+    fontSize: 16,
     color: '#666666',
     textAlign: 'center',
-    lineHeight: 20,
-    paddingHorizontal: 16,
-    fontWeight: '400',
-    maxWidth: 280
+    lineHeight: 22,
+    paddingHorizontal: 20,
+    fontWeight: '500',
+    maxWidth: 300,
+    letterSpacing: -0.1
   },
   cardContainer: {
     flex: 1,
