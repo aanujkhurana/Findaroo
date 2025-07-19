@@ -35,7 +35,7 @@ export const useUnreadCount = () => {
     // Initial fetch
     fetchUnreadCount();
 
-    // Set up real-time subscription
+    // Set up real-time subscription for both INSERT and UPDATE events
     if (subscriptionRef.current) {
       subscriptionRef.current.unsubscribe();
     }
@@ -45,17 +45,32 @@ export const useUnreadCount = () => {
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
           table: 'messages',
           filter: `receiver_id=eq.${session.user.id}`,
         },
         () => {
-          // Refetch count when messages change
+          console.log('[useUnreadCount] New message received, updating count');
           fetchUnreadCount();
         }
       )
-      .subscribe();
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'messages',
+          filter: `receiver_id=eq.${session.user.id}`,
+        },
+        (payload) => {
+          console.log('[useUnreadCount] Message updated, updating count', payload);
+          fetchUnreadCount();
+        }
+      )
+      .subscribe((status) => {
+        console.log(`[useUnreadCount] Subscription status: ${status}`);
+      });
 
     return () => {
       if (subscriptionRef.current) {
