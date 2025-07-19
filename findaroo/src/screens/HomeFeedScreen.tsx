@@ -881,13 +881,13 @@ const styles = StyleSheet.create({
   },
   gridRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     marginBottom: 16,
-    gap: 0,
+    gap: 12,
   },
   gridItemWrapper: {
-    flex: 1,
-    marginHorizontal: 6,
+    width: (Dimensions.get('window').width - 40) / 2, // Fixed width: (screen width - padding) / 2 columns
+    marginHorizontal: 0,
   },
   gridCard: {
     borderRadius: 24,
