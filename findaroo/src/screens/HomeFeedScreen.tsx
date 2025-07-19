@@ -10,6 +10,7 @@ import MapView, { Marker } from 'react-native-maps';
 import { Modal as RNModal } from 'react-native';
 import { LocationFilterModal } from '../components/LocationFilterModal';
 import { useNotificationBadge } from '../hooks/useNotificationBadge';
+import { useLocation } from '../contexts/LocationContext';
 
 // Findaroo Official Color Palette
 const COLORS = {
@@ -91,6 +92,7 @@ function parsePointString(pointStr: string | undefined) {
 
 export const HomeFeedScreen = ({ navigation }: any) => {
   const { unreadCount } = useNotificationBadge();
+  const { userLocation } = useLocation();
   const [status, setStatus] = useState<'lost' | 'found' | undefined>(undefined);
   const [searchInput, setSearchInput] = useState(''); // Input text
   const [search, setSearch] = useState(''); // Actual search query
@@ -116,7 +118,7 @@ export const HomeFeedScreen = ({ navigation }: any) => {
     excludeCurrentUser: true, // Exclude current user's items from the main feed
   }), [status, categories, search, maxDistance, sortByDistance]);
 
-  const { items, loading, error, userLocation, refetch } = useItems(filters);
+  const { items, loading, error, refetch } = useItems(filters, userLocation);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

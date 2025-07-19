@@ -27,23 +27,10 @@ function parsePointString(pointStr: string | undefined, address?: string): { lat
   return undefined;
 }
 
-export const useItems = (filters: ItemFilters = {}) => {
+export const useItems = (filters: ItemFilters = {}, userLocation?: LocationCoords | null) => {
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [userLocation, setUserLocation] = useState<LocationCoords | null>(null);
-
-  // Get user location for distance calculations
-  useEffect(() => {
-    const getUserLocation = async () => {
-      if (filters.maxDistance || filters.sortByDistance) {
-        console.log('[useItems] Getting user location for distance filtering...');
-        const location = await getCurrentLocation();
-        setUserLocation(location);
-      }
-    };
-    getUserLocation();
-  }, [filters.maxDistance, filters.sortByDistance]);
 
   useEffect(() => {
     console.log('[useItems] Filters changed:', filters);
@@ -236,7 +223,6 @@ export const useItems = (filters: ItemFilters = {}) => {
     items,
     loading,
     error,
-    userLocation,
     refetch: fetchItems,
     createItem,
     updateItem,

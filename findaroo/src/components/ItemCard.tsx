@@ -129,13 +129,7 @@ export const ItemCard: React.FC<ItemCardProps> = ({ item, onPress, userLocation,
   const distanceText = getDistanceText();
   const statusStyle = getStatusStyle(item.status);
 
-  // Debug location data
-  console.log('[ItemCard] showDistance:', showDistance);
-  console.log('[ItemCard] userLocation:', userLocation);
-  console.log('[ItemCard] Item location:', item.location);
-  console.log('[ItemCard] Item location_name:', item.location_name);
-  console.log('[ItemCard] Is location object:', isLocationObject(item.location));
-  console.log('[ItemCard] distanceText:', distanceText);
+
 
   return (
     <TouchableOpacity onPress={onPress} style={[styles.fbCard, cardStyle]}>
