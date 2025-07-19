@@ -287,10 +287,10 @@ const MainTabs = () => {
       options={{
         tabBarIcon: ({ focused, size }) => (
           <AnimatedTabIcon
-            iconName="bell"
+            iconName="package"
             focused={focused}
             size={24}
-            label="Activity"
+            label="My Items"
           />
         ),
       }}
