@@ -7,6 +7,7 @@ import { supabase } from '../services/supabaseClient';
 import { Item, User, LocationCoords, Category } from '../types';
 import { ItemMapView } from '../components/ItemMapView';
 import { calculateDistance, formatDistance, getCurrentLocation } from '../utils/location';
+import { useAuth } from '../hooks/useAuth';
 
 // Findaroo UI Style Guide Colors
 const COLORS = {
@@ -48,6 +49,7 @@ const getCategoryIcon = (category: string, size: number = 20, color: string = CO
 
 export const ItemDetailsScreen = ({ navigation, route }: any) => {
   const { itemId } = route.params;
+  const { user } = useAuth(); // Get current user
   const [item, setItem] = useState<Item | null>(null);
   const [owner, setOwner] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -60,6 +62,9 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
   const [showFullMap, setShowFullMap] = useState(false);
   const [userLocation, setUserLocation] = useState<LocationCoords | null>(null);
   const [distance, setDistance] = useState<string | null>(null);
+
+  // Check if current user is the owner of this item
+  const isOwner = user && owner && user.id === owner.id;
 
   // Helper functions for status styling with Findaroo colors
   const getStatusBadgeStyle = (status: string) => {
@@ -494,30 +499,42 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
 
           {/* Call to Action Button */}
           <View style={styles.ctaContainer}>
-            {item.status === 'lost' ? (
+            {isOwner ? (
+              // Show owner actions
               <TouchableOpacity
-                style={[styles.ctaButton, styles.ctaButtonPrimary]}
-                onPress={() => navigation.navigate('Chat', {
-                  itemId: item.id,
-                  otherUserId: owner?.id,
-                  otherUserName: owner?.full_name,
-                })}
+                style={[styles.ctaButton, styles.ctaButtonOwner]}
+                onPress={() => navigation.navigate('Activity')}
               >
-                <Feather name="message-circle" size={20} color="#fff" />
-                <Text style={styles.ctaButtonText}>I Found This Item!</Text>
+                <Feather name="edit-3" size={20} color="#fff" />
+                <Text style={styles.ctaButtonText}>Manage This Item</Text>
               </TouchableOpacity>
             ) : (
-              <TouchableOpacity
-                style={[styles.ctaButton, styles.ctaButtonSecondary]}
-                onPress={() => navigation.navigate('Chat', {
-                  itemId: item.id,
-                  otherUserId: owner?.id,
-                  otherUserName: owner?.full_name,
-                })}
-              >
-                <Feather name="user-check" size={20} color="#fff" />
-                <Text style={styles.ctaButtonText}>This Is Mine!</Text>
-              </TouchableOpacity>
+              // Show messaging actions for other users
+              item.status === 'lost' ? (
+                <TouchableOpacity
+                  style={[styles.ctaButton, styles.ctaButtonPrimary]}
+                  onPress={() => navigation.navigate('Chat', {
+                    itemId: item.id,
+                    otherUserId: owner?.id,
+                    otherUserName: owner?.full_name,
+                  })}
+                >
+                  <Feather name="message-circle" size={20} color="#fff" />
+                  <Text style={styles.ctaButtonText}>I Found This Item!</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.ctaButton, styles.ctaButtonSecondary]}
+                  onPress={() => navigation.navigate('Chat', {
+                    itemId: item.id,
+                    otherUserId: owner?.id,
+                    otherUserName: owner?.full_name,
+                  })}
+                >
+                  <Feather name="user-check" size={20} color="#fff" />
+                  <Text style={styles.ctaButtonText}>This Is Mine!</Text>
+                </TouchableOpacity>
+              )
             )}
           </View>
         </View>
@@ -624,28 +641,36 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
               </View>
             </View>
             <View style={styles.ownerActions}>
-              <TouchableOpacity
-                style={styles.messageBtn}
-                onPress={() => navigation.navigate('Chat', {
-                  itemId: item.id,
-                  otherUserId: owner.id,
-                  otherUserName: owner.full_name,
-                })}
-              >
-                <Feather name="message-circle" size={18} color={COLORS.primary} />
-                <Text style={styles.messageBtnText}>Message</Text>
-              </TouchableOpacity>
+              {!isOwner && (
+                <TouchableOpacity
+                  style={styles.messageBtn}
+                  onPress={() => navigation.navigate('Chat', {
+                    itemId: item.id,
+                    otherUserId: owner.id,
+                    otherUserName: owner.full_name,
+                  })}
+                >
+                  <Feather name="message-circle" size={18} color={COLORS.primary} />
+                  <Text style={styles.messageBtnText}>Message</Text>
+                </TouchableOpacity>
+              )}
 
-              <TouchableOpacity
-                style={styles.callBtn}
-                onPress={handleCall}
-                disabled={!owner.phone}
-              >
-                <Feather name="phone" size={18} color={owner.phone ? COLORS.success : COLORS.muted} />
-                <Text style={[styles.callBtnText, { color: owner.phone ? COLORS.success : COLORS.muted }]}>
-                  {owner.phone ? 'Call' : 'No Phone'}
-                </Text>
-              </TouchableOpacity>
+              {!isOwner && (
+                <TouchableOpacity
+                  style={styles.callBtn}
+                  onPress={handleCall}
+                  disabled={!owner.phone}
+                >
+                  <Feather name="phone" size={18} color={owner.phone ? COLORS.success : COLORS.muted} />
+                  <Text style={[styles.callBtnText, { color: owner.phone ? COLORS.success : COLORS.muted }]}>
+                    {owner.phone ? 'Call' : 'No Phone'}
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {isOwner && (
+                <Text style={styles.ownerLabel}>This is your item</Text>
+              )}
             </View>
           </View>
         )}
@@ -1002,6 +1027,9 @@ const styles = StyleSheet.create({
   ctaButtonSecondary: {
     backgroundColor: COLORS.primary,
   },
+  ctaButtonOwner: {
+    backgroundColor: COLORS.dark,
+  },
   ctaButtonText: {
     color: '#fff',
     fontSize: 18,
@@ -1163,6 +1191,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 15,
     marginLeft: 8
+  },
+  ownerLabel: {
+    color: COLORS.muted,
+    fontSize: 14,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    flex: 1,
   },
 
   // Similar Items
