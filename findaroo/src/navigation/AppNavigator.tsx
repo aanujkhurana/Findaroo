@@ -25,6 +25,7 @@ import { ProfileScreen } from '../screens/ProfileScreen';
 import { CreateLostItemScreen } from '../screens/CreateLostItemScreen';
 import { CreateFoundItemScreen } from '../screens/CreateFoundItemScreen';
 import SuccessScreen from '../screens/SuccessScreen';
+import { NotificationScreen } from '../screens/NotificationScreen';
 import { NotificationInitializer } from '../components/NotificationInitializer';
 
 const Stack = createStackNavigator();
@@ -346,6 +347,14 @@ const MainStack = () => (
       }}
     />
     <Stack.Screen name="Success" component={SuccessScreen} options={{ headerShown: false }} />
+    <Stack.Screen
+      name="Notifications"
+      component={NotificationScreen}
+      options={{
+        title: 'Notifications',
+        headerShown: false,
+      }}
+    />
   </Stack.Navigator>
 );
 

@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../hooks/useAuth';
 import { uploadImage, getSignedImageUrl, deleteImage } from '../utils/uploadImage';
+import { createTestNotifications, clearAllNotifications } from '../utils/testNotifications';
 
 interface ProfileScreenProps {
   navigation?: any;
@@ -91,6 +92,53 @@ export const ProfileScreen = ({ navigation }: ProfileScreenProps) => {
     } catch (error) {
       console.error('Sign out error:', error);
     }
+  };
+
+  const handleCreateTestNotifications = async () => {
+    if (!user?.id) return;
+
+    Alert.alert(
+      'Create Test Notifications',
+      'This will create 5 sample notifications for testing. Continue?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Create',
+          onPress: async () => {
+            const success = await createTestNotifications(user.id);
+            if (success) {
+              Alert.alert('Success', 'Test notifications created! Check the notifications screen.');
+            } else {
+              Alert.alert('Error', 'Failed to create test notifications.');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleClearNotifications = async () => {
+    if (!user?.id) return;
+
+    Alert.alert(
+      'Clear All Notifications',
+      'This will delete all your notifications. This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear All',
+          style: 'destructive',
+          onPress: async () => {
+            const success = await clearAllNotifications(user.id);
+            if (success) {
+              Alert.alert('Success', 'All notifications cleared!');
+            } else {
+              Alert.alert('Error', 'Failed to clear notifications.');
+            }
+          }
+        }
+      ]
+    );
   };
 
   const handleEditName = () => {
@@ -581,6 +629,32 @@ export const ProfileScreen = ({ navigation }: ProfileScreenProps) => {
             <View style={{ marginLeft: 12 }}>
               <Text style={styles.settingsText}>Send Feedback</Text>
               <Text style={styles.settingsSub}>Share your thoughts and suggestions</Text>
+            </View>
+            <MaterialIcons name="chevron-right" size={24} color="#94A3B8" style={{ marginLeft: 'auto' }} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Test Notifications (Development) */}
+        <View style={styles.settingsSection}>
+          <Text style={styles.sectionTitle}>Development Tools</Text>
+          <TouchableOpacity style={styles.settingsRow} onPress={handleCreateTestNotifications}>
+            <View style={styles.settingsIcon}>
+              <MaterialIcons name="notification-add" size={20} color="#3A8DFF" />
+            </View>
+            <View style={styles.settingsContent}>
+              <Text style={styles.settingsText}>Create Test Notifications</Text>
+              <Text style={styles.settingsSub}>Generate sample notifications for testing</Text>
+            </View>
+            <MaterialIcons name="chevron-right" size={24} color="#94A3B8" style={{ marginLeft: 'auto' }} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.settingsRow} onPress={handleClearNotifications}>
+            <View style={styles.settingsIcon}>
+              <MaterialIcons name="clear-all" size={20} color="#FF4C4C" />
+            </View>
+            <View style={styles.settingsContent}>
+              <Text style={styles.settingsText}>Clear All Notifications</Text>
+              <Text style={styles.settingsSub}>Delete all notifications from database</Text>
             </View>
             <MaterialIcons name="chevron-right" size={24} color="#94A3B8" style={{ marginLeft: 'auto' }} />
           </TouchableOpacity>
