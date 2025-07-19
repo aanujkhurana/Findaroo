@@ -8,6 +8,7 @@ interface ItemFilters {
   category?: Category;
   search?: string;
   userId?: string;
+  excludeCurrentUser?: boolean; // New filter to exclude current user's items
   maxDistance?: number; // in kilometers
   sortByDistance?: boolean;
 }
@@ -80,6 +81,14 @@ export const useItems = (filters: ItemFilters = {}) => {
 
       if (filters.search) {
         query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
+      }
+
+      // Exclude current user's items if requested
+      if (filters.excludeCurrentUser) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          query = query.neq('user_id', user.id);
+        }
       }
 
       const { data, error } = await query;

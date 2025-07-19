@@ -498,6 +498,13 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
       return null;
     }
 
+    // Prevent users from messaging themselves
+    if (currentUserIdRef.current === receiverId) {
+      console.error('[useChat] Cannot send message to yourself');
+      setError('You cannot send messages to yourself');
+      return null;
+    }
+
     try {
       const messageData = {
         item_id: itemId,
