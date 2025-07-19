@@ -11,8 +11,9 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { supabase } from '../services/supabaseClient';
 import { useAuth } from '../hooks/useAuth';
+import { useInAppNotifications } from '../hooks/useInAppNotifications';
+import { inAppNotificationService } from '../services/inAppNotificationService';
 
 // Findaroo Official Color Palette
 const COLORS = {
@@ -51,101 +52,29 @@ const formatRelativeDate = (dateString: string) => {
   }
 };
 
-interface Notification {
-  id: string;
-  type: 'message' | 'item_update' | 'system' | 'tip_received' | 'karma_update';
-  title: string;
-  body: string;
-  data: any;
-  read_at: string | null;
-  created_at: string;
-}
-
 export const NotificationScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { session } = useAuth();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    notifications,
+    unreadCount,
+    loading,
+    error,
+    fetchNotifications,
+    markAsRead,
+    markAllAsRead,
+    createTestNotification,
+  } = useInAppNotifications();
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchNotifications = async () => {
-    if (!session?.user?.id) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-      if (error) {
-        console.error('Error fetching notifications:', error);
-        return;
-      }
-
-      setNotifications(data || []);
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
+  // Handle refresh
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchNotifications();
+    setRefreshing(false);
   };
 
-  const markAsRead = async (notificationId: string) => {
-    try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ read_at: new Date().toISOString() })
-        .eq('id', notificationId);
-
-      if (error) {
-        console.error('Error marking notification as read:', error);
-        return;
-      }
-
-      // Update local state
-      setNotifications(prev =>
-        prev.map(notif =>
-          notif.id === notificationId
-            ? { ...notif, read_at: new Date().toISOString() }
-            : notif
-        )
-      );
-    } catch (error) {
-      console.error('Error marking notification as read:', error);
-    }
-  };
-
-  const markAllAsRead = async () => {
-    if (!session?.user?.id) return;
-
-    try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ read_at: new Date().toISOString() })
-        .eq('user_id', session.user.id)
-        .is('read_at', null);
-
-      if (error) {
-        console.error('Error marking all notifications as read:', error);
-        return;
-      }
-
-      // Update local state
-      setNotifications(prev =>
-        prev.map(notif => ({
-          ...notif,
-          read_at: notif.read_at || new Date().toISOString()
-        }))
-      );
-    } catch (error) {
-      console.error('Error marking all notifications as read:', error);
-    }
-  };
-
-  const handleNotificationPress = async (notification: Notification) => {
+  const handleNotificationPress = async (notification: any) => {
     // Mark as read if not already read
     if (!notification.read_at) {
       await markAsRead(notification.id);
@@ -153,7 +82,7 @@ export const NotificationScreen: React.FC = () => {
 
     // Navigate based on notification type
     const data = notification.data || {};
-    
+
     switch (notification.type) {
       case 'message':
         if (data.itemId && data.senderId) {
@@ -181,54 +110,23 @@ export const NotificationScreen: React.FC = () => {
     }
   };
 
-  const getNotificationIcon = (type: string) => {
-    switch (type) {
-      case 'message':
-        return 'message-circle';
-      case 'item_update':
-        return 'package';
-      case 'tip_received':
-        return 'gift';
-      case 'karma_update':
-        return 'star';
-      case 'system':
-        return 'info';
-      default:
-        return 'bell';
+  // Add test notification function for development
+  const handleAddTestNotification = async () => {
+    const success = await createTestNotification(
+      'message',
+      'Test Message',
+      'This is a test notification to verify the system is working',
+      { testData: true }
+    );
+
+    if (success) {
+      Alert.alert('Success', 'Test notification created');
+    } else {
+      Alert.alert('Error', 'Failed to create test notification');
     }
   };
 
-  const getNotificationColor = (type: string) => {
-    switch (type) {
-      case 'message':
-        return COLORS.primary;
-      case 'item_update':
-        return '#FFA930';
-      case 'tip_received':
-        return '#33C48D';
-      case 'karma_update':
-        return '#8B5CF6';
-      case 'system':
-        return COLORS.muted;
-      default:
-        return COLORS.primary;
-    }
-  };
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchNotifications();
-  };
-
-  useFocusEffect(
-    useCallback(() => {
-      fetchNotifications();
-    }, [session?.user?.id])
-  );
-
-  const unreadCount = notifications.filter(n => !n.read_at).length;
-
-  const renderNotification = ({ item }: { item: Notification }) => (
+  const renderNotification = ({ item }: { item: any }) => (
     <TouchableOpacity
       style={[
         styles.notificationCard,
@@ -240,12 +138,12 @@ export const NotificationScreen: React.FC = () => {
       <View style={styles.notificationContent}>
         <View style={[
           styles.iconContainer,
-          { backgroundColor: getNotificationColor(item.type) + '20' }
+          { backgroundColor: inAppNotificationService.getNotificationColor(item.type) + '20' }
         ]}>
           <Feather
-            name={getNotificationIcon(item.type) as any}
+            name={inAppNotificationService.getNotificationIcon(item.type) as any}
             size={20}
-            color={getNotificationColor(item.type)}
+            color={inAppNotificationService.getNotificationColor(item.type)}
           />
         </View>
         <View style={styles.textContent}>
@@ -297,18 +195,28 @@ export const NotificationScreen: React.FC = () => {
           <Feather name="arrow-left" size={24} color={COLORS.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Notifications</Text>
-        <TouchableOpacity
-          style={styles.markAllButton}
-          onPress={markAllAsRead}
-          disabled={unreadCount === 0}
-        >
-          <Text style={[
-            styles.markAllText,
-            unreadCount === 0 && styles.disabledText
-          ]}>
-            Mark all read
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          {__DEV__ && (
+            <TouchableOpacity
+              style={styles.testButton}
+              onPress={handleAddTestNotification}
+            >
+              <Feather name="plus" size={16} color={COLORS.primary} />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity
+            style={styles.markAllButton}
+            onPress={markAllAsRead}
+            disabled={unreadCount === 0}
+          >
+            <Text style={[
+              styles.markAllText,
+              unreadCount === 0 && styles.disabledText
+            ]}>
+              Mark all read
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {notifications.length === 0 ? (
@@ -362,7 +270,12 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
   },
   headerRight: {
-    width: 32,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  testButton: {
+    padding: 4,
+    marginRight: 8,
   },
   markAllButton: {
     padding: 4,
