@@ -113,6 +113,7 @@ export const HomeFeedScreen = ({ navigation }: any) => {
     search: search.trim() || undefined,
     maxDistance,
     sortByDistance,
+    excludeCurrentUser: true, // Exclude current user's items from the main feed
   }), [status, categories, search, maxDistance, sortByDistance]);
 
   const { items, loading, error, userLocation, refetch } = useItems(filters);
