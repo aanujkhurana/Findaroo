@@ -570,24 +570,10 @@ export const ProfileScreen = ({ navigation }: ProfileScreenProps) => {
     <SafeAreaView style={styles.safeArea}>
       {/* Enhanced Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.headerButton}
-          onPress={() => navigation?.goBack()}
-        >
-          <Feather name="arrow-left" size={24} color="#1E293B" />
-        </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>Profile</Text>
           <Text style={styles.headerSubtitle}>Manage your account & settings</Text>
         </View>
-        <TouchableOpacity
-          style={styles.headerButton}
-          onPress={() => {
-            Alert.alert('Settings', 'Advanced settings coming soon!');
-          }}
-        >
-          <Feather name="more-horizontal" size={24} color="#1E293B" />
-        </TouchableOpacity>
       </View>
 
       <ScrollView
