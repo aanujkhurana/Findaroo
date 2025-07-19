@@ -417,125 +417,117 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
           </TouchableOpacity>
         </View>
         {/* Status Badge and Date removed as per request */}
-        {/* Main Image or Icon Row */}
-        {mainImageUrl ? (
-          <View style={styles.imageContainer}>
-            <Image source={{ uri: mainImageUrl }} style={styles.mainImage} resizeMode="cover" />
-            <View style={styles.imageOverlay}>
-              <View style={styles.statusBadgeOverlay}>
-                <Feather name={getStatusIcon(item.status)} size={14} color={getStatusColor(item.status)} />
-                <Text style={[styles.statusOverlayText, { color: getStatusColor(item.status) }]}>
-                  {getStatusLabel(item.status)}
-                </Text>
-              </View>
-            </View>
-          </View>
-        ) : (
-          <View style={styles.noImageRow}>
-            <View style={styles.noImageIconContainer}>
-              {getCategoryIcon(item.category, 32, COLORS.muted)}
-            </View>
-            <View style={styles.noImageContent}>
-              <Text style={styles.noImageTitle}>{item.title}</Text>
-              <View style={styles.noImageMeta}>
-                <Text style={styles.noImageCategory}>{item.category}</Text>
-                <Text style={styles.noImageTime}>{formatRelativeDate(item.created_at)}</Text>
-              </View>
-            </View>
-            <View style={[styles.statusBadge, getStatusBadgeStyle(item.status)]}>
-              <Feather name={getStatusIcon(item.status)} size={14} color={getStatusColor(item.status)} />
-              <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
-                {getStatusLabel(item.status)}
-              </Text>
-            </View>
-          </View>
-        )}
-        {/* Combined Item Details Card */}
+        {/* Combined Item Details Card with Image/Icon */}
         <View style={styles.card}>
-          {/* Only show header if there's an image (to avoid duplication with no-image row) */}
-          {mainImageUrl && (
-            <View style={styles.itemHeader}>
-              <Text style={styles.itemTitle}>{item.title}</Text>
-              <View style={styles.statusRow}>
+          {/* Image Section */}
+          {mainImageUrl ? (
+            <View style={styles.cardImageContainer}>
+              <Image source={{ uri: mainImageUrl }} style={styles.cardImage} resizeMode="cover" />
+              <View style={styles.imageOverlay}>
+                <View style={styles.statusBadgeOverlay}>
+                  <Feather name={getStatusIcon(item.status)} size={14} color={getStatusColor(item.status)} />
+                  <Text style={[styles.statusOverlayText, { color: getStatusColor(item.status) }]}>
+                    {getStatusLabel(item.status)}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          ) : (
+            <View style={styles.noImageHeader}>
+              <View style={styles.noImageIconContainer}>
+                {getCategoryIcon(item.category, 32, COLORS.muted)}
+              </View>
+              <View style={styles.noImageHeaderContent}>
                 <View style={[styles.statusBadge, getStatusBadgeStyle(item.status)]}>
                   <Feather name={getStatusIcon(item.status)} size={14} color={getStatusColor(item.status)} />
                   <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
                     {getStatusLabel(item.status)}
                   </Text>
                 </View>
-                <Text style={styles.statusTime}>{formatRelativeDate(item.created_at)}</Text>
               </View>
             </View>
           )}
 
-          <Text style={styles.sectionLabel}>Description</Text>
-          <Text style={styles.itemDesc}>{item.description || 'No description provided.'}</Text>
+          {/* Item Details Section */}
+          <View style={styles.itemDetailsSection}>
+            {/* Title and Meta Info */}
+            <View style={styles.itemHeader}>
+              <Text style={styles.itemTitle}>{item.title}</Text>
+              <View style={styles.itemSubHeader}>
+                <Text style={styles.itemTime}>{formatRelativeDate(item.created_at)}</Text>
+              </View>
+            </View>
 
-          <View style={styles.itemMetaRow}>
-            {/* Only show category if there's an image (to avoid duplication) */}
-            {mainImageUrl && (
+            {/* Description */}
+            <View style={styles.descriptionSection}>
+              <Text style={styles.sectionLabel}>Description</Text>
+              <Text style={styles.itemDesc}>{item.description || 'No description provided.'}</Text>
+            </View>
+
+            {/* Meta Information */}
+            <View style={styles.itemMetaRow}>
               <View style={styles.metaBox}>
                 {getCategoryIcon(item.category, 18, COLORS.secondary)}
                 <Text style={styles.metaText}>{item.category}</Text>
               </View>
-            )}
-            {item.reward_amount && (
-              <View style={styles.metaBox}>
-                <Feather name="gift" size={18} color={COLORS.success} />
-                <Text style={[styles.metaText, { color: COLORS.success, fontWeight: 'bold' }]}>
-                  ${item.reward_amount}
-                </Text>
-              </View>
-            )}
-            {totalTips > 0 && (
-              <View style={styles.metaBox}>
-                <Feather name="gift" size={18} color={COLORS.secondary} />
-                <Text style={[styles.metaText, { color: COLORS.secondary, fontWeight: 'bold' }]}>
-                  Tips: ${totalTips.toFixed(2)}
-                </Text>
-              </View>
-            )}
-          </View>
+              {item.reward_amount && (
+                <View style={styles.metaBox}>
+                  <Feather name="gift" size={18} color={COLORS.success} />
+                  <Text style={[styles.metaText, { color: COLORS.success, fontWeight: 'bold' }]}>
+                    ${item.reward_amount}
+                  </Text>
+                </View>
+              )}
+              {totalTips > 0 && (
+                <View style={styles.metaBox}>
+                  <Feather name="gift" size={18} color={COLORS.secondary} />
+                  <Text style={[styles.metaText, { color: COLORS.secondary, fontWeight: 'bold' }]}>
+                    Tips: ${totalTips.toFixed(2)}
+                  </Text>
+                </View>
+              )}
+            </View>
 
-          {/* Call to Action Button */}
-          <View style={styles.ctaContainer}>
-            {isOwner ? (
-              // Show owner actions
-              <TouchableOpacity
-                style={[styles.ctaButton, styles.ctaButtonOwner]}
-                onPress={() => navigation.navigate('Activity')}
-              >
-                <Feather name="edit-3" size={20} color="#fff" />
-                <Text style={styles.ctaButtonText}>Manage This Item</Text>
-              </TouchableOpacity>
-            ) : (
-              // Show messaging actions for other users
-              item.status === 'lost' ? (
+            {/* Call to Action Button */}
+            <View style={styles.ctaContainer}>
+              {isOwner ? (
+                // Show owner actions
                 <TouchableOpacity
-                  style={[styles.ctaButton, styles.ctaButtonPrimary]}
-                  onPress={() => navigation.navigate('Chat', {
-                    itemId: item.id,
-                    otherUserId: owner?.id,
-                    otherUserName: owner?.full_name,
-                  })}
+                  style={[styles.ctaButton, styles.ctaButtonOwner]}
+                  onPress={() => navigation.navigate('Activity')}
                 >
-                  <Feather name="message-circle" size={20} color="#fff" />
-                  <Text style={styles.ctaButtonText}>I Found This Item!</Text>
+                  <Feather name="edit-3" size={20} color="#fff" />
+                  <Text style={styles.ctaButtonText}>Manage This Item</Text>
                 </TouchableOpacity>
               ) : (
-                <TouchableOpacity
-                  style={[styles.ctaButton, styles.ctaButtonSecondary]}
-                  onPress={() => navigation.navigate('Chat', {
-                    itemId: item.id,
-                    otherUserId: owner?.id,
-                    otherUserName: owner?.full_name,
-                  })}
-                >
-                  <Feather name="user-check" size={20} color="#fff" />
-                  <Text style={styles.ctaButtonText}>This Is Mine!</Text>
-                </TouchableOpacity>
-              )
-            )}
+                // Show messaging actions for other users
+                item.status === 'lost' ? (
+                  <TouchableOpacity
+                    style={[styles.ctaButton, styles.ctaButtonPrimary]}
+                    onPress={() => navigation.navigate('Chat', {
+                      itemId: item.id,
+                      otherUserId: owner?.id,
+                      otherUserName: owner?.full_name,
+                    })}
+                  >
+                    <Feather name="message-circle" size={20} color="#fff" />
+                    <Text style={styles.ctaButtonText}>I Found This Item!</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    style={[styles.ctaButton, styles.ctaButtonSecondary]}
+                    onPress={() => navigation.navigate('Chat', {
+                      itemId: item.id,
+                      otherUserId: owner?.id,
+                      otherUserName: owner?.full_name,
+                    })}
+                  >
+                    <Feather name="user-check" size={20} color="#fff" />
+                    <Text style={styles.ctaButtonText}>This Is Mine!</Text>
+                  </TouchableOpacity>
+                )
+              )}
+            </View>
           </View>
         </View>
         {/* Last Seen Card */}
@@ -840,13 +832,7 @@ const styles = StyleSheet.create({
     color: COLORS.text
   },
 
-  // Status
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12
-  },
+  // Status Badge
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -859,26 +845,18 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginLeft: 4
   },
-  statusTime: {
-    color: COLORS.muted,
-    fontSize: 13
-  },
 
-  // Image Styles
-  imageContainer: {
-    position: 'relative',
-    marginBottom: 16,
-    borderRadius: 20,
+  // Combined Card Image Styles
+  cardImageContainer: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    position: 'relative',
+    marginBottom: 0,
   },
-  mainImage: {
+  cardImage: {
     width: '100%',
-    height: 240,
+    height: 200,
     backgroundColor: COLORS.neutral
   },
   imageOverlay: {
@@ -909,74 +887,69 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
 
-  // No Image Row
-  noImageRow: {
+  // No Image Header (when no image available) - Simplified
+  noImageHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  noImageIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: COLORS.neutral,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  noImageHeaderContent: {
+    flex: 1,
+  },
+
+  // Item Details Section
+  itemDetailsSection: {
+    padding: 20,
+  },
+  descriptionSection: {
+    marginBottom: 20,
+  },
+
+  // Card - Updated for combined layout
+  card: {
     backgroundColor: COLORS.card,
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 20,
+    padding: 0,  // Remove padding since sections handle their own padding
     marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
-  },
-  noImageIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: COLORS.neutral,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 16,
-  },
-  noImageContent: {
-    flex: 1,
-  },
-  noImageTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.text,
-    marginBottom: 4,
-  },
-  noImageMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  noImageCategory: {
-    fontSize: 14,
-    color: COLORS.muted,
-    textTransform: 'capitalize',
-  },
-  noImageTime: {
-    fontSize: 12,
-    color: COLORS.muted,
-    opacity: 0.8,
-  },
-
-  // Card
-  card: {
-    backgroundColor: COLORS.card,
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2
+    overflow: 'hidden',  // Ensure rounded corners work with image
   },
   itemHeader: {
-    marginBottom: 16,
+    marginBottom: 20,
   },
   itemTitle: {
     fontWeight: 'bold',
-    fontSize: 22,
+    fontSize: 24,
     color: COLORS.text,
-    marginBottom: 8
+    marginBottom: 6,
+    lineHeight: 30,
+  },
+  itemSubHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  itemTime: {
+    fontSize: 14,
+    color: COLORS.muted,
+    fontWeight: '500',
   },
   sectionLabel: {
     color: COLORS.muted,
@@ -1006,12 +979,13 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     fontSize: 16,
     lineHeight: 24,
-    marginBottom: 16
+    marginBottom: 0,
   },
   itemMetaRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginTop: 8
+    marginBottom: 8,
+    gap: 8,
   },
   metaBox: {
     flexDirection: 'row',
@@ -1020,8 +994,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    marginRight: 12,
-    marginBottom: 8,
   },
   metaText: {
     color: COLORS.text,
