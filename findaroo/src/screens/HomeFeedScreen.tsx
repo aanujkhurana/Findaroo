@@ -9,6 +9,7 @@ import { MaterialIcons, Ionicons, Feather } from '@expo/vector-icons';
 import MapView, { Marker } from 'react-native-maps';
 import { Modal as RNModal } from 'react-native';
 import { LocationFilterModal } from '../components/LocationFilterModal';
+import { useNotificationBadge } from '../hooks/useNotificationBadge';
 
 // Findaroo Official Color Palette
 const COLORS = {
@@ -89,6 +90,7 @@ function parsePointString(pointStr: string | undefined) {
 
 
 export const HomeFeedScreen = ({ navigation }: any) => {
+  const { unreadCount } = useNotificationBadge();
   const [status, setStatus] = useState<'lost' | 'found' | undefined>(undefined);
   const [searchInput, setSearchInput] = useState(''); // Input text
   const [search, setSearch] = useState(''); // Actual search query
@@ -171,8 +173,20 @@ export const HomeFeedScreen = ({ navigation }: any) => {
       <View style={styles.header}>
         <Text style={styles.logo}>Findaroo</Text>
         <View style={styles.headerIcons}>
-          <TouchableOpacity style={styles.headerIconBtn}>
-            <MaterialIcons name="notifications-none" size={24} color={COLORS.primary} />
+          <TouchableOpacity
+            style={styles.headerIconBtn}
+            onPress={() => navigation.navigate('Notifications')}
+          >
+            <View style={styles.notificationIconContainer}>
+              <MaterialIcons name="notifications-none" size={24} color={COLORS.primary} />
+              {unreadCount > 0 && (
+                <View style={styles.notificationBadge}>
+                  <Text style={styles.notificationBadgeText}>
+                    {unreadCount > 99 ? '99+' : unreadCount.toString()}
+                  </Text>
+                </View>
+              )}
+            </View>
           </TouchableOpacity>
           <TouchableOpacity style={styles.avatarCircle}>
             <Ionicons name="person" size={22} color={COLORS.primary} />
@@ -506,6 +520,27 @@ const styles = StyleSheet.create({
   logo: { fontWeight: 'bold', fontSize: 22, color: COLORS.primary, letterSpacing: 1 },
   headerIcons: { flexDirection: 'row', alignItems: 'center' },
   headerIconBtn: { marginLeft: 12 },
+  notificationIconContainer: {
+    position: 'relative',
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    backgroundColor: COLORS.error,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  notificationBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
   avatarCircle: { width: 34, height: 34, borderRadius: 17, backgroundColor: COLORS.card, alignItems: 'center', justifyContent: 'center', marginLeft: 8 },
   searchContainer: {
     marginHorizontal: 18,
