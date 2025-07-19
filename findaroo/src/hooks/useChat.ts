@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { AppState } from 'react-native';
 import { Audio } from 'expo-av';
 import * as Notifications from 'expo-notifications';
@@ -38,10 +38,13 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [forceInit, setForceInit] = useState(0);
+  const [totalUnreadCount, setTotalUnreadCount] = useState(0);
   const subscriptionRef = useRef<any>(null);
   const currentUserIdRef = useRef<string | null>(null);
   const initializationRef = useRef<boolean>(false);
+  const isInitializingRef = useRef<boolean>(false);
+  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
+  const isFetchingRef = useRef<boolean>(false);
 
 
 
@@ -51,9 +54,15 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
       return;
     }
 
+    if (isFetchingRef.current) {
+      console.log('[useChat] Already fetching messages, skipping...');
+      return;
+    }
+
     console.log(`[useChat] Fetching messages for item: ${itemId}, otherUser: ${otherUserId}`);
 
     try {
+      isFetchingRef.current = true;
       setLoading(true);
       setError(null);
 
@@ -93,6 +102,7 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
       console.error('[useChat] Error fetching messages:', err);
     } finally {
       setLoading(false);
+      isFetchingRef.current = false;
     }
   }, [itemId, otherUserId]);
 
@@ -121,7 +131,15 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
   }, [itemId]);
 
   const fetchThreads = React.useCallback(async () => {
+    if (isFetchingRef.current) {
+      console.log('[useChat] Already fetching threads, skipping...');
+      return;
+    }
+
+    console.log('[useChat] Fetching threads...');
+
     try {
+      isFetchingRef.current = true;
       setLoading(true);
       setError(null);
 
@@ -178,20 +196,26 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
       console.error('[useChat] Error fetching threads:', err);
     } finally {
       setLoading(false);
+      isFetchingRef.current = false;
     }
   }, []);
 
-  // Force initialization on mount
-  React.useEffect(() => {
-    setForceInit(1);
-  }, []);
+
 
   // Initialize chat functionality
   React.useEffect(() => {
+    // Create a unique key for this hook instance
+    const hookKey = `${itemId || 'no-item'}-${otherUserId || 'no-user'}`;
+
+    if (initializationRef.current || isInitializingRef.current) {
+      console.log('[useChat] Already initialized or initializing, skipping...', hookKey);
+      return;
+    }
+
     console.log('[useChat] EFFECT STARTING - itemId:', itemId, 'otherUserId:', otherUserId);
 
-    // Mark as initialized
-    initializationRef.current = true;
+    // Mark as initializing
+    isInitializingRef.current = true;
 
     let isMounted = true;
 
@@ -202,10 +226,15 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
 
         if (!user) {
           console.log('[useChat] No user found');
+          setLoading(false);
+          isInitializingRef.current = false;
           return;
         }
 
-        if (!isMounted) return;
+        if (!isMounted) {
+          isInitializingRef.current = false;
+          return;
+        }
 
         currentUserIdRef.current = user.id;
         console.log('[useChat] User set:', user.id);
@@ -219,23 +248,31 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
           await fetchThreads();
           subscribeToAllMessages();
         }
+
+        // Mark as initialized only after successful completion
+        initializationRef.current = true;
+        isInitializingRef.current = false;
       } catch (error) {
         console.error('[useChat] Initialization error:', error);
         setError(error instanceof Error ? error.message : 'Failed to initialize chat');
+        setLoading(false);
+        isInitializingRef.current = false;
       }
     };
 
     initialize();
 
     return () => {
-      console.log('[useChat] CLEANUP RUNNING');
+      console.log('[useChat] CLEANUP RUNNING', hookKey);
       isMounted = false;
       if (subscriptionRef.current) {
         subscriptionRef.current.unsubscribe();
         subscriptionRef.current = null;
       }
+      initializationRef.current = false;
+      isInitializingRef.current = false;
     };
-  }, [itemId, otherUserId, forceInit]);
+  }, [itemId, otherUserId]);
 
   const subscribeToMessages = React.useCallback(() => {
     if (!itemId || !otherUserId || !currentUserIdRef.current) {
@@ -325,6 +362,8 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
       )
       .subscribe((status) => {
         console.log(`[useChat] Subscription status: ${status}`);
+        setConnectionStatus(status === 'SUBSCRIBED' ? 'connected' :
+                          status === 'CHANNEL_ERROR' ? 'disconnected' : 'connecting');
       });
   }, [itemId, otherUserId]);
 
@@ -444,6 +483,8 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
       )
       .subscribe((status) => {
         console.log(`[useChat] All messages subscription status: ${status}`);
+        setConnectionStatus(status === 'SUBSCRIBED' ? 'connected' :
+                          status === 'CHANNEL_ERROR' ? 'disconnected' : 'connecting');
       });
   }, []);
 
@@ -511,17 +552,98 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
     return !!message.read_at;
   };
 
+  // Get total unread count across all threads
+  const getTotalUnreadCount = useCallback((): number => {
+    if (!currentUserIdRef.current) return 0;
+
+    return threads.reduce((total, thread) => {
+      const threadId = `${thread.item_id}-${thread.participant_1?.id === currentUserIdRef.current ? thread.participant_2?.id : thread.participant_1?.id}`;
+      return total + getUnreadMessagesCount(threadId);
+    }, 0);
+  }, [threads, getUnreadMessagesCount]);
+
+  // Update total unread count when threads change
+  useEffect(() => {
+    const newTotalUnread = getTotalUnreadCount();
+    setTotalUnreadCount(newTotalUnread);
+  }, [threads, getTotalUnreadCount]);
+
+  // Send tip function
+  const sendTip = useCallback(async (receiverId: string, amount: number, itemId: string): Promise<boolean> => {
+    if (!currentUserIdRef.current) {
+      console.error('[useChat] Cannot send tip: No authenticated user');
+      return false;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('tips')
+        .insert({
+          item_id: itemId,
+          sender_id: currentUserIdRef.current,
+          receiver_id: receiverId,
+          amount: amount,
+          status: 'pending',
+          created_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      console.log('[useChat] Tip sent successfully:', data);
+      return true;
+    } catch (err) {
+      console.error('[useChat] Error sending tip:', err);
+      setError(err instanceof Error ? err.message : 'Failed to send tip');
+      return false;
+    }
+  }, []);
+
+  // Update item status function
+  const updateItemStatus = useCallback(async (itemId: string, newStatus: string): Promise<boolean> => {
+    if (!currentUserIdRef.current) {
+      console.error('[useChat] Cannot update item status: No authenticated user');
+      return false;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('items')
+        .update({
+          status: newStatus,
+          resolved: newStatus === 'returned' || newStatus === 'claimed'
+        })
+        .eq('id', itemId)
+        .eq('user_id', currentUserIdRef.current); // Only item owner can update
+
+      if (error) throw error;
+
+      console.log('[useChat] Item status updated successfully');
+      return true;
+    } catch (err) {
+      console.error('[useChat] Error updating item status:', err);
+      setError(err instanceof Error ? err.message : 'Failed to update item status');
+      return false;
+    }
+  }, []);
+
   return {
     messages,
     threads,
     loading,
     error,
     unreadCount,
+    totalUnreadCount,
+    connectionStatus,
     sendMessage,
     markAllAsRead,
     refetchThreads,
     getUnreadMessagesCount,
+    getTotalUnreadCount,
     isMessageRead,
+    sendTip,
+    updateItemStatus,
   };
 };
 
