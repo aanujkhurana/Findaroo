@@ -411,14 +411,7 @@ export const ItemDetailsScreen = ({ navigation, route }: any) => {
             <Feather name="share-2" size={22} color="#222" />
           </TouchableOpacity>
         </View>
-        {/* Status Badge and Date */}
-        <View style={styles.statusRow}>
-          <View style={[styles.statusBadge, getStatusBadgeStyle(item.status)]}>
-            <Feather name={getStatusIcon(item.status)} size={16} color={getStatusColor(item.status)} style={{ marginRight: 4 }} />
-            <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>{getStatusLabel(item.status)}</Text>
-          </View>
-          <Text style={styles.statusTime}>{formatRelativeDate(item.created_at)}</Text>
-        </View>
+        {/* Status Badge and Date removed as per request */}
         {/* Main Image or Icon Row */}
         {mainImageUrl ? (
           <View style={styles.imageContainer}>
