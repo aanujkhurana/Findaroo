@@ -9,6 +9,8 @@ import {
   Platform,
   StyleSheet,
   Alert,
+  Modal,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -17,7 +19,6 @@ import { useAuth } from '../hooks/useAuth';
 import { Loading } from '../components/Loading';
 import { Message } from '../types';
 
-import { useItems } from '../hooks/useItems';
 import { supabase } from '../services/supabaseClient';
 
 interface ChatScreenProps {
@@ -43,15 +44,25 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
     error,
     sendMessage,
     markAllAsRead,
-    isMessageRead
+    isMessageRead,
+    sendTip,
+    updateItemStatus,
+    connectionStatus
   } = useChat(itemId, otherUserId);
   const [messageText, setMessageText] = useState('');
   const [sending, setSending] = useState(false);
   const flatListRef = useRef<FlatList>(null);
-  const { markAsResolved, updateItem } = useItems();
+  // Remove useItems hook to prevent excessive calls
   const [item, setItem] = useState<any>(null);
   const [itemLoading, setItemLoading] = useState(true);
   const [resolving, setResolving] = useState(false);
+
+  // New state for enhanced features
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [showTipModal, setShowTipModal] = useState(false);
+  const [tipAmount, setTipAmount] = useState('');
+  const [sendingTip, setSendingTip] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   useEffect(() => {
     navigation.setOptions({
@@ -83,14 +94,59 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
     } else if (item.status === 'found') {
       newStatus = 'claimed';
     }
-    const updated = await updateItem(item.id, { resolved: true, status: newStatus });
-    if (updated) {
+
+    // Use updateItemStatus from useChat hook instead
+    const success = await updateItemStatus(item.id, newStatus);
+    if (success) {
       setItem({ ...item, resolved: true, status: newStatus });
       Alert.alert('Success', `Item marked as resolved (${newStatus}).`);
     } else {
       Alert.alert('Error', 'Failed to mark item as resolved.');
     }
     setResolving(false);
+  };
+
+  // Enhanced status update function
+  const handleStatusUpdate = async (newStatus: string) => {
+    if (!item) return;
+
+    setResolving(true);
+    const success = await updateItemStatus(item.id, newStatus);
+
+    if (success) {
+      setItem({ ...item, status: newStatus, resolved: newStatus === 'returned' || newStatus === 'claimed' });
+      setShowStatusModal(false);
+      Alert.alert('Success', `Item status updated to ${newStatus}`);
+    } else {
+      Alert.alert('Error', 'Failed to update item status');
+    }
+    setResolving(false);
+  };
+
+  // Handle tip sending
+  const handleSendTip = async () => {
+    const amount = parseFloat(tipAmount);
+    if (!amount || amount <= 0) {
+      Alert.alert('Error', 'Please enter a valid tip amount');
+      return;
+    }
+
+    if (!item || !otherUserId) {
+      Alert.alert('Error', 'Unable to send tip at this time');
+      return;
+    }
+
+    setSendingTip(true);
+    const success = await sendTip(otherUserId, amount, item.id);
+
+    if (success) {
+      setShowTipModal(false);
+      setTipAmount('');
+      Alert.alert('Success', `Tip of $${amount} sent successfully!`);
+    } else {
+      Alert.alert('Error', 'Failed to send tip. Please try again.');
+    }
+    setSendingTip(false);
   };
 
   const scrollToBottom = React.useCallback(() => {
@@ -152,6 +208,41 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
       return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
     }
   }, []);
+
+  // Message suggestions based on item status
+  const getMessageSuggestions = React.useCallback(() => {
+    if (!item) return [];
+
+    const suggestions = [];
+
+    if (item.status === 'lost') {
+      suggestions.push(
+        "Hi! I think I found your item. Can you describe it?",
+        "I have something that matches your description. Where would you like to meet?",
+        "Is this still missing? I might have found it."
+      );
+    } else if (item.status === 'found') {
+      suggestions.push(
+        "Hi! I think this might be mine. Can I provide more details?",
+        "I lost something similar. Where did you find this?",
+        "This looks like mine! When would be a good time to meet?"
+      );
+    }
+
+    suggestions.push(
+      "Thank you for helping!",
+      "When would be a good time to meet?",
+      "Can you provide more details?"
+    );
+
+    return suggestions;
+  }, [item]);
+
+  // Handle suggestion tap
+  const handleSuggestionTap = (suggestion: string) => {
+    setMessageText(suggestion);
+    setShowSuggestions(false);
+  };
 
   const renderMessage = React.useCallback(({ item, index }: { item: Message; index: number }) => {
     const isMyMessage = item.sender_id === session?.user?.id;
@@ -246,8 +337,36 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
         <TouchableOpacity style={styles.headerBackBtn} onPress={() => navigation.goBack()}>
           <Feather name="arrow-left" size={26} color="#000000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>{otherUserName}</Text>
-        <View style={{ width: 40 }} /> {/* Placeholder for symmetry */}
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle} numberOfLines={1}>{otherUserName}</Text>
+          <View style={styles.connectionStatus}>
+            <View style={[
+              styles.connectionDot,
+              { backgroundColor: connectionStatus === 'connected' ? '#33C48D' :
+                               connectionStatus === 'connecting' ? '#FFA930' : '#FF4C4C' }
+            ]} />
+            <Text style={styles.connectionText}>
+              {connectionStatus === 'connected' ? 'Online' :
+               connectionStatus === 'connecting' ? 'Connecting...' : 'Offline'}
+            </Text>
+          </View>
+        </View>
+        <View style={styles.headerActions}>
+          {item && !item.resolved && (
+            <TouchableOpacity
+              style={styles.headerActionBtn}
+              onPress={() => setShowStatusModal(true)}
+            >
+              <Feather name="edit-3" size={20} color="#000000" />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity
+            style={styles.headerActionBtn}
+            onPress={() => setShowTipModal(true)}
+          >
+            <Feather name="gift" size={20} color="#000000" />
+          </TouchableOpacity>
+        </View>
       </View>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -329,7 +448,31 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
           </View>
         )}
 
+        {/* Message Suggestions */}
+        {showSuggestions && messages.length === 0 && (
+          <View style={styles.suggestionsContainer}>
+            <Text style={styles.suggestionsTitle}>Quick replies:</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {getMessageSuggestions().map((suggestion, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.suggestionChip}
+                  onPress={() => handleSuggestionTap(suggestion)}
+                >
+                  <Text style={styles.suggestionText}>{suggestion}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
         <View style={styles.inputContainer}>
+          <TouchableOpacity
+            style={styles.suggestionsButton}
+            onPress={() => setShowSuggestions(!showSuggestions)}
+          >
+            <Feather name="message-square" size={20} color="#64748b" />
+          </TouchableOpacity>
           <TextInput
             style={styles.textInput}
             value={messageText}
@@ -355,6 +498,145 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Status Update Modal */}
+      <Modal
+        visible={showStatusModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowStatusModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Update Item Status</Text>
+            <Text style={styles.modalSubtitle}>Current status: {item?.status}</Text>
+
+            <View style={styles.statusOptions}>
+              {item?.status === 'lost' && (
+                <>
+                  <TouchableOpacity
+                    style={[styles.statusOption, styles.successOption]}
+                    onPress={() => handleStatusUpdate('returned')}
+                    disabled={resolving}
+                  >
+                    <Feather name="check-circle" size={20} color="#fff" />
+                    <Text style={styles.statusOptionText}>Mark as Returned</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.statusOption, styles.errorOption]}
+                    onPress={() => handleStatusUpdate('flagged')}
+                    disabled={resolving}
+                  >
+                    <Feather name="flag" size={20} color="#fff" />
+                    <Text style={styles.statusOptionText}>Flag as Inappropriate</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+
+              {item?.status === 'found' && (
+                <>
+                  <TouchableOpacity
+                    style={[styles.statusOption, styles.successOption]}
+                    onPress={() => handleStatusUpdate('claimed')}
+                    disabled={resolving}
+                  >
+                    <Feather name="user-check" size={20} color="#fff" />
+                    <Text style={styles.statusOptionText}>Mark as Claimed</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.statusOption, styles.warningOption]}
+                    onPress={() => handleStatusUpdate('kept')}
+                    disabled={resolving}
+                  >
+                    <Feather name="archive" size={20} color="#fff" />
+                    <Text style={styles.statusOptionText}>Keep Item</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.statusOption, styles.errorOption]}
+                    onPress={() => handleStatusUpdate('flagged')}
+                    disabled={resolving}
+                  >
+                    <Feather name="flag" size={20} color="#fff" />
+                    <Text style={styles.statusOptionText}>Flag as Inappropriate</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
+
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={() => setShowStatusModal(false)}
+            >
+              <Text style={styles.modalCloseText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Tip Modal */}
+      <Modal
+        visible={showTipModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowTipModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Send a Tip</Text>
+            <Text style={styles.modalSubtitle}>Show your appreciation to {otherUserName}</Text>
+
+            <View style={styles.tipInputContainer}>
+              <Text style={styles.tipLabel}>Amount (AUD)</Text>
+              <View style={styles.tipAmountInput}>
+                <Text style={styles.currencySymbol}>$</Text>
+                <TextInput
+                  style={styles.tipInput}
+                  value={tipAmount}
+                  onChangeText={setTipAmount}
+                  placeholder="0.00"
+                  keyboardType="decimal-pad"
+                  editable={!sendingTip}
+                />
+              </View>
+
+              <View style={styles.quickTipAmounts}>
+                {[5, 10, 20, 50].map(amount => (
+                  <TouchableOpacity
+                    key={amount}
+                    style={styles.quickTipButton}
+                    onPress={() => setTipAmount(amount.toString())}
+                  >
+                    <Text style={styles.quickTipText}>${amount}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalCancelButton}
+                onPress={() => setShowTipModal(false)}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalSendButton, sendingTip && styles.modalSendButtonDisabled]}
+                onPress={handleSendTip}
+                disabled={sendingTip || !tipAmount}
+              >
+                {sendingTip ? (
+                  <Feather name="clock" size={16} color="#fff" />
+                ) : (
+                  <Feather name="gift" size={16} color="#fff" />
+                )}
+                <Text style={styles.modalSendText}>
+                  {sendingTip ? 'Sending...' : 'Send Tip'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -389,13 +671,44 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#f1f5f9',
   },
-  headerTitle: {
+  headerCenter: {
     flex: 1,
-    textAlign: 'center',
-    fontSize: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontSize: 18,
     fontWeight: '700',
     color: '#222',
-    marginHorizontal: 8,
+    textAlign: 'center',
+  },
+  connectionStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  connectionDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 4,
+  },
+  connectionText: {
+    fontSize: 11,
+    color: '#64748b',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerActionBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f1f5f9',
+    marginLeft: 8,
   },
   errorBanner: {
     backgroundColor: '#fef2f2',
@@ -494,6 +807,32 @@ const styles = StyleSheet.create({
   readReceiptContainer: {
     marginLeft: 4,
   },
+  suggestionsContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#f8fafc',
+    borderTopWidth: 1,
+    borderTopColor: '#e2e8f0',
+  },
+  suggestionsTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#64748b',
+    marginBottom: 8,
+  },
+  suggestionChip: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  suggestionText: {
+    fontSize: 14,
+    color: '#2E2E2E',
+  },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -507,6 +846,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 5,
+  },
+  suggestionsButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
   },
   textInput: {
     flex: 1,
@@ -609,5 +956,154 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
     fontSize: 16,
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 40,
+    maxHeight: '80%',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#2E2E2E',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: '#64748b',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  statusOptions: {
+    marginBottom: 24,
+  },
+  statusOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+    marginBottom: 12,
+  },
+  successOption: {
+    backgroundColor: '#33C48D',
+  },
+  warningOption: {
+    backgroundColor: '#FFA930',
+  },
+  errorOption: {
+    backgroundColor: '#FF4C4C',
+  },
+  statusOptionText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  modalCloseButton: {
+    alignItems: 'center',
+    paddingVertical: 16,
+  },
+  modalCloseText: {
+    fontSize: 16,
+    color: '#64748b',
+    fontWeight: '600',
+  },
+  // Tip modal styles
+  tipInputContainer: {
+    marginBottom: 24,
+  },
+  tipLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2E2E2E',
+    marginBottom: 12,
+  },
+  tipAmountInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#e2e8f0',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 16,
+  },
+  currencySymbol: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#2E2E2E',
+    marginRight: 8,
+  },
+  tipInput: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#2E2E2E',
+  },
+  quickTipAmounts: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  quickTipButton: {
+    flex: 1,
+    backgroundColor: '#f1f5f9',
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginHorizontal: 4,
+  },
+  quickTipText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2E2E2E',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  modalCancelButton: {
+    flex: 1,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  modalCancelText: {
+    fontSize: 16,
+    color: '#64748b',
+    fontWeight: '600',
+  },
+  modalSendButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2E2E2E',
+    paddingVertical: 16,
+    borderRadius: 16,
+    marginLeft: 8,
+  },
+  modalSendButtonDisabled: {
+    backgroundColor: '#9ca3af',
+    opacity: 0.6,
+  },
+  modalSendText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
   },
 });
