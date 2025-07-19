@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, ActivityIndicator, Alert, SafeAreaView, Platform, RefreshControl, TextInput } from 'react-native';
-import { Feather, MaterialIcons } from '@expo/vector-icons';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, Alert, SafeAreaView, Platform, RefreshControl, TextInput } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../hooks/useAuth';
 import { useItems } from '../hooks/useItems';
-import { useChat } from '../hooks/useChat';
 import { Item } from '../types';
 import { supabase } from '../services/supabaseClient';
 
@@ -31,9 +30,9 @@ const COLORS = {
 };
 
 const FILTERS = [
-  { label: 'All Items', value: 'all', icon: 'list' },
+  { label: 'All', value: 'all', icon: 'list' },
   { label: 'Active', value: 'active', icon: 'clock' },
-  { label: 'Matched', value: 'matched', icon: 'check-circle' },
+  { label: 'Matched', value: 'matched', icon: 'message-circle' },
   { label: 'Resolved', value: 'resolved', icon: 'check' },
 ];
 
@@ -208,36 +207,19 @@ export default function ActivityScreen() {
     });
   }, [userItems, shouldFetchItems, messageCounts]);
 
-  // Calculate compact statistics
-  const stats = useMemo(() => {
+  // Calculate filter counts for chips
+  const filterCounts = useMemo(() => {
     const totalPosts = allUserItems.length;
     const activeCount = allUserItems.filter(item => item.displayStatus === 'active').length;
     const matchedCount = allUserItems.filter(item => item.displayStatus === 'matched').length;
     const resolvedCount = allUserItems.filter(item => item.displayStatus === 'resolved').length;
 
-    return [
-      {
-        label: 'Total',
-        value: totalPosts,
-        color: '#F0F4FF',
-        textColor: COLORS.primary,
-        icon: 'list'
-      },
-      {
-        label: 'Active',
-        value: activeCount,
-        color: '#FFF8E6',
-        textColor: '#E67E00',
-        icon: 'clock'
-      },
-      {
-        label: 'Matched',
-        value: matchedCount,
-        color: '#F0FDF4',
-        textColor: COLORS.success,
-        icon: 'message-circle'
-      },
-    ];
+    return {
+      all: totalPosts,
+      active: activeCount,
+      matched: matchedCount,
+      resolved: resolvedCount,
+    };
   }, [allUserItems]);
 
   // Filter items based on selected filter
@@ -394,8 +376,7 @@ export default function ActivityScreen() {
     }
   };
 
-  // Combined loading state - wait for both auth and items
-  const loading = authLoading || (shouldFetchItems && itemsLoading);
+
 
   // Determine header background and text color based on selected filter
   const headerStyle = useMemo(() => {
@@ -462,28 +443,70 @@ export default function ActivityScreen() {
       {/* Modern Professional Header Bar */}
       <View style={[styles.modernHeaderBar, { backgroundColor: headerStyle.backgroundColor, shadowColor: headerStyle.backgroundColor }]}>
         <Text style={[styles.modernHeaderTitle, { color: headerStyle.textColor }]}>Activity</Text>
+        <TouchableOpacity
+          style={styles.headerActionButton}
+          onPress={() => navigation.navigate('Items')}
+        >
+          <Feather name="plus" size={20} color={headerStyle.textColor} />
+        </TouchableOpacity>
       </View>
       <View style={styles.container}>
-        {/* Compact Stats Row */}
-        <View style={styles.statsContainer}>
-          {stats.map((stat, index) => (
-            <View key={stat.label} style={[styles.statCard, { backgroundColor: stat.color }]}>
-              <Text style={[styles.statValue, { color: stat.textColor }]}>{stat.value}</Text>
-              <Text style={styles.statLabel}>{stat.label}</Text>
-            </View>
-          ))}
+        {/* Professional Action Bar */}
+        <View style={styles.actionBarContainer}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => navigation.navigate('Items')}
+          >
+            <Feather name="plus" size={16} color={COLORS.primary} />
+            <Text style={styles.actionButtonText}>Post</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={handleRefresh}
+          >
+            <Feather name="refresh-cw" size={16} color={COLORS.primary} />
+            <Text style={styles.actionButtonText}>Refresh</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => navigation.navigate('Messages')}
+          >
+            <Feather name="message-circle" size={16} color={COLORS.primary} />
+            <Text style={styles.actionButtonText}>Messages</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => navigation.navigate('Explore')}
+          >
+            <Feather name="search" size={16} color={COLORS.primary} />
+            <Text style={styles.actionButtonText}>Explore</Text>
+          </TouchableOpacity>
         </View>
-        {/* Compact Filter Bar */}
+
+        {/* Enhanced Filter Bar with Counts */}
         <View style={styles.filterContainer}>
           {FILTERS.map(f => (
             <TouchableOpacity
               key={f.value}
-              style={[styles.filterPill, filter === f.value && styles.filterPillActive]}
+              style={[styles.filterChip, filter === f.value && styles.filterChipActive]}
               onPress={() => setFilter(f.value)}
             >
-              <Text style={[styles.filterPillText, filter === f.value && styles.filterPillTextActive]}>
+              <Feather
+                name={f.icon as any}
+                size={14}
+                color={filter === f.value ? '#fff' : COLORS.muted}
+              />
+              <Text style={[styles.filterChipText, filter === f.value && styles.filterChipTextActive]}>
                 {f.label}
               </Text>
+              <View style={[styles.countBadge, filter === f.value && styles.countBadgeActive]}>
+                <Text style={[styles.countText, filter === f.value && styles.countTextActive]}>
+                  {filterCounts[f.value as keyof typeof filterCounts]}
+                </Text>
+              </View>
             </TouchableOpacity>
           ))}
         </View>
@@ -728,62 +751,113 @@ const styles = StyleSheet.create({
   modernHeaderTitle: {
     fontFamily: 'Manrope-SemiBold',
     fontWeight: 'bold',
-    fontSize: 28,
+    fontSize: 24,
     letterSpacing: 0.2,
-    textTransform: 'uppercase',
+    color: COLORS.text,
   },
-  // Compact Stats Styles
-  statsContainer: {
+  statLabel: {
+    color: COLORS.muted,
+    fontSize: 14,
+    textAlign: 'center',
+    fontWeight: '500',
+    marginTop: 2,
+    fontFamily: 'Inter',
+  },
+  // Professional Action Bar Styles
+  actionBarContainer: {
     flexDirection: 'row',
-    marginHorizontal: 18,
+    marginHorizontal: 20,
+    marginTop: 8,
     marginBottom: 16,
-    gap: 8,
+    gap: 12,
+    justifyContent: 'space-between',
   },
-  statCard: {
+  actionButton: {
     flex: 1,
-    borderRadius: 12,
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-  },
-  statValue: { fontWeight: 'bold', fontSize: 16 },
-  statLabel: { color: COLORS.muted, fontSize: 11, textAlign: 'center', fontWeight: '500', marginTop: 2 },
-  // Compact Filter Styles
-  filterContainer: {
-    flexDirection: 'row',
-    marginHorizontal: 18,
-    marginBottom: 16,
-    gap: 8,
-  },
-  filterPill: {
-    flex: 1,
+    justifyContent: 'center',
     backgroundColor: COLORS.card,
-    borderRadius: 20,
-    paddingVertical: 8,
-    alignItems: 'center',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
+    gap: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
-  filterPillActive: {
+  actionButtonText: {
+    color: COLORS.primary,
+    fontSize: 13,
+    fontWeight: '600',
+    fontFamily: 'Inter',
+  },
+  // Enhanced Filter Styles with Counts
+  filterContainer: {
+    flexDirection: 'row',
+    marginHorizontal: 20,
+    marginBottom: 16,
+    gap: 8,
+  },
+  filterChip: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    gap: 6,
+  },
+  filterChipActive: {
     backgroundColor: COLORS.primary,
     borderColor: COLORS.primary,
   },
-  filterPillText: {
+  filterChipText: {
     color: COLORS.text,
     fontSize: 12,
     fontWeight: '600',
+    fontFamily: 'Inter',
   },
-  filterPillTextActive: {
+  filterChipTextActive: {
     color: '#fff',
   },
-  // Compact Item Card Styles
+  countBadge: {
+    backgroundColor: COLORS.neutral,
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    minWidth: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  countBadgeActive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  countText: {
+    color: COLORS.muted,
+    fontSize: 10,
+    fontWeight: '700',
+    fontFamily: 'RobotoMono-Regular',
+  },
+  countTextActive: {
+    color: '#fff',
+  },
+  // Professional Item Card Styles
   itemCard: {
     flexDirection: 'row',
     backgroundColor: COLORS.card,
-    borderRadius: 24, // rounded-2xl
-    marginHorizontal: 18,
-    marginBottom: 16,
-    padding: 16, // p-4
+    borderRadius: 16,
+    marginHorizontal: 20,
+    marginBottom: 12,
+    padding: 16,
     alignItems: 'flex-start',
     borderWidth: 1,
     borderColor: COLORS.border,
