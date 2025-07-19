@@ -21,6 +21,7 @@ import { Message } from '../types';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 
 import { supabase } from '../services/supabaseClient';
+import { reportingService } from '../services/reportingService';
 
 interface ChatScreenProps {
   navigation: any;
@@ -76,6 +77,11 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
   const [showTipModal, setShowTipModal] = useState(false);
   const [tipAmount, setTipAmount] = useState('');
   const [sendingTip, setSendingTip] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportType, setReportType] = useState<'ghosting' | 'inappropriate' | 'spam'>('ghosting');
+  const [reportDescription, setReportDescription] = useState('');
+  const [submittingReport, setSubmittingReport] = useState(false);
+  const [canReportGhosting, setCanReportGhosting] = useState(false);
 
   useEffect(() => {
     navigation.setOptions({
@@ -97,6 +103,22 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
     };
     fetchItem();
   }, [itemId]);
+
+  // Check if user can report ghosting
+  useEffect(() => {
+    const checkGhostingEligibility = async () => {
+      if (!session?.user?.id || !otherUserId || !itemId) return;
+
+      const result = await reportingService.canReportGhosting(
+        session.user.id,
+        otherUserId,
+        itemId
+      );
+      setCanReportGhosting(result.canReport);
+    };
+
+    checkGhostingEligibility();
+  }, [session?.user?.id, otherUserId, itemId, messages]);
 
   const handleResolve = async () => {
     if (!item) return;
@@ -160,6 +182,52 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
       Alert.alert('Error', 'Failed to send tip. Please try again.');
     }
     setSendingTip(false);
+  };
+
+  // Handle report submission
+  const handleSubmitReport = async () => {
+    if (!reportDescription.trim()) {
+      Alert.alert('Error', 'Please provide a description for your report');
+      return;
+    }
+
+    if (!session?.user?.id || !otherUserId || !itemId) {
+      Alert.alert('Error', 'Unable to submit report at this time');
+      return;
+    }
+
+    setSubmittingReport(true);
+
+    try {
+      let result;
+      if (reportType === 'ghosting') {
+        result = await reportingService.reportGhosting(
+          session.user.id,
+          otherUserId,
+          itemId,
+          reportDescription
+        );
+      } else {
+        result = await reportingService.reportItem(
+          session.user.id,
+          itemId,
+          reportType as 'spam' | 'inappropriate',
+          reportDescription
+        );
+      }
+
+      if (result.success) {
+        setShowReportModal(false);
+        setReportDescription('');
+        Alert.alert('Success', 'Report submitted successfully. Thank you for helping keep our community safe.');
+      } else {
+        Alert.alert('Error', result.error || 'Failed to submit report');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to submit report. Please try again.');
+    }
+
+    setSubmittingReport(false);
   };
 
   const scrollToBottom = React.useCallback(() => {
@@ -382,6 +450,12 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
             onPress={() => setShowTipModal(true)}
           >
             <Feather name="gift" size={20} color="#000000" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.headerActionBtn}
+            onPress={() => setShowReportModal(true)}
+          >
+            <Feather name="flag" size={20} color="#000000" />
           </TouchableOpacity>
         </View>
       </View>
@@ -642,6 +716,107 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
                 )}
                 <Text style={styles.modalSendText}>
                   {sendingTip ? 'Sending...' : 'Send Tip'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Report Modal */}
+      <Modal
+        visible={showReportModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowReportModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Report Issue</Text>
+            <Text style={styles.modalSubtitle}>Help us keep the community safe</Text>
+
+            <View style={styles.reportTypeContainer}>
+              <Text style={styles.reportTypeLabel}>Report Type:</Text>
+              <View style={styles.reportTypeOptions}>
+                <TouchableOpacity
+                  style={[
+                    styles.reportTypeOption,
+                    reportType === 'ghosting' && styles.reportTypeOptionActive,
+                    !canReportGhosting && reportType === 'ghosting' && styles.reportTypeOptionDisabled
+                  ]}
+                  onPress={() => setReportType('ghosting')}
+                  disabled={!canReportGhosting && reportType !== 'ghosting'}
+                >
+                  <Text style={[
+                    styles.reportTypeOptionText,
+                    reportType === 'ghosting' && styles.reportTypeOptionTextActive
+                  ]}>
+                    Ghosting
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.reportTypeOption,
+                    reportType === 'inappropriate' && styles.reportTypeOptionActive
+                  ]}
+                  onPress={() => setReportType('inappropriate')}
+                >
+                  <Text style={[
+                    styles.reportTypeOptionText,
+                    reportType === 'inappropriate' && styles.reportTypeOptionTextActive
+                  ]}>
+                    Inappropriate
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.reportTypeOption,
+                    reportType === 'spam' && styles.reportTypeOptionActive
+                  ]}
+                  onPress={() => setReportType('spam')}
+                >
+                  <Text style={[
+                    styles.reportTypeOptionText,
+                    reportType === 'spam' && styles.reportTypeOptionTextActive
+                  ]}>
+                    Spam/Fake
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.reportDescriptionContainer}>
+              <Text style={styles.reportDescriptionLabel}>Description:</Text>
+              <TextInput
+                style={styles.reportDescriptionInput}
+                placeholder="Please describe the issue..."
+                value={reportDescription}
+                onChangeText={setReportDescription}
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
+              />
+            </View>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalCancelButton}
+                onPress={() => setShowReportModal(false)}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalSendButton, submittingReport && styles.modalSendButtonDisabled]}
+                onPress={handleSubmitReport}
+                disabled={submittingReport || !reportDescription.trim()}
+              >
+                {submittingReport ? (
+                  <Feather name="clock" size={16} color="#fff" />
+                ) : (
+                  <Feather name="flag" size={16} color="#fff" />
+                )}
+                <Text style={styles.modalSendText}>
+                  {submittingReport ? 'Submitting...' : 'Submit Report'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -1109,5 +1284,61 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
+  },
+  // Report modal styles
+  reportTypeContainer: {
+    marginBottom: 20,
+  },
+  reportTypeLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 12,
+  },
+  reportTypeOptions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  reportTypeOption: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    alignItems: 'center',
+  },
+  reportTypeOptionActive: {
+    backgroundColor: '#ef4444',
+    borderColor: '#ef4444',
+  },
+  reportTypeOptionDisabled: {
+    opacity: 0.5,
+  },
+  reportTypeOptionText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6b7280',
+  },
+  reportTypeOptionTextActive: {
+    color: '#fff',
+  },
+  reportDescriptionContainer: {
+    marginBottom: 20,
+  },
+  reportDescriptionLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 8,
+  },
+  reportDescriptionInput: {
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    minHeight: 100,
+    backgroundColor: '#fff',
   },
 });

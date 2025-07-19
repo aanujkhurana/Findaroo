@@ -27,6 +27,7 @@ import { CreateLostItemScreen } from '../screens/CreateLostItemScreen';
 import { CreateFoundItemScreen } from '../screens/CreateFoundItemScreen';
 import SuccessScreen from '../screens/SuccessScreen';
 import { NotificationScreen } from '../screens/NotificationScreen';
+import { KarmaHistoryScreen } from '../screens/KarmaHistoryScreen';
 import { NotificationInitializer } from '../components/NotificationInitializer';
 
 const Stack = createStackNavigator();
@@ -390,6 +391,14 @@ const MainStack = () => (
       component={NotificationScreen}
       options={{
         title: 'Notifications',
+        headerShown: false,
+      }}
+    />
+    <Stack.Screen
+      name="KarmaHistory"
+      component={KarmaHistoryScreen}
+      options={{
+        title: 'Karma History',
         headerShown: false,
       }}
     />

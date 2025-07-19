@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '../services/supabaseClient';
 import { Item, LocationCoords, Category } from '../types';
+import { karmaService } from '../services/karmaService';
 
 export const useCreateItem = () => {
   const [loading, setLoading] = useState(false);
@@ -49,6 +50,10 @@ export const useCreateItem = () => {
         .single();
 
       if (error) throw error;
+
+      // Award karma for posting an item
+      console.log('[useCreateItem] Awarding karma for posting item');
+      await karmaService.createKarmaEvent(itemData.user_id, 'ITEM_POSTED', data.id);
 
       return data;
     } catch (error: any) {

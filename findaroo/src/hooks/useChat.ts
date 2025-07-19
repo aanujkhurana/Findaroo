@@ -5,6 +5,7 @@ import * as Notifications from 'expo-notifications';
 import { supabase } from '../services/supabaseClient';
 import { notificationService } from '../services/notificationService';
 import { Message, ChatThread } from '../types';
+import { karmaService } from '../services/karmaService';
 
 // Sound playing function
 const playMessageSound = async () => {
@@ -506,6 +507,16 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
     }
 
     try {
+      // Check if this is the first message between these users for this item
+      const { data: existingMessages } = await supabase
+        .from('messages')
+        .select('id')
+        .eq('item_id', itemId)
+        .or(`and(sender_id.eq.${currentUserIdRef.current},receiver_id.eq.${receiverId}),and(sender_id.eq.${receiverId},receiver_id.eq.${currentUserIdRef.current})`)
+        .limit(1);
+
+      const isFirstMessage = !existingMessages || existingMessages.length === 0;
+
       const messageData = {
         item_id: itemId,
         sender_id: currentUserIdRef.current,
@@ -525,6 +536,12 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
         .single();
 
       if (error) throw error;
+
+      // Award karma for first message
+      if (isFirstMessage) {
+        console.log('[useChat] Awarding karma for first message');
+        await karmaService.createKarmaEvent(currentUserIdRef.current, 'FIRST_MESSAGE', itemId);
+      }
 
       // Optimistically update the messages list
       setMessages(prev => [...prev, data]);
@@ -602,6 +619,10 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
 
       if (error) throw error;
 
+      // Award karma for sending tip
+      console.log('[useChat] Awarding karma for sending tip');
+      await karmaService.createKarmaEvent(currentUserIdRef.current, 'SEND_TIP', itemId);
+
       console.log('[useChat] Tip sent successfully:', data);
       return true;
     } catch (err) {
@@ -619,6 +640,15 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
     }
 
     try {
+      // Get the current item to check who should get karma
+      const { data: item, error: itemError } = await supabase
+        .from('items')
+        .select('user_id, status')
+        .eq('id', itemId)
+        .single();
+
+      if (itemError) throw itemError;
+
       const { error } = await supabase
         .from('items')
         .update({
@@ -629,6 +659,39 @@ export const useChat = (itemId?: string, otherUserId?: string) => {
         .eq('user_id', currentUserIdRef.current); // Only item owner can update
 
       if (error) throw error;
+
+      // Award karma based on status change
+      if (newStatus === 'returned' || newStatus === 'claimed') {
+        // Award karma to the item owner for successful return
+        console.log('[useChat] Awarding karma for successful return');
+        await karmaService.createKarmaEvent(currentUserIdRef.current, 'RETURN_SUCCESS', itemId);
+
+        // Find the other user in the conversation to award them karma too
+        const { data: messages } = await supabase
+          .from('messages')
+          .select('sender_id, receiver_id')
+          .eq('item_id', itemId)
+          .limit(1);
+
+        if (messages && messages.length > 0) {
+          const otherUserId = messages[0].sender_id === currentUserIdRef.current
+            ? messages[0].receiver_id
+            : messages[0].sender_id;
+
+          if (otherUserId !== currentUserIdRef.current) {
+            console.log('[useChat] Awarding karma to other user for successful return');
+            await karmaService.createKarmaEvent(otherUserId, 'RETURN_SUCCESS', itemId);
+          }
+        }
+      } else if (newStatus === 'kept') {
+        // Penalize for keeping item
+        console.log('[useChat] Applying karma penalty for keeping item');
+        await karmaService.createKarmaEvent(currentUserIdRef.current, 'KEEP_ITEM', itemId);
+      } else if (newStatus === 'flagged') {
+        // Penalize for getting flagged
+        console.log('[useChat] Applying karma penalty for flagged item');
+        await karmaService.createKarmaEvent(currentUserIdRef.current, 'GET_FLAGGED', itemId);
+      }
 
       console.log('[useChat] Item status updated successfully');
       return true;
