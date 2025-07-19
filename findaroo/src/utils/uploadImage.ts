@@ -4,6 +4,8 @@ import mime from 'mime'; // <-- Add this import (install with: npm install mime)
 
 export const uploadImage = async (uri: string, filename: string, userId: string, bucket: string = 'item-images'): Promise<string | null> => {
   try {
+    console.log('[uploadImage] Starting upload process for:', filename);
+
     // Get file info
     const fileInfo = await FileSystem.getInfoAsync(uri);
     console.log('[uploadImage] File info:', fileInfo);
@@ -11,8 +13,15 @@ export const uploadImage = async (uri: string, filename: string, userId: string,
       throw new Error('File does not exist');
     }
 
-    // Create file name with userId prefix
-    const filePath = `${userId}/${Date.now()}_${filename}`;
+    // Validate file size (max 10MB)
+    if (fileInfo.size && fileInfo.size > 10 * 1024 * 1024) {
+      throw new Error('File size too large. Maximum size is 10MB.');
+    }
+
+    // Create file name with userId prefix and ensure unique filename
+    const timestamp = Date.now();
+    const cleanFilename = filename.replace(/[^a-zA-Z0-9.-]/g, '_'); // Clean filename
+    const filePath = `${userId}/${timestamp}_${cleanFilename}`;
     console.log('[uploadImage] filePath:', filePath);
 
     // Read file as base64 and convert to ArrayBuffer for better compatibility
@@ -34,6 +43,11 @@ export const uploadImage = async (uri: string, filename: string, userId: string,
     const contentType = mime.getType(filename) || 'image/jpeg';
     console.log('[uploadImage] Detected contentType:', contentType);
 
+    // Validate content type
+    if (!contentType.startsWith('image/')) {
+      throw new Error('Invalid file type. Only images are allowed.');
+    }
+
     // Upload to Supabase Storage using ArrayBuffer
     const { data, error } = await supabase.storage
       .from(bucket)
@@ -41,16 +55,22 @@ export const uploadImage = async (uri: string, filename: string, userId: string,
         contentType,
         upsert: true
       });
+
     console.log('[uploadImage] Supabase upload response:', { data, error });
 
     if (error) {
-      console.error('Error uploading image:', error);
-      return null;
+      console.error('[uploadImage] Supabase error:', error);
+      throw new Error(`Upload failed: ${error.message}`);
     }
 
+    if (!data?.path) {
+      throw new Error('Upload succeeded but no path returned');
+    }
+
+    console.log('[uploadImage] Upload successful, path:', data.path);
     return data.path;
-  } catch (error) {
-    console.error('Error in uploadImage:', error);
+  } catch (error: any) {
+    console.error('[uploadImage] Error:', error);
     return null;
   }
 };

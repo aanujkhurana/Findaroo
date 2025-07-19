@@ -100,6 +100,8 @@ const [debugSignedUrl, setDebugSignedUrl] = useState<string>('');
 const [locationLoading, setLocationLoading] = useState(false);
 const [locationError, setLocationError] = useState<string | null>(null);
 const [showLocationPicker, setShowLocationPicker] = useState(false);
+const [imageUploading, setImageUploading] = useState(false);
+const [showImagePicker, setShowImagePicker] = useState(false);
 const [formData, setFormData] = useState<FormData>(() => {
   if (editMode && itemData) {
     return {
@@ -324,28 +326,73 @@ useEffect(() => {
 
   const handlePickImage = async () => {
     if (!user) return;
+
     try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaType.Images,
-        allowsEditing: true,
-        quality: 0.8,
-      });
+      // Request media library permissions
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Photo library permission is required to select images.');
+        return;
+      }
+
+      setShowImagePicker(true);
+    } catch (error) {
+      console.error('[ImagePicker] Permission error:', error);
+      Alert.alert('Error', 'An error occurred while requesting permissions.');
+    }
+  };
+
+  const handleImagePickerOption = async (option: 'camera' | 'gallery') => {
+    if (!user) return;
+    setShowImagePicker(false);
+
+    try {
+      setImageUploading(true);
+      let result;
+
+      if (option === 'camera') {
+        // Request camera permissions
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Permission Required', 'Camera permission is required to take photos.');
+          return;
+        }
+
+        result = await ImagePicker.launchCameraAsync({
+          mediaTypes: 'images',
+          allowsEditing: true,
+          quality: 0.8,
+        });
+      } else {
+        result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: 'images',
+          allowsEditing: true,
+          quality: 0.8,
+        });
+      }
+
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const asset = result.assets[0];
         const uri = asset.uri;
-        const filename = asset.fileName || uri.split('/').pop() || `photo.jpg`;
+        const filename = asset.fileName || uri.split('/').pop() || `photo_${Date.now()}.jpg`;
+
+        console.log('[ImageUpload] Starting upload for:', filename);
         const path = await uploadImage(uri, filename, user.id, 'item-images');
         console.log('[ImageUpload] uploadImage returned:', path);
+
         if (path) {
           updateFormData('image', path);
+          Alert.alert('Success', 'Image uploaded successfully!');
         } else {
           Alert.alert('Upload failed', 'Could not upload image. Please try again.');
           console.error('[ImageUpload] Upload failed: path is null');
         }
       }
     } catch (err: any) {
-      Alert.alert('Upload error', err.message || 'Unknown error');
       console.error('[ImageUpload] Error:', err);
+      Alert.alert('Upload error', err.message || 'An error occurred while uploading the image.');
+    } finally {
+      setImageUploading(false);
     }
   };
 
@@ -528,18 +575,25 @@ useEffect(() => {
       <View style={styles.inputGroup}>
         <Text style={styles.inputLabel}>Add a Photo (Optional)</Text>
         <TouchableOpacity
-          style={styles.uploadButton}
+          style={[styles.uploadButton, imageUploading && styles.uploadButtonDisabled]}
           onPress={handlePickImage}
           activeOpacity={0.8}
+          disabled={imageUploading}
         >
           <View style={styles.uploadIconContainer}>
-            <Feather name="camera" size={20} color="#4F46E5" />
+            {imageUploading ? (
+              <ActivityIndicator size="small" color="#4F46E5" />
+            ) : (
+              <Feather name="camera" size={20} color="#4F46E5" />
+            )}
           </View>
           <View style={styles.uploadTextContainer}>
-            <Text style={styles.uploadButtonText}>Take Photo or Choose from Gallery</Text>
+            <Text style={styles.uploadButtonText}>
+              {imageUploading ? 'Uploading...' : 'Take Photo or Choose from Gallery'}
+            </Text>
             <Text style={styles.uploadSubtext}>Helps others identify your item</Text>
           </View>
-          <Feather name="chevron-right" size={16} color="#9CA3AF" />
+          {!imageUploading && <Feather name="chevron-right" size={16} color="#9CA3AF" />}
         </TouchableOpacity>
 
         {formData.image && (
@@ -820,6 +874,59 @@ useEffect(() => {
           onLocationChange={handleLocationChange}
           onClose={() => setShowLocationPicker(false)}
         />
+      </Modal>
+
+      {/* Image Picker Modal */}
+      <Modal
+        visible={showImagePicker}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowImagePicker(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.imagePickerModal}>
+            <Text style={styles.imagePickerTitle}>Add Photo</Text>
+            <Text style={styles.imagePickerSubtitle}>Choose how you'd like to add a photo</Text>
+
+            <TouchableOpacity
+              style={styles.imagePickerOption}
+              onPress={() => handleImagePickerOption('camera')}
+              activeOpacity={0.8}
+            >
+              <View style={styles.imagePickerIconContainer}>
+                <Feather name="camera" size={24} color="#3A8DFF" />
+              </View>
+              <View style={styles.imagePickerTextContainer}>
+                <Text style={styles.imagePickerOptionTitle}>Take Photo</Text>
+                <Text style={styles.imagePickerOptionSubtitle}>Use your camera to take a new photo</Text>
+              </View>
+              <Feather name="chevron-right" size={20} color="#9CA3AF" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.imagePickerOption}
+              onPress={() => handleImagePickerOption('gallery')}
+              activeOpacity={0.8}
+            >
+              <View style={styles.imagePickerIconContainer}>
+                <Feather name="image" size={24} color="#33C48D" />
+              </View>
+              <View style={styles.imagePickerTextContainer}>
+                <Text style={styles.imagePickerOptionTitle}>Choose from Gallery</Text>
+                <Text style={styles.imagePickerOptionSubtitle}>Select an existing photo</Text>
+              </View>
+              <Feather name="chevron-right" size={20} color="#9CA3AF" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.imagePickerCancel}
+              onPress={() => setShowImagePicker(false)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.imagePickerCancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </Modal>
     </SafeAreaView>
   );
@@ -1542,5 +1649,83 @@ const styles = StyleSheet.create({
   },
   nextButtonDisabled: {
     opacity: 0.6
+  },
+  uploadButtonDisabled: {
+    opacity: 0.6
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end'
+  },
+  imagePickerModal: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 40
+  },
+  imagePickerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+    textAlign: 'center',
+    marginBottom: 8
+  },
+  imagePickerSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginBottom: 24
+  },
+  imagePickerOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB'
+  },
+  imagePickerIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1
+  },
+  imagePickerTextContainer: {
+    flex: 1
+  },
+  imagePickerOptionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 2
+  },
+  imagePickerOptionSubtitle: {
+    fontSize: 13,
+    color: '#6B7280'
+  },
+  imagePickerCancel: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 8,
+    alignItems: 'center'
+  },
+  imagePickerCancelText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6B7280'
   },
 });
