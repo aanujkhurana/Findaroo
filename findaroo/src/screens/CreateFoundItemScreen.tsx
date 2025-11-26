@@ -241,16 +241,23 @@ export const CreateFoundItemScreen = ({ navigation, route }: any) => {
   };
 
   const handlePickImage = async () => {
-    if (!user) return;
+    if (!user) {
+      console.log('[ImagePicker] No user found');
+      return;
+    }
 
     try {
+      console.log('[ImagePicker] Requesting media library permissions...');
       // Request media library permissions
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      console.log('[ImagePicker] Permission status:', status);
+
       if (status !== 'granted') {
         Alert.alert('Permission Required', 'Photo library permission is required to select images.');
         return;
       }
 
+      console.log('[ImagePicker] Showing image picker modal...');
       setShowImagePickerModal(true);
     } catch (error) {
       console.error('[ImagePicker] Permission error:', error);
@@ -260,6 +267,7 @@ export const CreateFoundItemScreen = ({ navigation, route }: any) => {
 
   const handleImagePickerOption = async (option: 'camera' | 'gallery') => {
     if (!user) return;
+    console.log('[ImagePickerOption] Selected option:', option);
     setShowImagePickerModal(false);
 
     try {
@@ -267,25 +275,32 @@ export const CreateFoundItemScreen = ({ navigation, route }: any) => {
       let result;
 
       if (option === 'camera') {
+        console.log('[ImagePickerOption] Requesting camera permissions...');
         // Request camera permissions
         const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        console.log('[ImagePickerOption] Camera permission status:', status);
+
         if (status !== 'granted') {
           Alert.alert('Permission Required', 'Camera permission is required to take photos.');
           return;
         }
 
+        console.log('[ImagePickerOption] Launching camera...');
         result = await ImagePicker.launchCameraAsync({
-          mediaTypes: 'images',
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
           allowsEditing: true,
           quality: 0.8,
         });
       } else {
+        console.log('[ImagePickerOption] Launching image library...');
         result = await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: 'images',
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
           allowsEditing: true,
           quality: 0.8,
         });
       }
+
+      console.log('[ImagePickerOption] Image picker result:', result);
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const asset = result.assets[0];

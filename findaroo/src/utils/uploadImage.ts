@@ -24,21 +24,6 @@ export const uploadImage = async (uri: string, filename: string, userId: string,
     const filePath = `${userId}/${timestamp}_${cleanFilename}`;
     console.log('[uploadImage] filePath:', filePath);
 
-    // Read file as base64 and convert to ArrayBuffer for better compatibility
-    const base64 = await FileSystem.readAsStringAsync(uri, {
-      encoding: FileSystem.EncodingType.Base64,
-    });
-
-    // Convert base64 to ArrayBuffer
-    const byteCharacters = atob(base64);
-    const byteNumbers = new Array(byteCharacters.length);
-    for (let i = 0; i < byteCharacters.length; i++) {
-      byteNumbers[i] = byteCharacters.charCodeAt(i);
-    }
-    const byteArray = new Uint8Array(byteNumbers);
-
-    console.log('[uploadImage] File size:', byteArray.length, 'bytes');
-
     // Detect content type from filename
     const contentType = mime.getType(filename) || 'image/jpeg';
     console.log('[uploadImage] Detected contentType:', contentType);
@@ -48,10 +33,24 @@ export const uploadImage = async (uri: string, filename: string, userId: string,
       throw new Error('Invalid file type. Only images are allowed.');
     }
 
-    // Upload to Supabase Storage using ArrayBuffer
+    // Read file as base64 for React Native compatibility
+    console.log('[uploadImage] Reading file as base64...');
+    const base64 = await FileSystem.readAsStringAsync(uri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+
+    console.log('[uploadImage] File read successfully, size:', base64.length, 'characters');
+
+    // Convert base64 to blob for upload
+    const response = await fetch(`data:${contentType};base64,${base64}`);
+    const blob = await response.blob();
+
+    console.log('[uploadImage] Blob created, size:', blob.size, 'bytes');
+
+    // Upload to Supabase Storage using blob
     const { data, error } = await supabase.storage
       .from(bucket)
-      .upload(filePath, byteArray, {
+      .upload(filePath, blob, {
         contentType,
         upsert: true
       });
