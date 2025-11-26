@@ -51,7 +51,7 @@ Findaroo is a mobile-first community app that helps people **find**, **report**,
 - `item_categories`: dropdown filtering
 - `storage.buckets`: `item-images`, `profile-pics`
 
-📄 See [`dropmate_erd_full.png`](./docs/dropmate_erd_full.png) for visual ERD.
+📄 See [`erd.png`](./ERD.png) for visual ERD.
 
 ---
 
