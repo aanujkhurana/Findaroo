@@ -51,7 +51,7 @@ Findaroo is a mobile-first community app that helps people **find**, **report**,
 - `item_categories`: dropdown filtering
 - `storage.buckets`: `item-images`, `profile-pics`
 
-📄 See [`erd.png`](./ERD.png) for visual ERD.
+<img src="./ERD.png" alt="ERD" style="max-width:100%;height:auto;">
 
 ---
 
@@ -127,11 +127,5 @@ This is a solo-founder prototype right now. If you want to:
 - Suggest features
 - Help test the MVP
 
-→ Reach out via [your email/Telegram/Discord].
-
----
-
-## 📬 Contact & Updates
-
-> Stay tuned for updates at **[findaroo.app]** (coming soon)
+→ Reach out via [aanujkhurana@gmail.com].
 
